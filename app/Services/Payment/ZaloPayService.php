@@ -35,7 +35,7 @@ class ZaloPayService
 
         $mac = hash_hmac('sha256', $data, $this->key1);
 
-        $response = Http::post($this->endpoint, [
+        $response = Http::withoutVerifying()->post($this->endpoint, [
             'app_id' => (int) $this->appId,
             'app_trans_id' => $appTransId,
             'app_user' => $appUser,

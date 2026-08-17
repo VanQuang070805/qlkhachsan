@@ -54,13 +54,25 @@
     }
     .detail-item .label { font-weight: 500; color: #4b5563; }
     .detail-item .value { font-weight: 600; color: #111827; }
+    .qr-code {
+        max-width: 200px;
+        margin: 20px auto;
+        position: relative;
+    }
+    .qr-code img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+    }
     @media print {
-        .navbar, footer, .action-buttons, .email-notification { display: none !important; }
+        .navbar, footer, .action-buttons, .email-notification, .qr-code { display: none !important; }
         .success-card { box-shadow: none; padding: 20px; }
     }
     @media (max-width: 768px) {
         .success-card { padding: 20px; }
         .detail-item { flex-direction: column; align-items: flex-start; }
+        .qr-code { max-width: 150px; }
     }
 </style>
 @endpush
@@ -134,6 +146,14 @@
                 </div>
             </div>
         </div>
+
+        @if(!empty($qr_base64))
+            <div class="qr-code">
+                <h4 class="mb-3 fw-bold" style="font-size: 1.1rem; color: #111827;">Mã QR Đặt Phòng</h4>
+                <img src="data:image/png;base64,{{ $qr_base64 }}" alt="Mã QR đặt phòng" loading="lazy">
+                <p class="text-muted small mt-2">Dùng mã QR này để check-in nhanh tại quầy lễ tân</p>
+            </div>
+        @endif
 
         <div class="action-buttons mt-4 d-flex gap-3 justify-content-center flex-wrap">
             <a href="{{ route('home') }}" class="btn btn-outline-warning">

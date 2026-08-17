@@ -6,6 +6,17 @@
     <p class="subtitle">Xác Nhận Khôi Phục Mật Khẩu</p>
     <p class="text-center mb-4" style="color: #475569;">Mã OTP đã được gửi đến email:<br><strong>{{ $email }}</strong></p>
 
+    @if(session('error'))
+        <div class="alert alert-danger text-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+        </div>
+    @endif
+    @if(session('success'))
+        <div class="alert alert-success text-center mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+        </div>
+    @endif
+
     <form action="{{ route('password.verify-otp') }}" method="POST">
         @csrf
         <div class="mb-4 text-start">
@@ -22,7 +33,7 @@
     </form>
     
     <div class="text-center">
-        <a href="{{ route('password.verify-otp') }}" class="btn btn-link p-0 text-decoration-none mt-1" style="color: #b08d28; font-weight: 500;">
+        <a href="{{ route('password.resend-otp') }}" class="btn btn-link p-0 text-decoration-none mt-1" style="color: #b08d28; font-weight: 500;">
             Gửi lại mã OTP
         </a>
     </div>

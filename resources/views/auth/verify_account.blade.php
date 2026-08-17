@@ -2,6 +2,17 @@
 
 @section('content')
 <div class="auth-card" data-aos="fade-up">
+    @if(session('error'))
+        <div class="alert alert-danger text-center mb-4" style="background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.2); color: #dc3545; border-radius: 10px; padding: 12px; font-size: 0.95rem;">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+        </div>
+    @endif
+    @if(session('success'))
+        <div class="alert alert-success text-center mb-4" style="background: rgba(25, 135, 84, 0.1); border: 1px solid rgba(25, 135, 84, 0.2); color: #198754; border-radius: 10px; padding: 12px; font-size: 0.95rem;">
+            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+        </div>
+    @endif
+
     <div class="auth-header">
         <h2>Xác thực tài khoản</h2>
         <p class="mb-0">Mã OTP đã được gửi đến email: <strong>{{ $email }}</strong></p>
@@ -28,7 +39,7 @@
         <div class="text-center mt-4">
             <p class="mb-0">Không nhận được mã?</p>
             <div id="resend-container">
-                <a href="{{ route('verify') }}" id="resend-link" class="resend-link">Gửi lại mã OTP</a>
+                <a href="{{ route('verify.resend') }}" id="resend-link" class="resend-link">Gửi lại mã OTP</a>
                 <p id="countdown-text" class="text-muted small mt-2" style="display: none;">Bạn có thể gửi lại mã sau <span id="timer">60</span> giây</p>
             </div>
         </div>

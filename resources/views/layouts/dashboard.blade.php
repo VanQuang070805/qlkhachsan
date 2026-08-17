@@ -132,18 +132,35 @@
             <span class="navbar-brand-text">Royal Hotel</span>
         </div>
         
-        <ul class="navbar-menu-links">
-            <li><a href="#"><i class="fa-solid fa-chart-line"></i> Tổng quan</a></li>
-            <li class="active"><a href="#"><i class="fa-solid fa-user-tie"></i> Lễ tân</a></li>
-            <li><a href="{{ route('booking.mine') }}"><i class="fa-solid fa-calendar-check"></i> Đặt phòng</a></li>
-            <li><a href="#"><i class="fa-solid fa-bed"></i> Khách lưu trú</a></li>
-            <li><a href="#"><i class="fa-solid fa-users"></i> Khách hàng</a></li>
-            <li><a href="#"><i class="fa-solid fa-credit-card"></i> Thanh toán</a></li>
-            <li><a href="#"><i class="fa-solid fa-chart-bar"></i> Báo cáo</a></li>
-        </ul>
         
         <div class="d-flex align-items-center gap-3">
-            <div class="d-flex align-items-center gap-2">
+            <div class="dropdown">
+                <button class="btn d-flex align-items-center gap-2 p-0 border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="https://ui-avatars.com/api/?name=Reception&background=0D8ABC&color=fff" class="rounded-circle border" width="38" height="38" alt="Avatar">
+                    <div class="d-none d-md-block text-start" style="line-height: 1.2;">
+                        <div class="fw-bold" style="font-size:0.85rem">{{ session('user.fullname', 'Lễ tân') }}</div>
+                        <span class="text-muted" style="font-size:0.75rem">Lễ tân</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down text-muted" style="font-size: 0.75rem;"></i>
+                </button>
+
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('receptionist.profile') }}" >
+                            <i class="fa-solid fa-id-card"></i>
+                            Hồ sơ nhân viên
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a href="{{ route('internalauth.logout') }}" class="dropdown-item d-flex align-items-center gap-2 text-danger">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                                Đăng xuất
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="d-none align-items-center gap-2">
                 <img src="https://ui-avatars.com/api/?name=Reception&background=0D8ABC&color=fff" class="rounded-circle border" width="38" height="38" alt="Avatar">
                 <div class="d-none d-md-block text-start" style="line-height: 1.2;">
                     <div class="fw-bold" style="font-size:0.85rem">{{ session('user.fullname', 'Lễ tân') }}</div>

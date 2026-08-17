@@ -133,7 +133,7 @@ class VietQRService
         if (!$log || !$log->reference_code) return null;
 
         try {
-            $response = Http::withToken($this->sePayToken)
+            $response = Http::withoutVerifying()->withToken($this->sePayToken)
                 ->timeout(5)
                 ->get("{$this->sePayApiUrl}/transactions/list", [
                     'transaction_content' => $log->reference_code,
@@ -182,7 +182,7 @@ class VietQRService
 
         // Gọi SePay API
         try {
-            $response = Http::withToken($this->sePayToken)
+            $response = Http::withoutVerifying()->withToken($this->sePayToken)
                 ->timeout(5)
                 ->get("{$this->sePayApiUrl}/transactions/list", [
                     'transaction_content' => $log->reference_code,

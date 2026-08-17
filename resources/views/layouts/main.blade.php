@@ -133,6 +133,204 @@
     </div>
 </footer>
 
+<!-- CHATBOT WIDGET -->
+<style>
+    /* Chatbot Styles */
+    #chatbot-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #d4af37 0%, #aa8c2c 100%);
+        color: white;
+        text-align: center;
+        line-height: 60px;
+        font-size: 28px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+        z-index: 1000;
+        transition: transform 0.3s;
+    }
+    #chatbot-btn:hover {
+        transform: scale(1.1);
+    }
+    #chatbot-window {
+        position: fixed;
+        bottom: 100px;
+        right: 30px;
+        width: 350px;
+        height: 450px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        display: none;
+        flex-direction: column;
+        z-index: 1000;
+        overflow: hidden;
+        border: 1px solid #e0e0e0;
+    }
+    #chatbot-header {
+        background: linear-gradient(135deg, #d4af37 0%, #aa8c2c 100%);
+        color: white;
+        padding: 15px;
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    #chatbot-header .close-btn {
+        cursor: pointer;
+        font-size: 20px;
+    }
+    #chatbot-messages {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        background: #f9f9f9;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .msg-bot {
+        background: #e9ecef;
+        color: #333;
+        padding: 10px 15px;
+        border-radius: 15px 15px 15px 0;
+        align-self: flex-start;
+        max-width: 80%;
+        font-size: 0.9rem;
+    }
+    .msg-user {
+        background: #d4af37;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 15px 15px 0 15px;
+        align-self: flex-end;
+        max-width: 80%;
+        font-size: 0.9rem;
+    }
+    #chatbot-input-area {
+        display: flex;
+        padding: 10px;
+        border-top: 1px solid #eee;
+        background: white;
+    }
+    #chatbot-input {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        padding: 8px 15px;
+        outline: none;
+    }
+    #chatbot-send {
+        background: #d4af37;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        margin-left: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    #chatbot-send:hover {
+        background: #b5952f;
+    }
+    .typing-indicator {
+        display: none;
+        align-self: flex-start;
+        color: #888;
+        font-size: 0.8rem;
+        font-style: italic;
+        margin-left: 15px;
+        margin-bottom: 5px;
+    }
+</style>
+
+<div id="chatbot-btn" onclick="toggleChat()">
+    <i class="bi bi-chat-dots-fill"></i>
+</div>
+
+<div id="chatbot-window">
+    <div id="chatbot-header">
+        <span><i class="bi bi-robot me-2"></i> Tư vấn viên AI</span>
+        <span class="close-btn" onclick="toggleChat()">&times;</span>
+    </div>
+    <div id="chatbot-messages">
+        <div class="msg-bot">Xin chào! Tôi là trợ lý ảo của Royal Hotel. Tôi có thể giúp gì cho bạn?</div>
+    </div>
+    <div class="typing-indicator" id="chatbot-typing">AI đang trả lời...</div>
+    <div id="chatbot-input-area">
+        <input type="text" id="chatbot-input" placeholder="Nhập câu hỏi..." onkeypress="handleEnter(event)">
+        <button id="chatbot-send" onclick="sendMessage()"><i class="bi bi-send-fill"></i></button>
+    </div>
+</div>
+
+<script>
+    function toggleChat() {
+        const chat = document.getElementById('chatbot-window');
+        chat.style.display = (chat.style.display === 'none' || chat.style.display === '') ? 'flex' : 'none';
+        if(chat.style.display === 'flex') {
+            document.getElementById('chatbot-input').focus();
+        }
+    }
+
+    function handleEnter(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    }
+
+    function appendMessage(text, sender) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = sender === 'user' ? 'msg-user' : 'msg-bot';
+        msgDiv.innerHTML = text;
+        
+        const chatContainer = document.getElementById('chatbot-messages');
+        chatContainer.appendChild(msgDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('chatbot-input');
+        const message = input.value.trim();
+        if (!message) return;
+
+        appendMessage(message, 'user');
+        input.value = '';
+        
+        const typingIndicator = document.getElementById('chatbot-typing');
+        typingIndicator.style.display = 'block';
+        
+        const chatContainer = document.getElementById('chatbot-messages');
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        fetch('{{ route('chatbot.api') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            typingIndicator.style.display = 'none';
+            if(data.reply) {
+                appendMessage(data.reply, 'bot');
+            } else {
+                appendMessage("Lỗi không xác định từ máy chủ.", 'bot');
+            }
+        })
+        .catch(err => {
+            typingIndicator.style.display = 'none';
+            appendMessage("Lỗi kết nối mạng.", 'bot');
+            console.error(err);
+        });
+    }
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 @stack('scripts')
 </body>

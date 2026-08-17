@@ -40,4 +40,9 @@ class User extends Authenticatable
     public function isReceptionist(): bool { return $this->role === 'receptionist'; }
     public function isCustomer(): bool     { return $this->role === 'customer'; }
     public function isVerified(): bool     { return $this->verified === true; }
+
+    public function countCustomers(): int
+    {
+        return self::where('role', 'customer')->orWhereNull('role')->count();
+    }
 }

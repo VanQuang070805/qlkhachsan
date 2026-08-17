@@ -38,7 +38,7 @@
                 </div>
 
                 <div style="background:#fff3cd;border:1px solid #ffeeba;padding:10px;border-radius:8px;margin-top:10px;font-size:14px;text-align:center;">
-                    Tự động xác nhận sau <strong id="countdown">3:00</strong>
+                    Mã hết hạn sau <strong id="countdown">1:00</strong>
                 </div>
 
                 {{-- Trạng thái polling --}}

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Room;
 use App\Models\RoomType;
-use App\Models\PricePolicy;
+use App\Models\PriceSetting;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -71,6 +71,10 @@ class RoomController extends Controller
             ->get();
 
         foreach ($roomTypes as $roomType) {
+            // Tính giá trung bình sau khi điều chỉnh cho khoảng ngày lưu trú
+            $totalAdjustedPrice = PriceSetting::calculateTotalPrice((float) $roomType->price, $checkIn, $checkOut);
+            $roomType->price = $totalAdjustedPrice / max($nights, 1);
+
             $roomType->available_rooms = $roomType->rooms->map(function ($r) use ($bookedRoomIds) {
                 $r->is_booked = $bookedRoomIds->contains($r->id);
                 return $r;
@@ -80,15 +84,9 @@ class RoomController extends Controller
         $totalAvailable = $roomTypes->sum('available_count');
         $allAmenities = \App\Models\Amenity::all();
 
-        // Áp dụng price policy
-        $multiplier = PricePolicy::getMultiplierForPeriod(
-            Carbon::parse($checkIn),
-            Carbon::parse($checkOut)
-        );
-
         return view('room.search', compact(
             'roomTypes', 'checkIn', 'checkOut',
-            'adults', 'children', 'nights', 'multiplier',
+            'adults', 'children', 'nights',
             'totalAvailable', 'allAmenities'
         ));
     }
@@ -107,6 +105,10 @@ class RoomController extends Controller
         // Lấy room_id đã bị đặt trong khoảng ngày (nếu có chọn ngày)
         $bookedRoomIds = collect();
         if ($checkIn && $checkOut) {
+            $nights = Carbon::parse($checkIn)->diffInDays(Carbon::parse($checkOut));
+            $totalAdjustedPrice = PriceSetting::calculateTotalPrice((float) $room->price, $checkIn, $checkOut);
+            $room->price = $totalAdjustedPrice / max($nights, 1);
+
             $bookedRoomIds = \DB::table('booking_rooms')
                 ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
                 ->where('bookings.payment_status', 'paid')

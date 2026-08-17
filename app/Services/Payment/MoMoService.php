@@ -49,7 +49,7 @@ class MoMoService
 
         $signature = hash_hmac('sha256', $rawHash, $this->secretKey);
 
-        $response = Http::post($this->endpoint, [
+        $response = Http::withoutVerifying()->post($this->endpoint, [
             'partnerCode' => $this->partnerCode,
             'partnerName' => 'Hotel',
             'storeId'     => 'HotelMain',

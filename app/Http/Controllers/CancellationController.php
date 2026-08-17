@@ -68,7 +68,7 @@ class CancellationController extends Controller
             'cancelled_at'        => now(),
             'cancellation_reason' => $request->reason,
             'refund_status'       => $isEligible ? 'eligible' : 'none',
-            'refund_amount'       => $isEligible ? $booking->total_price : 0,
+            'refund_amount'       => $isEligible ? $booking->deposit_amount : 0,
         ]);
 
         // Trả phòng về trạng thái available

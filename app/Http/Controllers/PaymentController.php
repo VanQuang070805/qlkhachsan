@@ -11,6 +11,13 @@ use App\Services\Payment\ZaloPayService;
 use App\Services\Payment\VNPayService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelHigh;
+use Endroid\QrCode\Color\Color;
 
 class PaymentController extends Controller
 {
@@ -239,7 +246,42 @@ class PaymentController extends Controller
     public function success(int $bookingId)
     {
         $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
-        return view('payment.success', compact('booking'));
+
+        $qr_base64 = '';
+        if (class_exists('Endroid\QrCode\QrCode')) {
+            try {
+                $checkInDate  = \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y');
+                $checkOutDate = \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y');
+
+                $qr_data  = "Ma don: #{$booking->id}\n";
+                $qr_data .= "Khách hàng: {$booking->customer_name}\n";
+                $qr_data .= "Ngày nhận: {$checkInDate}\n";
+                $qr_data .= "Ngày trả: {$checkOutDate}\n";
+               $depositPrice = $booking->total_price / 2;
+$qr_data .= "Tổng tiền phòng: " . number_format($booking->total_price) . " VNĐ\n";
+$qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
+                $qr_data .= "Danh sách phòng:\n";
+                foreach ($booking->rooms as $r) {
+                    $qr_data .= "- Phòng {$r->room_number} (Loại: " . ($r->roomType->name ?? '') . ")\n";
+                }
+
+                $qr = QrCode::create($qr_data)
+                    ->setEncoding(new Encoding('UTF-8'))
+                    ->setErrorCorrectionLevel(new ErrorCorrectionLevelHigh())
+                    ->setSize(300)
+                    ->setMargin(10)
+                    ->setForegroundColor(new Color(0, 0, 0))
+                    ->setBackgroundColor(new Color(255, 255, 255));
+
+                $writer = new PngWriter();
+                $result = $writer->write($qr);
+                $qr_base64 = base64_encode($result->getString());
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Không thể sinh mã QR base64 cho booking #{$bookingId}: " . $e->getMessage());
+            }
+        }
+
+        return view('payment.success', compact('booking', 'qr_base64'));
     }
 
     public function error(int $bookingId)
@@ -270,7 +312,8 @@ class PaymentController extends Controller
     // ── Core: xác nhận thanh toán thành công ─────────────
     private function confirmPayment(Booking $booking, string $gateway, string $transactionId, array $rawData): void
     {
-        \DB::transaction(function () use ($booking, $gateway, $transactionId, $rawData) {
+        $confirmed = false;
+        \DB::transaction(function () use ($booking, $gateway, $transactionId, $rawData, &$confirmed) {
             $booking = Booking::lockForUpdate()->find($booking->id);
             if ($booking->isPaid()) return;
 
@@ -286,26 +329,253 @@ class PaymentController extends Controller
             $booking->update([
                 'payment_status' => 'paid',
                 'status'         => 'confirmed',
+                'deposit_amount' => $booking->total_price / 2,
             ]);
 
-            foreach ($booking->rooms as $room) {
-                $room->update(['status' => 'soon_to_checkin']);
+            $confirmed = true;
+        });
+
+        if ($confirmed) {
+            try {
+                $this->sendPaymentConfirmationEmail($booking, $gateway, $transactionId);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Gửi email thanh toán thất bại cho booking #{$booking->id}: " . $e->getMessage());
+            }
+        }
+    }
+
+    private function sendPaymentConfirmationEmail(Booking $booking, string $method, string $transId): void
+    {
+        try {
+            $to      = $booking->customer_email;
+            $name    = $booking->customer_name;
+            $hotel   = config('app.name', 'Royal Hotel');
+            $subject = "💳 Thanh toán thành công – Đặt phòng #{$booking->id}";
+
+            $booking->loadMissing('rooms.roomType');
+            $rooms = $booking->rooms;
+
+            $qr_file = $this->generateQrCodeFile($booking, $rooms);
+            $body = $this->buildPaymentEmailHtml($booking, $rooms, $method, $transId, $hotel);
+            
+            $mailCfg = [
+                'host'       => config('mail.mailers.smtp.host'),
+                'port'       => config('mail.mailers.smtp.port'),
+                'username'   => config('mail.mailers.smtp.username'),
+                'password'   => config('mail.mailers.smtp.password'),
+                'encryption' => config('mail.mailers.smtp.encryption'),
+                'from_email' => config('mail.from.address'),
+                'from_name'  => config('mail.from.name'),
+            ];
+
+            $this->sendMailWithPHPMailer($to, $name, $subject, $body, $mailCfg, $qr_file);
+            
+            if ($qr_file && file_exists($qr_file)) {
+                unlink($qr_file);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Gửi email thanh toán thất bại cho booking #{$booking->id}: " . $e->getMessage());
+        }
+    }
+
+    private function generateQrCodeFile(Booking $booking, $rooms): string
+    {
+        if (!class_exists('Endroid\QrCode\QrCode')) {
+            return '';
+        }
+
+        $checkInDate  = \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y');
+        $checkOutDate = \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y');
+
+        $qr_data  = "Ma don: #{$booking->id}\n";
+        $qr_data .= "Khách hàng: {$booking->customer_name}\n";
+        $qr_data .= "Ngày nhận: {$checkInDate}\n";
+        $qr_data .= "Ngày trả: {$checkOutDate}\n";
+        $qr_data .= "Tổng tiền: " . number_format($booking->total_price) . " VNĐ\n";
+        $qr_data .= "Danh sách phòng:\n";
+        foreach ($rooms as $r) {
+            $qr_data .= "- Phòng {$r->room_number} (Loại: " . ($r->roomType->name ?? '') . ")\n";
+        }
+
+        $qr = QrCode::create($qr_data)
+            ->setEncoding(new Encoding('UTF-8'))
+            ->setErrorCorrectionLevel(new ErrorCorrectionLevelHigh())
+            ->setSize(300)
+            ->setMargin(10)
+            ->setForegroundColor(new Color(0, 0, 0))
+            ->setBackgroundColor(new Color(255, 255, 255));
+
+        $writer = new PngWriter();
+        $result = $writer->write($qr);
+
+        $tempDir = public_path('temp');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0777, true);
+        }
+        $qr_file = $tempDir . "/qr_{$booking->id}.png";
+        file_put_contents($qr_file, $result->getString());
+
+        return $qr_file;
+    }
+
+    private function sendMailWithPHPMailer(string $to, string $name, string $subject, string $body, array $mailCfg, ?string $attachment = null): void
+    {
+        if (empty($to)) return;
+
+        if (class_exists('PHPMailer\PHPMailer\PHPMailer') && !empty($mailCfg['host'])) {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host       = $mailCfg['host'];
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $mailCfg['username'];
+            $mail->Password   = $mailCfg['password'];
+            $mail->SMTPSecure = $mailCfg['encryption'] ?? 'tls';
+            $mail->Port       = $mailCfg['port'] ?? 587;
+            $mail->CharSet    = 'UTF-8';
+            $mail->setFrom($mailCfg['from_email'] ?? $mailCfg['username'], $mailCfg['from_name'] ?? 'Khách Sạn');
+            $mail->addAddress($to, $name);
+            
+            if ($attachment && file_exists($attachment)) {
+                $mail->addAttachment($attachment, 'CheckIn_QR.png');
+            }
+            
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body    = $body;
+            $mail->send();
+            return;
+        }
+
+        // Fallback: Laravel default mailer
+        \Illuminate\Support\Facades\Mail::html($body, function ($message) use ($to, $name, $subject, $attachment) {
+            $message->to($to, $name)
+                    ->subject($subject);
+            if ($attachment && file_exists($attachment)) {
+                $message->attach($attachment, ['as' => 'CheckIn_QR.png']);
             }
         });
+    }
+
+    private function buildPaymentEmailHtml(Booking $b, $rooms, string $method, string $transId, string $hotel): string
+    {
+      $depositPrice = (float)$b->total_price / 2;   
+$price = number_format($depositPrice, 0, ',', '.') . ' ₫';
+        $supportedMethods = [
+            'cash'    => 'Tiền mặt tại quầy',
+            'vietqr'  => 'Chuyển khoản VietQR',
+            'momo'    => 'Ví MoMo',
+            'zalopay' => 'Ví ZaloPay',
+            'vnpay'   => 'Cổng VNPay',
+        ];
+        $methodLabel = $supportedMethods[$method] ?? $method;
+        
+        $roomListHtml = '';
+        foreach ($rooms as $r) {
+            $roomListHtml .= "<li>Phòng <strong>{$r->room_number}</strong> - Hạng phòng: " . ($r->roomType->name ?? '') . "</li>";
+        }
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<style>
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; color: #333333; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .header { background-color: #059669; color: #ffffff; padding: 35px 20px; text-align: center; }
+    .header h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .header p { margin: 10px 0 0; font-size: 15px; opacity: 0.9; }
+    .content { padding: 30px; }
+    .greeting { font-size: 18px; margin-bottom: 20px; color: #111827; }
+    .payment-badge { display: inline-block; background-color: #d1fae5; color: #047857; padding: 10px 20px; border-radius: 30px; font-weight: bold; font-size: 16px; margin-bottom: 25px; border: 1px solid #a7f3d0; letter-spacing: 0.5px; }
+    .section-title { font-size: 16px; font-weight: bold; color: #059669; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 15px; margin-top: 25px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .details-table { width: 100%; border-collapse: collapse; }
+    .details-table td { padding: 12px 0; border-bottom: 1px solid #f3f4f6; font-size: 15px; }
+    .details-table td:first-child { color: #6b7280; width: 45%; }
+    .details-table td:last-child { font-weight: 600; text-align: right; color: #111827; }
+    .room-list { background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 15px 0; border: 1px solid #f3f4f6; }
+    .room-list ul { margin: 0; padding-left: 20px; color: #4b5563; }
+    .room-list li { margin-bottom: 8px; font-size: 15px; }
+    .room-list li:last-child { margin-bottom: 0; }
+    .total-box { background-color: #059669; color: #ffffff; padding: 20px; border-radius: 8px; text-align: center; margin-top: 30px; }
+    .total-box p { margin: 0; font-size: 14px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
+    .total-box h2 { margin: 8px 0 0; font-size: 32px; }
+    .qr-notice { text-align: center; background-color: #fef3c7; color: #92400e; padding: 15px; border-radius: 8px; margin-top: 25px; font-size: 14px; border: 1px solid #fde68a; line-height: 1.5; }
+    .footer { background-color: #f9fafb; padding: 20px; text-align: center; font-size: 13px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>{$hotel}</h1>
+        <p>Giao Dịch Thành Công</p>
+    </div>
+    <div class="content">
+        <div style="text-align: center;">
+            <div class="payment-badge">✓ ĐÃ ĐẶT CỌC</div>
+        </div>
+
+        <div class="greeting">Kính gửi <strong>{$b->customer_name}</strong>,</div>
+       <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Cảm ơn quý khách. Khoản đặt cọc 50% tiền phòng của quý khách đã được ghi nhận thành công trên hệ thống. Số tiền còn lại quý khách vui lòng thanh toán khi nhận phòng.</p>
+<p>Đã Đặt Cọc (50%)</p>
+        
+        <div class="section-title">Chi Tiết Giao Dịch</div>
+        <table class="details-table">
+            <tr><td>Mã đặt phòng</td><td>#{$b->id}</td></tr>
+            <tr><td>Mã giao dịch (TransID)</td><td>{$transId}</td></tr>
+            <tr><td>Phương thức TT</td><td>{$methodLabel}</td></tr>
+            <tr><td>Trạng thái</td><td style="color: #059669;">Thành công</td></tr>
+        </table>
+
+        <div class="section-title">Danh Sách Phòng Đã Đặt</div>
+        <div class="room-list">
+            <ul>{$roomListHtml}</ul>
+        </div>
+
+        <div class="total-box">
+            <p>Đã Thanh Toán</p>
+            <h2>{$price}</h2>
+        </div>
+
+        <div class="qr-notice">
+            <strong>Lưu ý quan trọng:</strong> Vui lòng lưu lại email này và xuất trình <strong>Mã QR đính kèm</strong> khi đến làm thủ tục nhận phòng tại quầy Lễ tân.
+        </div>
+    </div>
+    <div class="footer">
+        <p>&copy; 2026 {$hotel}. All rights reserved.</p>
+        <p>Email này được tạo tự động, vui lòng không trả lời.</p>
+    </div>
+</div>
+</body>
+</html>
+HTML;
     }
     public function staffCheckoutPayment(Request $request, int $bookingId)
     {
         $booking = Booking::with('rooms')->findOrFail($bookingId);
-        $method  = $request->input('payment_method');
-
+        $waive = $request->boolean('waive_late_fee', false);
+        $method = $request->input('payment_method');
         // Tiền mặt — xác nhận luôn
         if ($method === 'cash') {
-            \DB::transaction(function () use ($booking) {
+            \DB::transaction(function () use ($booking, $waive) {
+                $now = now();
+                $checkoutHour = $now->hour + $now->minute / 60;
+                $lateFee = 0;
+                $expectedCheckout = \Carbon\Carbon::parse($booking->check_out)->startOfDay();
+                $today = now('Asia/Ho_Chi_Minh')->startOfDay();
+                $isLateDay = $today->greaterThanOrEqualTo($expectedCheckout); // đúng ngày hoặc muộn hơn
+
+                if ($checkoutHour > 12.5 && $isLateDay && !$waive) {
+                    $nightRate = $booking->rooms->sum(fn($r) => (float)($r->roomType->price ?? 0));
+                    $lateFee = $checkoutHour <= 18 ? round($nightRate * 0.5, 2) : $nightRate;
+                }
+
                 $booking->update([
-                    'status'           => 'completed',
-                    'actual_check_out' => now(),
-                    'payment_status'   => 'paid',
-                    'payment_method'   => 'cash',
+                    'status'            => 'completed',
+                    'actual_check_out'  => now(),
+                    'payment_status'    => 'paid',
+                    'payment_method'    => 'cash',
+                    'late_checkout_fee' => $lateFee,
                 ]);
                 foreach ($booking->rooms as $room) {
                     $room->update(['status' => Room::STATUS_CLEANING]);
@@ -318,6 +588,7 @@ class PaymentController extends Controller
         // Trạng thái sẽ được cập nhật sau khi thanh toán thực sự thành công
         $booking->update([
             'payment_method' => $method,
+            'waive_late_fee' => $waive,
         ]);
 
         $url = match($method) {
@@ -336,8 +607,24 @@ class PaymentController extends Controller
     }
     public function staffVietQR(int $bookingId)
     {
-        $booking   = Booking::with('rooms.roomType')->findOrFail($bookingId);
-        $remaining = (int) ($booking->total_price - $booking->deposit_amount);
+        $booking  = Booking::with('rooms.roomType')->findOrFail($bookingId);
+        $now      = now();
+        $checkoutHour = $now->hour + $now->minute / 60;
+        
+            
+        $lateFee = 0;
+        $expectedCheckout = \Carbon\Carbon::parse($booking->check_out)->startOfDay();
+        $today = now('Asia/Ho_Chi_Minh')->startOfDay();
+        $isLateDay = $today->greaterThanOrEqualTo($expectedCheckout);
+
+        if ($checkoutHour > 12.5 && $isLateDay && !$booking->waive_late_fee) {
+            $nightRate = $booking->rooms->sum(fn($r) => (float)($r->roomType->price ?? 0));
+            $lateFee   = $checkoutHour <= 18 ? round($nightRate * 0.5, 2) : $nightRate;
+        }
+        // Lưu fee vào DB luôn để staffCheckStatus dùng lại
+        $booking->update(['late_checkout_fee' => $lateFee]);
+
+        $remaining = (int) ($booking->total_price - $booking->deposit_amount + $lateFee);
         $qrData    = $this->vietqr->generateCheckoutQR($booking, $remaining);
         return view('payment.vietqr_checkout', compact('booking', 'qrData', 'remaining'));
     }
@@ -348,7 +635,7 @@ class PaymentController extends Controller
      */
     public function staffCheckStatus(int $bookingId): JsonResponse
     {
-        $booking = Booking::with('rooms')->findOrFail($bookingId);
+        $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
 
         if ($booking->status === 'completed' && $booking->payment_status === 'paid') {
             return response()->json([
@@ -363,7 +650,18 @@ class PaymentController extends Controller
             \DB::transaction(function () use ($booking, $transaction) {
                 $booking = Booking::lockForUpdate()->find($booking->id);
                 if ($booking->status === 'completed') return;
+                $booking->loadMissing('rooms.roomType');
+                $now = now();
+                $checkoutHour = $now->hour + $now->minute / 60;
+                $lateFee = 0;
+                $expectedCheckout = \Carbon\Carbon::parse($booking->check_out)->startOfDay();
+                $today = now('Asia/Ho_Chi_Minh')->startOfDay();
+                $isLateDay = $today->greaterThanOrEqualTo($expectedCheckout);
 
+                if ($checkoutHour > 12.5 && $isLateDay && !$booking->waive_late_fee) {
+                    $nightRate = $booking->rooms->sum(fn($r) => (float)($r->roomType->price ?? 0));
+                    $lateFee = $checkoutHour <= 18 ? round($nightRate * 0.5, 2) : $nightRate;
+                }
                 \App\Models\PaymentLog::create([
                     'booking_id'     => $booking->id,
                     'gateway'        => 'vietqr',
@@ -377,6 +675,7 @@ class PaymentController extends Controller
                     'status'           => 'completed',
                     'actual_check_out' => now(),
                     'payment_status'   => 'paid',
+                    'late_checkout_fee' => $lateFee,
                 ]);
 
                 foreach ($booking->rooms as $room) {
