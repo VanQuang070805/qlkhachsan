@@ -1,0 +1,4 @@
+# OpenCV + NumPy on Pi: sudo apt install python3-opencv python3-numpy
+# venv must be created using --system-site-packages.
+requests>=2.32.3,<3
+urllib3>=2.3,<3
