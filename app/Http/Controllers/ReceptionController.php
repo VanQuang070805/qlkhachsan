@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use App\Models\Room;
 use App\Models\Booking;
 use App\Models\PriceSetting;
+use App\Services\FaceId\FaceIdService;
 
 class ReceptionController extends Controller
 {
@@ -302,7 +303,7 @@ class ReceptionController extends Controller
     /**
      * Cập nhật trạng thái phòng (Check-in booking hoặc Checkout phòng/booking).
      */
-    public function updateStatus(Request $request)
+    public function updateStatus(Request $request, FaceIdService $faceIds)
     {
         $roomId = (int) $request->input('room_id');
         $status = $request->input('status');
@@ -386,10 +387,12 @@ class ReceptionController extends Controller
 
                         if ((int) ($remaining->cnt ?? 0) === 0) {
                             DB::update("UPDATE bookings SET status = 'completed', actual_check_out = NOW(), payment_status = 'paid' WHERE id = ?", [$booking->id]);
+                            $faceIds->deactivateForBooking((int) $booking->id);
                         }
                     } else {
                         // Trả toàn bộ booking
                         DB::update("UPDATE bookings SET status = 'completed', actual_check_out = NOW(), payment_status = 'paid' WHERE id = ?", [$booking->id]);
+                        $faceIds->deactivateForBooking((int) $booking->id);
                         
                         $rooms = DB::select("SELECT room_id FROM booking_rooms WHERE booking_id = ?", [$booking->id]);
                         foreach ($rooms as $r) {

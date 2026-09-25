@@ -27,11 +27,11 @@ class VietQRService
 
     public function __construct()
     {
-        $this->bankBin     = config('payment.vietqr.bank_bin');      // VD: '970422' (MB Bank)
-        $this->accountNo   = config('payment.vietqr.account_no');
-        $this->accountName = config('payment.vietqr.account_name');
+        $this->bankBin     = (string) config('payment.vietqr.bank_bin', '970422');
+        $this->accountNo   = (string) config('payment.vietqr.account_no', '');
+        $this->accountName = (string) config('payment.vietqr.account_name', '');
         $this->sePayToken  = config('payment.vietqr.sepay_token');
-        $this->sePayApiUrl = config('payment.vietqr.sepay_api_url', 'https://my.sepay.vn/userapi');
+        $this->sePayApiUrl = (string) config('payment.vietqr.sepay_api_url', 'https://my.sepay.vn/userapi');
     }
 
     /**

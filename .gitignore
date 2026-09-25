@@ -20,6 +20,7 @@
 /storage/pail
 /vendor
 /.mysql-data
+/.recovery-backup
 /.mysql-workspace.ini
 Homestead.json
 Homestead.yaml

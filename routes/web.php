@@ -14,6 +14,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\RecceiptionUsserController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\FaceIdController;
 
 // ============================================================
 // PUBLIC — Không cần đăng nhập
@@ -101,15 +102,14 @@ Route::prefix('receptionist')->name('receptionist.')->group(function () {
 // RECEPTIONIST + ADMIN — Quản lý đặt phòng
 // ============================================================
 Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->name('staff.')->group(function () {
-    Route::get('/iot', function () {
-        $cameraUrl = config('iot.camera_stream_url');
-        $cameraLinkAllowed = filter_var($cameraUrl, FILTER_VALIDATE_URL)
-            && in_array(parse_url($cameraUrl, PHP_URL_SCHEME), ['http', 'https'], true)
-            && !parse_url($cameraUrl, PHP_URL_USER) && !parse_url($cameraUrl, PHP_URL_PASS);
-
-        return response()->view('staff.iot', compact('cameraUrl', 'cameraLinkAllowed'))
-            ->header('Cache-Control', 'no-store');
-    })->name('iot');
+    Route::get('/iot', [FaceIdController::class, 'index'])->name('iot');
+    Route::post('/face-id/sessions', [FaceIdController::class, 'createSession'])->name('face-id.sessions.create');
+    Route::post('/face-id/sessions/{sessionId}/samples', [FaceIdController::class, 'addSample'])->name('face-id.samples.store');
+    Route::delete('/face-id/sessions/{sessionId}', [FaceIdController::class, 'cancelSession'])->name('face-id.sessions.cancel');
+    Route::post('/face-id/recognize', [FaceIdController::class, 'recognize'])->name('face-id.recognize');
+    Route::get('/face-id/health', [FaceIdController::class, 'health'])->name('face-id.health');
+    Route::post('/face-id/sync', [FaceIdController::class, 'sync'])->name('face-id.sync');
+    Route::post('/face-id/full-sync', [FaceIdController::class, 'fullSync'])->name('face-id.full-sync');
     Route::get('/bookings',                           [ReceptionController::class, 'index'])->name('bookings');
     Route::patch('/bookings/{id}/confirm',            [BookingController::class, 'confirm'])->name('bookings.confirm');
     Route::patch('/bookings/{id}/checkin',            [BookingController::class, 'checkIn'])->name('bookings.checkin');

@@ -12,6 +12,18 @@ class Booking extends Model
         parent::boot();
 
         static::updated(function ($booking) {
+            if ($booking->wasChanged('status') && in_array($booking->status, ['completed', 'cancelled'], true)) {
+                try {
+                    app(\App\Services\FaceId\FaceIdService::class)->deactivateForBooking((int) $booking->id);
+                } catch (\Throwable $e) {
+                    // Checkout must remain available even when Face ID cleanup needs a later retry.
+                    \Illuminate\Support\Facades\Log::error('Không thể vô hiệu hóa Face ID sau checkout', [
+                        'booking_id' => $booking->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             if ($booking->wasChanged('status') && $booking->status === 'completed') {
                 try {
                     $booking->loadMissing('rooms.roomType');
@@ -101,6 +113,11 @@ class Booking extends Model
     public function paymentLogs()
     {
         return $this->hasMany(PaymentLog::class);
+    }
+
+    public function faceProfile()
+    {
+        return $this->hasOne(FaceProfile::class);
     }
 
     // ── Status Helpers ─────────────────────────────────────

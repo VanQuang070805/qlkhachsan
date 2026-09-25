@@ -19,12 +19,12 @@ class MoMoService
 
     public function __construct()
     {
-        $this->partnerCode = config('payment.momo.partner_code');
-        $this->accessKey   = config('payment.momo.access_key');
-        $this->secretKey   = config('payment.momo.secret_key');
-        $this->endpoint    = config('payment.momo.endpoint', 'https://payment.momo.vn/v2/gateway/api/create');
+        $this->partnerCode = (string) config('payment.momo.partner_code', '');
+        $this->accessKey   = (string) config('payment.momo.access_key', '');
+        $this->secretKey   = (string) config('payment.momo.secret_key', '');
+        $this->endpoint    = (string) config('payment.momo.endpoint', 'https://payment.momo.vn/v2/gateway/api/create');
         $this->notifyUrl   = route('webhook.momo');
-        $this->returnUrl   = config('payment.momo.return_url'); // trang redirect sau khi thanh toán
+        $this->returnUrl   = (string) config('payment.momo.return_url', route('payment.momo.return'));
     }
 
     public function createPaymentUrl(Booking $booking): string

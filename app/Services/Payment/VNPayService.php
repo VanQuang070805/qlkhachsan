@@ -13,9 +13,9 @@ class VNPayService
 
     public function __construct()
     {
-        $this->tmnCode    = config('payment.vnpay.tmn_code');
-        $this->hashSecret = config('payment.vnpay.hash_secret');
-        $this->url        = config('payment.vnpay.url', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
+        $this->tmnCode    = (string) config('payment.vnpay.tmn_code', '');
+        $this->hashSecret = (string) config('payment.vnpay.hash_secret', '');
+        $this->url        = (string) config('payment.vnpay.url', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
         $this->returnUrl  = route('webhook.vnpay.return');
     }
 

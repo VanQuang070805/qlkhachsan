@@ -1,0 +1,16 @@
+# Python environments and generated files
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/*.py[cod]
+
+# Runtime databases and private biometric data
+pc/data/*
+!pc/data/.gitkeep
+pi/data/*
+!pi/data/.gitkeep
+
+# Download models separately on each device
+pc/models/*.onnx
+pi/models/*.onnx
+

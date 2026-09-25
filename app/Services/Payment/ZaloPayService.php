@@ -14,10 +14,10 @@ class ZaloPayService
 
     public function __construct()
     {
-        $this->appId    = config('payment.zalopay.app_id');
-        $this->key1     = config('payment.zalopay.key1');
-        $this->key2     = config('payment.zalopay.key2');
-        $this->endpoint = config('payment.zalopay.endpoint', 'https://sb-openapi.zalopay.vn/v2/create');
+        $this->appId    = (string) config('payment.zalopay.app_id', '');
+        $this->key1     = (string) config('payment.zalopay.key1', '');
+        $this->key2     = (string) config('payment.zalopay.key2', '');
+        $this->endpoint = (string) config('payment.zalopay.endpoint', 'https://sb-openapi.zalopay.vn/v2/create');
     }
 
     public function createPaymentUrl(Booking $booking): string
