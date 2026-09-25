@@ -41,10 +41,15 @@ Chép nội dung `face_recognition/pi` sang Pi, tạo `.env` từ `.env.example`
 cùng `FACE_API_KEY` với Laravel và sửa `ESP32_CAM_URL`:
 
 ```bash
-python3 -m venv .venv
+sudo apt install -y python3-opencv python3-numpy python3-venv
+python3 -m venv --system-site-packages .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python run_recognition.py
 ```
+
+Trên Pi có desktop, `SHOW_PREVIEW=true` sẽ mở cửa sổ camera kèm khung mặt,
+trạng thái nhận diện và similarity. Nhấn `Q` hoặc `Esc` để đóng. Đặt
+`SHOW_PREVIEW=false` khi chạy headless/SSH hoặc khi OpenCV không có GUI.
 
 `run_api.py` chỉ chạy API/cache. `run_recognition.py` chạy cả API và worker đọc
 ESP32-CAM. Trên PC, sửa `FACE_PI_BASE_URL` trong `.env` thành IP LAN của Pi rồi
@@ -78,4 +83,3 @@ chỉnh bằng dữ liệu thực tế của khách sạn.
 - Không log embedding hoặc API key.
 - Checkout vô hiệu hóa profile trên PC và tạo DELETE PENDING; scheduler retry
   đến khi Pi xác nhận.
-

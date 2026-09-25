@@ -32,6 +32,7 @@ class PiConfig:
     start_recognition: bool = False
     reconnect_initial: float = 1.0
     reconnect_max: float = 15.0
+    show_preview: bool = True
 
     @classmethod
     def from_env(cls) -> "PiConfig":
@@ -50,6 +51,7 @@ class PiConfig:
             start_recognition=os.getenv("START_RECOGNITION", "false").lower() in {"1", "true", "yes"},
             reconnect_initial=float(os.getenv("CAMERA_RECONNECT_INITIAL", "1")),
             reconnect_max=float(os.getenv("CAMERA_RECONNECT_MAX", "15")),
+            show_preview=os.getenv("SHOW_PREVIEW", "true").lower() in {"1", "true", "yes"},
         )
         config.validate()
         return config

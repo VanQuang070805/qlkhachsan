@@ -49,32 +49,63 @@ class RecognitionWorker:
         frame_count = processed = 0
         started = last_fps_log = time.monotonic()
         last_result: str | None = None
+        last_label = "UNKNOWN"
+        last_box: tuple[int, int, int, int] | None = None
+        last_score = 0.0
+        preview_enabled = self.config.show_preview
+        window_name = "Hotel Face ID - Raspberry Pi (Q/Esc to close)"
         try:
             for frame in camera.frames(self.stop_event):
                 frame_count += 1
-                if frame_count % self.config.process_every_n_frames:
-                    continue
-                processed += 1
-                faces = detector.detect(frame)
-                result = "UNKNOWN"
-                best_score = 0.0
-                if faces:
-                    face = max(faces, key=lambda item: item.box[2] * item.box[3])
-                    embedding = recognizer.embedding(frame, face)
-                    matched, best_score = self.cache.match(embedding, self.config.recognition_threshold)
-                    if matched:
-                        result = f"{matched.customer_id}|{matched.name}|{matched.room}"
-                if result != last_result:
-                    if result == "UNKNOWN":
-                        LOGGER.info("Recognition: UNKNOWN similarity=%.3f", best_score)
-                    else:
-                        customer_id, name, room = result.split("|", 2)
-                        LOGGER.info("Recognition: customer_id=%s name=%s room=%s similarity=%.3f", customer_id, name, room, best_score)
-                    last_result = result
+                if frame_count % self.config.process_every_n_frames == 0:
+                    processed += 1
+                    faces = detector.detect(frame)
+                    result = "UNKNOWN"
+                    last_label = "UNKNOWN"
+                    last_box = None
+                    last_score = 0.0
+                    if faces:
+                        face = max(faces, key=lambda item: item.box[2] * item.box[3])
+                        last_box = face.box
+                        embedding = recognizer.embedding(frame, face)
+                        matched, last_score = self.cache.match(embedding, self.config.recognition_threshold)
+                        if matched:
+                            result = f"{matched.customer_id}|{matched.name}|{matched.room}"
+                            last_label = f"MATCH: {matched.name} | Room {matched.room}"
+                    if result != last_result:
+                        if result == "UNKNOWN":
+                            LOGGER.info("Recognition: UNKNOWN similarity=%.3f", last_score)
+                        else:
+                            customer_id, name, room = result.split("|", 2)
+                            LOGGER.info("Recognition: customer_id=%s name=%s room=%s similarity=%.3f", customer_id, name, room, last_score)
+                        last_result = result
+
+                if preview_enabled:
+                    preview = frame.copy()
+                    color = (0, 190, 0) if last_label.startswith("MATCH:") else (0, 0, 220)
+                    if last_box:
+                        x, y, width, height = last_box
+                        cv2.rectangle(preview, (x, y), (x + width, y + height), color, 2)
+                    status = f"{last_label} | similarity={last_score:.3f}"
+                    cv2.rectangle(preview, (0, 0), (preview.shape[1], 34), (20, 20, 20), -1)
+                    cv2.putText(preview, status, (8, 23), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
+                    try:
+                        cv2.imshow(window_name, preview)
+                        if cv2.waitKey(1) & 0xFF in (ord("q"), 27):
+                            LOGGER.info("Preview closed by user")
+                            self.stop_event.set()
+                            break
+                    except cv2.error:
+                        LOGGER.warning("OpenCV GUI is unavailable; continuing without preview")
+                        preview_enabled = False
                 now = time.monotonic()
                 if now - last_fps_log >= 5:
                     LOGGER.info("Recognition FPS=%.1f processed=%d cache=%d", frame_count / max(now - started, 0.001), processed, self.cache.size)
                     last_fps_log = now
         finally:
             camera.close()
-
+            if preview_enabled:
+                try:
+                    cv2.destroyWindow(window_name)
+                except cv2.error:
+                    pass

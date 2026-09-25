@@ -1,8 +1,8 @@
 # Raspberry Pi OS 64-bit and Python 3.10+ recommended.
-# Headless OpenCV avoids GUI dependencies on the Pi.
+# Install python3-opencv/python3-numpy with apt and create the venv with
+# --system-site-packages so Qt camera preview remains available.
 fastapi>=0.115,<1.0
 uvicorn>=0.30,<1.0
-opencv-contrib-python-headless>=4.10,<5.0
 numpy>=1.26,<3.0
 requests>=2.32,<3.0
 httpx>=0.27,<1.0
