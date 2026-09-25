@@ -87,6 +87,22 @@ class Booking extends Model
         'waive_late_fee'  => 'boolean',
     ];
 
+    /** Shared reservation window for search, booking and payment. */
+    public static function reservedRoomIds(string $checkIn, string $checkOut, ?int $excludeId = null)
+    {
+        $createdColumn = 'bookings.'.(new static)->getCreatedAtColumn();
+        return \Illuminate\Support\Facades\DB::table('booking_rooms')
+            ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
+            ->whereNotIn('bookings.status', ['cancelled', 'completed'])
+            ->when($excludeId, fn ($query) => $query->where('bookings.id', '!=', $excludeId))
+            ->where('bookings.check_in', '<', $checkOut)->where('bookings.check_out', '>', $checkIn)
+            ->where(function ($query) use ($createdColumn) {
+                $query->whereIn('bookings.status', ['confirmed', 'checked_in'])
+                    ->orWhere('bookings.payment_status', 'paid')
+                    ->orWhere(fn ($pending) => $pending->where('bookings.status', 'pending')->where($createdColumn, '>=', now()->subMinutes(30)));
+            })->pluck('booking_rooms.room_id');
+    }
+
     // ── Relations ──────────────────────────────────────────
     public function user()
     {
@@ -179,12 +195,18 @@ class Booking extends Model
     {
         list($whereSql, $params) = $this->buildReportConditions($filters);
 
+        $nightExpression = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite'
+            ? "julianday(b.check_out) - julianday(b.check_in)"
+            : "DATEDIFF(b.check_out, b.check_in)";
+
         $sql = "SELECT 
                     SUM(CASE WHEN b.payment_status = 'paid' AND b.status != 'cancelled' THEN b.total_price ELSE 0 END) AS total_revenue,
                     COUNT(*) AS total_bookings,
-                    SUM(DATEDIFF(b.check_out, b.check_in)) AS total_nights,
+                    SUM($nightExpression) AS total_nights,
                     SUM(CASE WHEN b.status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
                     SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_count,
+                    SUM(CASE WHEN b.status = 'checked_in' THEN 1 ELSE 0 END) AS checked_in_count,
+                    SUM(CASE WHEN b.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
                     SUM(CASE WHEN b.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count
                 FROM bookings b
                 WHERE $whereSql";
@@ -205,6 +227,8 @@ class Booking extends Model
             'total_nights' => $totalNights,
             'pending_count' => (int)($r['pending_count'] ?? 0),
             'confirmed_count' => (int)($r['confirmed_count'] ?? 0),
+            'checked_in_count' => (int)($r['checked_in_count'] ?? 0),
+            'completed_count' => (int)($r['completed_count'] ?? 0),
             'cancelled_count' => $cancelledCount,
             'avg_revenue' => $avgRevenue,
             'cancel_rate' => $cancelRate
@@ -215,12 +239,29 @@ class Booking extends Model
     {
         list($whereSql, $params) = $this->buildReportConditions($filters);
         
-        $sql = "SELECT b.check_in AS date, SUM(b.total_price) AS revenue
+        $sql = "SELECT b.check_in AS date,
+                       SUM(CASE WHEN b.payment_status = 'paid' AND b.status != 'cancelled' THEN b.total_price ELSE 0 END) AS revenue,
+                       COUNT(*) AS bookings
                 FROM bookings b
-                WHERE $whereSql AND b.payment_status = 'paid' AND b.status != 'cancelled'
+                WHERE $whereSql
                 GROUP BY b.check_in
                 ORDER BY b.check_in ASC";
         
+        return \Illuminate\Support\Facades\DB::select($sql, $params);
+    }
+
+    public function getReportRoomTypeData(array $filters): array
+    {
+        list($whereSql, $params) = $this->buildReportConditions($filters);
+        $sql = "SELECT rt.id, rt.type_name, COUNT(DISTINCT b.id) AS bookings
+                  FROM bookings b
+                  JOIN booking_rooms br ON br.booking_id = b.id
+                  JOIN rooms r ON r.id = br.room_id
+                  JOIN room_types rt ON rt.id = r.room_type_id
+                 WHERE $whereSql
+                 GROUP BY rt.id, rt.type_name
+                 ORDER BY bookings DESC, rt.type_name ASC";
+
         return \Illuminate\Support\Facades\DB::select($sql, $params);
     }
 
@@ -228,16 +269,31 @@ class Booking extends Model
     {
         list($whereSql, $params) = $this->buildReportConditions($filters);
         
+        $groupRooms = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite'
+            ? "GROUP_CONCAT(r.room_number, ', ')"
+            : "GROUP_CONCAT(r.room_number ORDER BY r.room_number SEPARATOR ', ')";
+        $groupTypes = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite'
+            ? "GROUP_CONCAT(rt.type_name, ', ')"
+            : "GROUP_CONCAT(rt.type_name SEPARATOR ', ')";
+        $groupTypeIds = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite'
+            ? "GROUP_CONCAT(DISTINCT rt.id)"
+            : "GROUP_CONCAT(DISTINCT rt.id ORDER BY rt.id SEPARATOR ',')";
+
         $sql = "SELECT b.*,
-                       (SELECT GROUP_CONCAT(r.room_number ORDER BY r.room_number SEPARATOR ', ')
+                       (SELECT $groupRooms
                           FROM booking_rooms br2 
                           JOIN rooms r ON br2.room_id = r.id 
                          WHERE br2.booking_id = b.id) AS room_number,
-                       (SELECT GROUP_CONCAT(rt.type_name SEPARATOR ', ')
+                       (SELECT $groupTypes
                           FROM booking_rooms br3 
                           JOIN rooms r2 ON br3.room_id = r2.id 
                           JOIN room_types rt ON r2.room_type_id = rt.id 
-                         WHERE br3.booking_id = b.id) AS type_name
+                         WHERE br3.booking_id = b.id) AS type_name,
+                       (SELECT $groupTypeIds
+                          FROM booking_rooms br4
+                          JOIN rooms r3 ON br4.room_id = r3.id
+                          JOIN room_types rt ON r3.room_type_id = rt.id
+                         WHERE br4.booking_id = b.id) AS room_type_ids
                   FROM bookings b
                  WHERE $whereSql
                  ORDER BY b.check_in DESC";

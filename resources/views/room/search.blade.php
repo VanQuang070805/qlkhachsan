@@ -8,21 +8,21 @@
    IMPORT FONTS
    Sender font styles
 ══════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ══════════════════════════════════════════
    CSS VARIABLES
 ══════════════════════════════════════════ */
 :root {
-    --gold:       #C9A84C;
-    --gold-light: #E8C87A;
-    --gold-dark:  #9A7335;
-    --ink:        #1A1A2E;
+    --gold:       #2597d0;
+    --gold-light: #dceaf5;
+    --gold-dark:  #386b97;
+    --ink:        #070709;
     --ink-soft:   #2D2D44;
-    --cream:      #FAF8F3;
+    --cream:      #ffffff;
     --muted:      #7A7A8A;
     --card-bg:    #FFFFFF;
-    --border:     #E8E4D8;
+    --border:     #e5e8ed;
     --success:    #2A7A4F;
     --danger:     #C0392B;
 }
@@ -32,9 +32,9 @@
 ══════════════════════════════════════════ */
 .search-hero {
     position: relative;
-    background: linear-gradient(135deg, #1A1A2E 0%, #16213E 40%, #0F3460 100%);
+    background: linear-gradient(135deg, #779bc1 0%, #9abfda 58%, #cbdcec 100%);
     padding: 64px 0 100px;
-    margin: -24px -12px 0;
+    margin: 0;
     overflow: hidden;
 }
 
@@ -43,8 +43,8 @@
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(ellipse 600px 400px at 80% 50%, rgba(201,168,76,.12) 0%, transparent 70%),
-        radial-gradient(ellipse 300px 300px at 10% 80%, rgba(201,168,76,.07) 0%, transparent 60%);
+        radial-gradient(ellipse 600px 400px at 80% 50%, rgba(37,151,208,.12) 0%, transparent 70%),
+        radial-gradient(ellipse 300px 300px at 10% 80%, rgba(255,255,255,.2) 0%, transparent 60%);
 }
 
 .search-hero::after {
@@ -57,7 +57,7 @@
 }
 
 .hero-label {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .75rem;
     font-weight: 600;
     letter-spacing: .2em;
@@ -67,7 +67,7 @@
 }
 
 .hero-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: clamp(2.2rem, 5vw, 3.6rem);
     font-weight: 300;
     color: #fff;
@@ -81,9 +81,9 @@
 }
 
 .hero-sub {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .95rem;
-    color: rgba(255,255,255,.55);
+    color: rgba(255,255,255,.9);
 }
 
 /* ══════════════════════════════════════════
@@ -97,11 +97,11 @@
     margin-top: -52px;
     position: relative;
     z-index: 10;
-    border: 1px solid rgba(201,168,76,.15);
+    border: 1px solid rgba(37,151,208,.12);
 }
 
 .search-field-label {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .7rem;
     font-weight: 600;
     letter-spacing: .12em;
@@ -119,7 +119,7 @@
     border: 1.5px solid var(--border);
     border-radius: 10px;
     padding: 10px 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .95rem;
     color: var(--ink);
     background: var(--cream);
@@ -130,7 +130,7 @@
 .search-input:focus {
     outline: none;
     border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(201,168,76,.12);
+    box-shadow: 0 0 0 3px rgba(37,151,208,.12);
     background: #fff;
 }
 
@@ -140,7 +140,7 @@
 }
 
 .date-error {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .78rem;
     color: var(--danger);
     margin-top: 4px;
@@ -156,7 +156,7 @@
     border: none;
     border-radius: 10px;
     padding: 11px 28px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: .95rem;
     letter-spacing: .04em;
@@ -167,7 +167,7 @@
 
 .btn-search:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(201,168,76,.35);
+    box-shadow: 0 8px 24px rgba(37,151,208,.24);
 }
 
 .search-divider {
@@ -193,7 +193,7 @@
 }
 
 .results-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--ink);
@@ -202,7 +202,7 @@
 .badge-available {
     background: linear-gradient(135deg, var(--gold-dark), var(--gold));
     color: #fff;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .8rem;
     font-weight: 600;
     padding: 5px 14px;
@@ -211,7 +211,7 @@
 }
 
 .results-meta {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .85rem;
     color: var(--muted);
 }
@@ -233,7 +233,7 @@
     background: var(--ink);
     color: #fff;
     padding: 14px 20px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .8rem;
     font-weight: 600;
     letter-spacing: .14em;
@@ -248,7 +248,7 @@
 .filter-body { padding: 20px; }
 
 .filter-section-label {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .7rem;
     font-weight: 700;
     letter-spacing: .14em;
@@ -301,7 +301,7 @@
     border: 1.5px solid var(--border);
     border-radius: 8px;
     padding: 6px 10px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .82rem;
     color: var(--ink);
     background: var(--cream);
@@ -315,7 +315,7 @@
     gap: 8px;
     padding: 5px 0;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .85rem;
     color: var(--ink-soft);
     border-radius: 6px;
@@ -337,7 +337,7 @@
     border: 1.5px solid var(--border);
     border-radius: 8px;
     padding: 8px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .82rem;
     color: var(--muted);
     cursor: pointer;
@@ -412,7 +412,7 @@
 }
 
 .room-type-name {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.35rem;
     font-weight: 700;
     color: var(--ink);
@@ -420,7 +420,7 @@
 }
 
 .room-price {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--gold-dark);
@@ -433,7 +433,7 @@
 }
 
 .room-meta {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .83rem;
     color: var(--muted);
     display: flex;
@@ -443,7 +443,7 @@
 }
 
 .room-desc {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .84rem;
     color: var(--muted);
     line-height: 1.5;
@@ -455,7 +455,7 @@
     background: var(--cream);
     border: 1px solid var(--border);
     color: var(--ink-soft);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .75rem;
     padding: 3px 10px;
     border-radius: 99px;
@@ -465,7 +465,7 @@
 .badge-rooms {
     background: rgba(42,122,79,.12);
     color: var(--success);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .75rem;
     font-weight: 600;
     padding: 4px 12px;
@@ -496,7 +496,7 @@
 .room-card.open .room-body { display: block; }
 
 .room-body-hint {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .82rem;
     color: var(--muted);
     padding: 14px 0 10px;
@@ -516,7 +516,7 @@
     min-width: 88px;
     cursor: pointer;
     transition: all .2s;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     text-align: center;
     user-select: none;
 }
@@ -556,7 +556,7 @@
 .quick-book-row { margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border); }
 
 .quick-book-hint {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .78rem;
     color: var(--muted);
     margin-bottom: 10px;
@@ -571,7 +571,7 @@
     color: var(--gold-dark);
     border-radius: 8px;
     padding: 5px 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .8rem;
     font-weight: 600;
     cursor: pointer;
@@ -600,7 +600,7 @@
     color: var(--ink);
     border-radius: 8px;
     padding: 5px 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .78rem;
     font-weight: 600;
     letter-spacing: .03em;
@@ -657,7 +657,7 @@
 }
 
 .cart-info {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     color: rgba(255,255,255,.85);
     font-size: .9rem;
 }
@@ -683,7 +683,7 @@
     color: #ff6b6b !important;
 }
 .cart-total {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--gold-light);
@@ -699,7 +699,7 @@
     color: rgba(255,255,255,.7);
     border-radius: 8px;
     padding: 7px 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .82rem;
     cursor: pointer;
     transition: background .15s;
@@ -712,7 +712,7 @@
     color: #fff;
     border-radius: 8px;
     padding: 8px 20px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .88rem;
     font-weight: 700;
     cursor: pointer;
@@ -742,14 +742,14 @@
 }
 
 .empty-state h5 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.5rem;
     color: var(--ink);
     margin-bottom: 8px;
 }
 
 .empty-state p {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .9rem;
     color: var(--muted);
 }
@@ -761,7 +761,7 @@
     border: none;
     border-radius: 16px;
     overflow: hidden;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 .modal-luxury .modal-header {
@@ -772,7 +772,7 @@
 }
 
 .modal-luxury .modal-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.3rem;
     font-weight: 700;
 }
@@ -907,8 +907,8 @@ body { background: var(--cream) !important; }
                 if ($filterMin === $filterMax) $filterMax = $filterMin + 500000;
                 ?>
                 <div class="d-flex justify-content-between mb-1">
-                    <small style="font-family:'DM Sans';font-size:.75rem;color:var(--muted)" id="priceMinLabel"><?= number_format($filterMin, 0, ',', '.') ?></small>
-                    <small style="font-family:'DM Sans';font-size:.75rem;color:var(--muted)" id="priceMaxLabel"><?= number_format($filterMax, 0, ',', '.') ?></small>
+                    <small style="font-family:'Inter';font-size:.75rem;color:var(--muted)" id="priceMinLabel"><?= number_format($filterMin, 0, ',', '.') ?></small>
+                    <small style="font-family:'Inter';font-size:.75rem;color:var(--muted)" id="priceMaxLabel"><?= number_format($filterMax, 0, ',', '.') ?></small>
                 </div>
                 <div class="price-range-track">
                     <div class="price-range-fill" id="rangeFill"></div>
@@ -969,7 +969,7 @@ body { background: var(--cream) !important; }
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body" style="font-family:'DM Sans';padding:20px 24px">
+                    <div class="modal-body" style="font-family:'Inter';padding:20px 24px">
                         <p id="capacityWarningMsg" class="mb-2"></p>
                         <p class="text-muted small mb-0">Hãy chọn thêm phòng bằng tính năng <strong>Giỏ phòng</strong> bên dưới để đủ sức chứa.</p>
                     </div>
@@ -1017,7 +1017,7 @@ body { background: var(--cream) !important; }
             <?php 
             foreach ($roomTypes as $i => $type):
                 $typeId     = $type['id'];
-                $imgSrc     = url('/') . '/images/rooms/' . $typeId . '.jpg';
+                $imgSrc     = data_get($type, 'image') ?: config('room_images.' . $typeId . '.0', url('/') . '/images/rooms/default.jpg');
                 $imgFallback= url('/') . '/images/rooms/default.jpg';
                 $roomCount  = count($type['available_rooms']);
                 $amenityIds = collect($type['amenities'] ?? [])->pluck('id')->all();
@@ -1044,10 +1044,10 @@ body { background: var(--cream) !important; }
                                     $halfStar = ($avgRating - $fullStars) >= 0.5 ? 1 : 0;
                                     $emptyStars = 5 - $fullStars - $halfStar;
                                     for ($i = 0; $i < $fullStars; $i++) {
-                                        echo '<i class="bi bi-star-fill" style="color: #C9A84C;"></i>';
+                                        echo '<i class="bi bi-star-fill" style="color: #2597d0;"></i>';
                                     }
                                     if ($halfStar) {
-                                        echo '<i class="bi bi-star-half" style="color: #C9A84C;"></i>';
+                                        echo '<i class="bi bi-star-half" style="color: #2597d0;"></i>';
                                     }
                                     for ($i = 0; $i < $emptyStars; $i++) {
                                         echo '<i class="bi bi-star" style="color: #ccc;"></i>';
@@ -1153,7 +1153,7 @@ body { background: var(--cream) !important; }
                 <i class="bi bi-funnel"></i>
                 <h5>Không khớp bộ lọc</h5>
                 <p>Thử điều chỉnh khoảng giá hoặc bỏ bớt tiện nghi.</p>
-                <button type="button" onclick="resetFilters()" style="background:var(--ink);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-family:'DM Sans';cursor:pointer;font-size:.85rem">Xoá bộ lọc</button>
+                <button type="button" onclick="resetFilters()" style="background:var(--ink);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-family:'Inter';cursor:pointer;font-size:.85rem">Xoá bộ lọc</button>
             </div>
 
         </form>

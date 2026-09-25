@@ -64,21 +64,20 @@ class ReceptionUserController extends Controller
 
         $request->validate([
             'current_password' => 'required',
-            'password'         => 'required|string|min:6|confirmed',
+            'password'         => 'required|string|min:8|confirmed',
         ]);
 
-        $valid = Hash::check($request->current_password, $user->password)
-              || md5($request->current_password) === $user->password
-              || $request->current_password === $user->password;
+        $valid = Hash::check($request->current_password, $user->password);
 
         if (!$valid) {
             return back()
                 ->withErrors(['current_password' => 'Mật khẩu hiện tại không đúng!'])
-                ->withInput();
+                ;
         }
 
         $user->update([
             'password' => Hash::make($request->password),
+            'remember_token' => \Illuminate\Support\Str::random(60),
         ]);
 
         return redirect()->route('receptionist.profile')

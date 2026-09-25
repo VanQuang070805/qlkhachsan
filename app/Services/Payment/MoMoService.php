@@ -49,7 +49,7 @@ class MoMoService
 
         $signature = hash_hmac('sha256', $rawHash, $this->secretKey);
 
-        $response = Http::withoutVerifying()->post($this->endpoint, [
+        $response = Http::timeout(10)->retry(2, 250)->post($this->endpoint, [
             'partnerCode' => $this->partnerCode,
             'partnerName' => 'Hotel',
             'storeId'     => 'HotelMain',
@@ -70,6 +70,10 @@ class MoMoService
 
     public function verifySignature(array $data): bool
     {
+        $required = ['amount','extraData','message','orderId','orderInfo','orderType','partnerCode','payType','requestId','responseTime','resultCode','transId','signature'];
+        foreach ($required as $key) {
+            if (!array_key_exists($key, $data)) return false;
+        }
         $received = $data['signature'] ?? '';
         $rawHash  = "accessKey={$this->accessKey}"
             . "&amount={$data['amount']}"
@@ -85,6 +89,6 @@ class MoMoService
             . "&resultCode={$data['resultCode']}"
             . "&transId={$data['transId']}";
 
-        return hash_hmac('sha256', $rawHash, $this->secretKey) === $received;
+        return hash_equals(hash_hmac('sha256', $rawHash, $this->secretKey), (string) $received);
     }
 }

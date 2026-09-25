@@ -43,8 +43,8 @@ class VietQRService
         // Tạo nội dung chuyển khoản unique
         $existing = \App\Models\PaymentLog::where('booking_id', $booking->id)
             ->where('gateway', 'vietqr')
-            ->whereNotIn('status', ['failed'])
-            ->whereNull('transaction_id')
+            ->where('status', 'pending')->where('reference_code', 'like', 'KS%')->where('created_at', '>=', now()->subMinutes(30))
+            ->whereNull('transaction_id')->where('reference_code', 'like', 'KS%')->where('status', 'pending')->where('created_at', '>=', now()->subMinutes(30))
             ->latest()
             ->first();
         
@@ -87,7 +87,7 @@ class VietQRService
         $existing = \App\Models\PaymentLog::where('booking_id', $booking->id)
             ->where('gateway', 'vietqr')
             ->where('status', 'pending')
-            ->where('reference_code', 'like', 'CO%')
+            ->where('reference_code', 'like', 'CO%')->where('created_at', '>=', now()->subMinutes(30))
             ->first();
 
         if ($existing) {
@@ -126,14 +126,14 @@ class VietQRService
         $log = \App\Models\PaymentLog::where('booking_id', $booking->id)
             ->where('gateway', 'vietqr')
             ->where('status', 'pending')
-            ->where('reference_code', 'like', 'CO%')
+            ->where('reference_code', 'like', 'CO%')->where('created_at', '>=', now()->subMinutes(30))
             ->latest()
             ->first();
 
         if (!$log || !$log->reference_code) return null;
 
         try {
-            $response = Http::withoutVerifying()->withToken($this->sePayToken)
+            $response = Http::withToken($this->sePayToken)
                 ->timeout(5)
                 ->get("{$this->sePayApiUrl}/transactions/list", [
                     'transaction_content' => $log->reference_code,
@@ -152,7 +152,7 @@ class VietQRService
             if (!$tx) return null;
 
             $received = (float) ($tx['amount_in'] ?? 0);
-            if (abs($received - $log->amount) > 1000) return null;
+            if ((int) round($received) !== (int) round((float) $log->amount)) return null;
 
             $log->update([
                 'status'         => 'success',
@@ -174,7 +174,7 @@ class VietQRService
         // Lấy reference_code từ payment_log pending gần nhất
         $log = \App\Models\PaymentLog::where('booking_id', $booking->id)
             ->where('gateway', 'vietqr')
-            ->whereNull('transaction_id')
+            ->whereNull('transaction_id')->where('reference_code', 'like', 'KS%')->where('status', 'pending')->where('created_at', '>=', now()->subMinutes(30))
             ->latest()
             ->first();
 
@@ -182,7 +182,7 @@ class VietQRService
 
         // Gọi SePay API
         try {
-            $response = Http::withoutVerifying()->withToken($this->sePayToken)
+            $response = Http::withToken($this->sePayToken)
                 ->timeout(5)
                 ->get("{$this->sePayApiUrl}/transactions/list", [
                     'transaction_content' => $log->reference_code,
@@ -202,9 +202,9 @@ class VietQRService
 
             if (!$tx) return null;
 
-            // Kiểm tra số tiền khớp (±1000đ để tránh lỗi làm tròn)
+            // VND transactions must match the requested amount exactly.
             $received = (float) ($tx['amount_in'] ?? 0);
-            if (abs($received - $log->amount) > 1000) return null;
+            if ((int) round($received) !== (int) round((float) $log->amount)) return null;
 
             // Cập nhật log thành success
             $log->update([

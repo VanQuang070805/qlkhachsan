@@ -1,42 +1,41 @@
 @extends('layouts.auth')
 
 @section('content')
-<div class="auth-card register-card" data-aos="fade-up" data-aos-duration="1000">
-    <div class="hotel-brand">Royal Hotel</div>
-    <p class="subtitle">Trở thành thành viên thân thiết</p>
+<div class="auth-card register-card">
+    <header class="auth-intro">
+        @include('auth.partials.brand')
+        <p class="subtitle">Tạo tài khoản cho hành trình sắp tới</p>
+    </header>
+    @include('auth.partials.form-status')
 
-    <form action="{{ route('register') }}" method="POST">
-    @csrf
-        <div class="mb-3 text-start">
-            <label for="name" class="form-label fw-bold" style="font-size: 0.9rem; color: #1e293b;">Họ và Tên</label>
-            <input type="text" class="form-control" style="padding-left: 15px;" id="name" name="name" placeholder="Ví dụ: Nguyễn Văn A" value="{{ old('name') }}" required>
+    <form action="{{ route('register') }}" method="POST" autocomplete="on" novalidate data-inline-validation>
+        @csrf
+        @foreach([
+            ['name','text','Họ và tên','Nguyễn Văn A','name'],
+            ['email','email','Email','you@example.com','email'],
+            ['phone','tel','Số điện thoại','0912345678','tel'],
+        ] as [$name,$type,$label,$placeholder,$autocomplete])
+        <div class="form-group text-start">
+            <label for="{{ $name }}" class="form-label">{{ $label }}</label>
+            <input id="{{ $name }}" name="{{ $name }}" type="{{ $type }}" class="form-control @error($name) is-invalid @enderror" value="{{ old($name) }}" placeholder="{{ $placeholder }}" autocomplete="{{ $autocomplete }}" required data-validate data-required-message="Vui lòng nhập {{ mb_strtolower($label) }}." @if($name==='name') minlength="2" @endif @if($name==='phone') inputmode="numeric" pattern="0[0-9]{9}" maxlength="10" data-pattern-message="Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0." @elseif($name==='email') data-type-message="Email chưa đúng định dạng." @endif aria-describedby="{{ $name }}-error">
+            <p class="field-error" id="{{ $name }}-error" data-error-for="{{ $name }}">@error($name)<i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}@enderror</p>
         </div>
-        <div class="mb-3 text-start">
-            <label for="email" class="form-label fw-bold" style="font-size: 0.9rem; color: #1e293b;">Email</label>
-            <input type="email" class="form-control" style="padding-left: 15px;" id="email" name="email" placeholder="email@example.com" value="{{ old('email') }}" required>
+        @endforeach
+
+        <div class="form-group text-start">
+            <label for="password" class="form-label">Mật khẩu</label>
+            <div class="password-wrapper"><input id="password" name="password" type="password" class="form-control @error('password') is-invalid @enderror" placeholder="Ít nhất 8 ký tự" autocomplete="new-password" minlength="8" required data-validate data-required-message="Vui lòng tạo mật khẩu." data-min-message="Mật khẩu cần có ít nhất 8 ký tự." aria-describedby="password-error"><button type="button" class="toggle-password" aria-label="Hiện mật khẩu"><i class="bi bi-eye" aria-hidden="true"></i></button></div>
+            <p class="field-error" id="password-error" data-error-for="password">@error('password')<i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}@enderror</p>
         </div>
-        <div class="mb-3 text-start">
-            <label for="phone" class="form-label fw-bold" style="font-size: 0.9rem; color: #1e293b;">Số điện thoại</label>
-            <input type="tel" class="form-control" style="padding-left: 15px;" id="phone" name="phone" placeholder="0912345678" pattern="0[0-9]{9,10}" maxlength="11" value="{{ old('phone') }}" required>
-        </div>
-        <div class="mb-4 text-start">
-            <label for="password" class="form-label fw-bold" style="font-size: 0.9rem; color: #1e293b;">Mật Khẩu</label>
-            <input type="password" class="form-control" style="padding-left: 15px;" id="password" name="password" placeholder="Tạo mật khẩu mạnh..." required>
-        </div>
-        <div class="d-grid mb-3">
-            <button type="submit" class="btn btn-auth" style="background: linear-gradient(135deg, #d4af37, #b08d28); text-transform: uppercase; letter-spacing: 1px;">Tạo Tài Khoản</button>
-        </div>
-        
-        <div class="d-flex align-items-center text-muted my-4" style="font-weight: 500;">
-            <div style="flex: 1; border-bottom: 1px solid #cbd5e1;"></div>
-            <div style="margin: 0 15px;">HOẶC</div>
-            <div style="flex: 1; border-bottom: 1px solid #cbd5e1;"></div>
+        <div class="form-group text-start">
+            <label for="password_confirmation" class="form-label">Xác nhận mật khẩu</label>
+            <div class="password-wrapper"><input id="password_confirmation" name="password_confirmation" type="password" class="form-control" placeholder="Nhập lại mật khẩu" autocomplete="new-password" minlength="8" required data-validate data-required-message="Vui lòng xác nhận mật khẩu." aria-describedby="password_confirmation-error"><button type="button" class="toggle-password" aria-label="Hiện mật khẩu"><i class="bi bi-eye" aria-hidden="true"></i></button></div>
+            <p class="field-error" id="password_confirmation-error" data-error-for="password_confirmation"></p>
         </div>
 
-        <div class="text-center">
-            Đã có tài khoản? <a href="{{ route('login') }}" style="color: #b08d28; font-weight: 600; text-decoration: none;">Đăng nhập</a>
-        </div>
+        <button type="submit" class="btn btn-auth mt-2">Tạo tài khoản</button>
+        <div class="divider">HOẶC</div>
+        <p class="text-center mb-0">Đã có tài khoản? <a href="{{ route('login') }}">Đăng nhập</a></p>
     </form>
 </div>
-
 @endsection

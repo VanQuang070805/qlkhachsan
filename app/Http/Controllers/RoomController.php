@@ -36,6 +36,11 @@ class RoomController extends Controller
             'children'  => 'nullable|integer|min:0',
         ]);
 
+        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 17 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
+        if ($request->check_in < $earliestCheckIn) {
+            return back()->withInput()->withErrors(['check_in' => 'Sau 17:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
+        }
+
         $checkIn   = $request->check_in;
         $checkOut  = $request->check_out;
         $adults    = (int) $request->adults;
@@ -44,13 +49,7 @@ class RoomController extends Controller
         $nights    = Carbon::parse($checkIn)->diffInDays($checkOut);
 
         // Room_id đã bị đặt trùng ngày
-        $bookedRoomIds = \DB::table('booking_rooms')
-            ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
-            ->where('bookings.payment_status', 'paid')
-            ->where('bookings.status', '!=', 'cancelled')
-            ->where('bookings.check_in', '<', $checkOut)
-            ->where('bookings.check_out', '>', $checkIn)
-            ->pluck('booking_rooms.room_id');
+        $bookedRoomIds = \App\Models\Booking::reservedRoomIds($checkIn, $checkOut);
 
         // Lấy loại phòng có phòng trống và đủ sức chứa
         $roomTypes = RoomType::with([
@@ -96,6 +95,18 @@ class RoomController extends Controller
      */
     public function detail(int $id, Request $request)
     {
+        $request->validate([
+            'check_in' => 'nullable|required_with:check_out|date|after_or_equal:today',
+            'check_out' => 'nullable|required_with:check_in|date|after:check_in',
+            'adults' => 'nullable|integer|min:1|max:20',
+            'children' => 'nullable|integer|min:0|max:20',
+        ]);
+
+        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 17 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
+        if ($request->filled('check_in') && $request->check_in < $earliestCheckIn) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['check_in' => 'Sau 17:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
+        }
+
         $room      = RoomType::with(['amenities', 'reviews.user'])->findOrFail($id);
         $avgRating = $room->averageRating();
 
@@ -109,13 +120,7 @@ class RoomController extends Controller
             $totalAdjustedPrice = PriceSetting::calculateTotalPrice((float) $room->price, $checkIn, $checkOut);
             $room->price = $totalAdjustedPrice / max($nights, 1);
 
-            $bookedRoomIds = \DB::table('booking_rooms')
-                ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
-                ->where('bookings.payment_status', 'paid')
-                ->where('bookings.status', '!=', 'cancelled')
-                ->where('bookings.check_in', '<', $checkOut)
-                ->where('bookings.check_out', '>', $checkIn)
-                ->pluck('booking_rooms.room_id');
+            $bookedRoomIds = \App\Models\Booking::reservedRoomIds($checkIn, $checkOut);
         }
     
         // Lấy tất cả phòng của loại này
@@ -127,6 +132,13 @@ class RoomController extends Controller
                 $r->is_booked = $bookedRoomIds->contains($r->id);
                 return $r;
             });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'available_ids' => $allRoomsOfType->filter(fn ($item) => !$item->is_booked && $item->status === 'available')->pluck('id')->values(),
+                'nightly_price' => (float) $room->price,
+            ])->header('Cache-Control', 'no-store');
+        }
 
         $adults   = (int) ($request->adults ?? 1);
         $children = (int) ($request->children ?? 0);
@@ -142,14 +154,10 @@ class RoomController extends Controller
     /**
      * Danh sách tiện nghi của loại phòng (AJAX)
      */
-    public function amenities(?int $id = null)
+    public function amenities(int $id)
     {
-        if ($id) {
-            $roomType = RoomType::with('amenities')->findOrFail($id);
-            return response()->json($roomType->amenities);
-        }
+        $roomType = RoomType::with('amenities')->findOrFail($id);
 
-        $roomTypes = RoomType::with('amenities')->get();
-        return view('room.amenities', compact('roomTypes'));
+        return response()->json($roomType->amenities);
     }
 }

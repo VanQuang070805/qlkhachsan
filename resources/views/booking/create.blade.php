@@ -24,7 +24,12 @@ $people = $adults + $children;
 <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
 <?php endif; ?>
 
-<div class="row g-4">
+@include('client.partials.booking-steps', [
+    'currentStep' => 2,
+    'stepLinks' => [1 => route('rooms.detail', $rooms->first()?->room_type_id ?? 1)],
+])
+
+<div class="row g-4 booking-checkout-layout">
     <!-- ── Cột trái: Danh sách phòng đã chọn ── -->
     <div class="col-md-4">
         <div class="card border-0 shadow-sm sticky-top" style="top:80px">
@@ -74,7 +79,8 @@ $people = $adults + $children;
 
     <!-- ── Cột phải: Form đặt phòng ── -->
     <div class="col-md-8">
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm" data-window-frame data-window-title="Thông tin đặt phòng">
+            @include('client.partials.window-controls', ['label' => 'thông tin đặt phòng'])
             <div class="card-body p-4">
                 <h4 class="fw-bold mb-4">Thông Tin Đặt Phòng</h4>
 
@@ -92,20 +98,20 @@ $people = $adults + $children;
                     <!-- Ngày -->
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">
+                            <label class="form-label fw-semibold" for="checkInDisplay">
                                 Ngày Nhận Phòng <span class="text-danger">*</span>
                             </label>
                             <input type="hidden" name="check_in" id="checkIn" value="<?= htmlspecialchars($checkIn ?? '') ?>">
-                            <input type="date" class="form-control locked-input"
+                            <input type="date" id="checkInDisplay" class="form-control locked-input"
                                 value="<?= htmlspecialchars($checkIn ?? '') ?>" disabled>
                             <div class="invalid-feedback" id="checkInFeedback">Vui lòng chọn ngày nhận phòng.</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">
+                            <label class="form-label fw-semibold" for="checkOutDisplay">
                                 Ngày Trả Phòng <span class="text-danger">*</span>
                             </label>
                             <input type="hidden" name="check_out" id="checkOut" value="<?= htmlspecialchars($checkOut ?? '') ?>">
-                            <input type="date" class="form-control locked-input"
+                            <input type="date" id="checkOutDisplay" class="form-control locked-input"
                                 value="<?= htmlspecialchars($checkOut ?? '') ?>" disabled>
                             <div class="invalid-feedback" id="checkOutFeedback">Ngày trả phòng phải sau ngày nhận phòng.</div>
                         </div>
@@ -207,6 +213,14 @@ const totalPerNight  = pricesPerNight.reduce((a, b) => a + b, 0);
 const MAX_GUESTS     = <?= $totalMaxGuests ?>;
 const TODAY          = '<?= date('Y-m-d') ?>';
 
+function civilDate(value) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+}
+function civilDayNumber(value) {
+    return civilDate(value).getTime() / 86400000;
+}
+
 // ── Refs ────────────────────────────────────────────
 const checkInEl  = document.getElementById('checkIn');
 const checkOutEl = document.getElementById('checkOut');
@@ -233,9 +247,9 @@ function clearDateErr(el, feedbackId) {
 
 function syncCheckOutMin() {
     if (!checkInEl.value) return;
-    const d = new Date(checkInEl.value);
-    d.setDate(d.getDate() + 1);
-    checkOutEl.min = d.toISOString().split('T')[0];
+    const d = civilDate(checkInEl.value);
+    d.setUTCDate(d.getUTCDate() + 1);
+    checkOutEl.min = d.toISOString().slice(0, 10);
 
     if (checkOutEl.value && checkOutEl.value <= checkInEl.value) {
         checkOutEl.value = '';
@@ -306,7 +320,7 @@ function calcTotal() {
         box.classList.add('d-none');
         return;
     }
-    const nights = Math.round((new Date(co) - new Date(ci)) / 86400000);
+    const nights = civilDayNumber(co) - civilDayNumber(ci);
     if (nights <= 0) { box.classList.add('d-none'); return; }
 
     const total = nights * totalPerNight;
@@ -466,8 +480,8 @@ document.getElementById('bookingForm').addEventListener('submit', function(e) {
         e.stopPropagation();
         const firstError = document.querySelector('.is-invalid');
         if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
     }
-    } else {
     sessionStorage.removeItem('booking_cart');
 });
 </script>

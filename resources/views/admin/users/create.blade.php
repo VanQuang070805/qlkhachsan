@@ -3,7 +3,7 @@
 @section('title', 'Thêm tài khoản')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="operations-editor">
 
     <div class="d-flex align-items-center gap-3 mb-4">
         <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary btn-sm">
@@ -79,7 +79,7 @@
                             <div class="input-group">
                                 <input type="password" name="password" id="password"
                                        class="form-control @error('password') is-invalid @enderror"
-                                       placeholder="Tối thiểu 6 ký tự">
+                                       placeholder="Tối thiểu 8 ký tự" minlength="8">
                                 <button class="btn btn-outline-secondary" type="button" id="togglePwd">
                                     <i class="bi bi-eye"></i>
                                 </button>

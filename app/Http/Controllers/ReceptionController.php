@@ -16,17 +16,7 @@ class ReceptionController extends Controller
      */
     public function index(Request $request)
     {
-        // Dọn dẹp các trạng thái phòng cũ/lỗi về trạng thái vật lý chuẩn
-        try {
-            DB::update("UPDATE rooms SET status = 'available' WHERE status IN ('soon_to_checkin', 'booked', 'maintenance')");
-            DB::update("UPDATE rooms SET status = 'occupied' WHERE status IN ('soon_to_checkout', 'overdue')");
-        } catch (\Exception $e) {
-            // Bỏ qua lỗi
-        }
-
         $today = date('Y-m-d');
-        $todaySql = DB::getPdo()->quote($today);
-
         // Lấy toàn bộ phòng với trạng thái logic tính toán động
         $sql = "
             SELECT r.id, r.room_number, r.floor, r.status,
@@ -35,7 +25,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                    ) as has_today_booking,
                    (SELECT COUNT(*)
@@ -49,7 +39,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_out = $todaySql
+                      AND b.check_out = ?
                       AND b.status = 'checked_in'
                       AND r.status = 'occupied'
                    ) as is_checkout_today,
@@ -59,7 +49,7 @@ class ReceptionController extends Controller
                     WHERE br.room_id = r.id 
                       AND (
                           (b.status = 'checked_in' AND r.status = 'occupied') 
-                          OR (b.check_in = $todaySql AND b.status IN ('confirmed', 'pending'))
+                          OR (b.check_in = ? AND b.status IN ('confirmed', 'pending'))
                       )
                     ORDER BY (CASE WHEN b.status = 'checked_in' THEN 1 ELSE 2 END) ASC, b.id DESC
                     LIMIT 1
@@ -70,7 +60,7 @@ class ReceptionController extends Controller
                     WHERE br.room_id = r.id 
                       AND (
                           (b.status = 'checked_in' AND r.status = 'occupied') 
-                          OR (b.check_in = $todaySql AND b.status IN ('confirmed', 'pending'))
+                          OR (b.check_in = ? AND b.status IN ('confirmed', 'pending'))
                       )
                     ORDER BY (CASE WHEN b.status = 'checked_in' THEN 1 ELSE 2 END) ASC, b.id DESC
                     LIMIT 1
@@ -191,7 +181,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_booking_id,
@@ -199,7 +189,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_customer_name,
@@ -207,7 +197,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_customer_phone,
@@ -215,7 +205,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_customer_email,
@@ -223,7 +213,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_check_in,
@@ -231,7 +221,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_check_out,
@@ -239,7 +229,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_adult_count,
@@ -247,7 +237,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_child_count,
@@ -255,7 +245,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_total_price,
@@ -263,7 +253,7 @@ class ReceptionController extends Controller
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
-                      AND b.check_in = $todaySql
+                      AND b.check_in = ?
                       AND b.status IN ('confirmed', 'pending')
                     LIMIT 1
                    ) as today_deposit_amount
@@ -272,11 +262,12 @@ class ReceptionController extends Controller
             ORDER BY r.floor DESC, r.room_number ASC
         ";
 
-        $roomsRaw = DB::select($sql);
+        $roomsRaw = DB::select($sql, array_fill(0, substr_count($sql, '?'), $today));
 
         // Phân nhóm phòng theo tầng
         $floors = [];
-        foreach ($roomsRaw as $r) {
+        $operationImages = config('operation_room_images', []);
+        foreach ($roomsRaw as $index => $r) {
             $rArray = (array) $r;
             // Lấy danh sách tiện ích
             $amenitiesSql = "
@@ -287,6 +278,7 @@ class ReceptionController extends Controller
             ";
             $amenities = array_column(DB::select($amenitiesSql, [$rArray['room_type_id']]), 'amenity_name');
             $rArray['amenities_list'] = implode(', ', $amenities);
+            $rArray['image_url'] = $operationImages[$index % max(1, count($operationImages))] ?? asset('images/rooms/default.jpg');
 
             $floors[$rArray['floor']][] = $rArray;
         }
@@ -315,6 +307,16 @@ class ReceptionController extends Controller
 
         try {
             DB::beginTransaction();
+            $currentRoom = \App\Models\Room::lockForUpdate()->findOrFail($roomId);
+            if (($status === 'available' && $currentRoom->status !== 'cleaning') || ($status === 'occupied' && $currentRoom->status !== 'available')) {
+                DB::rollBack();
+                return response()->json(['success'=>false, 'message'=>'Trạng thái phòng đã thay đổi. Vui lòng tải lại.'], 409);
+            }
+            if ($status === 'cleaning' && $currentRoom->status === 'occupied') {
+                DB::rollBack();
+                return response()->json(['success'=>false, 'message'=>'Vui lòng hoàn tất bước thanh toán trả phòng trước khi chuyển sang dọn dẹp.'], 422);
+            }
+
 
             if ($status === 'occupied') {
                 // Nhận phòng: Tìm booking hôm nay
@@ -411,7 +413,7 @@ class ReceptionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Lỗi CSDL: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Không thể xử lý lúc này. Vui lòng thử lại.'], 500);
         }
     }
 
@@ -420,171 +422,42 @@ class ReceptionController extends Controller
      */
     public function walkinCheckin(Request $request)
     {
-        $roomIds = $request->input('room_ids', []);
-        $customerName = trim($request->input('customer_name', ''));
-        $customerPhone = trim($request->input('customer_phone', ''));
-        $customerEmail = trim($request->input('customer_email', ''));
-        $walkinType = $request->input('walkin_type', 'now');
-        $adultCount = (int) $request->input('adult_count', 1);
-        $childCount = (int) $request->input('child_count', 0);
-        $people = $adultCount + $childCount;
-        $checkOut = $request->input('check_out', '');
-
-        if (empty($roomIds)) {
-            return response()->json(['success' => false, 'message' => 'Vui lòng chọn ít nhất một phòng.'], 400);
-        }
-
-        if (empty($customerName) || empty($customerPhone) || empty($checkOut)) {
-            return response()->json(['success' => false, 'message' => 'Vui lòng điền đầy đủ Họ tên, Số điện thoại và Ngày trả phòng.'], 400);
-        }
-
-        if ($walkinType === 'hold') {
-            $currentHour = (int) date('H');
-            if ($currentHour >= 14) {
-                return response()->json(['success' => false, 'message' => 'Không thể giữ chỗ phòng sau 14:00. Vui lòng thực hiện Check-in trực tiếp.'], 400);
+        $data = $request->validate([
+            'room_ids' => 'required|array|min:1|max:25',
+            'room_ids.*' => 'required|integer|distinct|exists:rooms,id',
+            'customer_name' => 'required|string|max:200',
+            'customer_phone' => ['required', 'regex:/^0[0-9]{9}$/'],
+            'customer_email' => 'nullable|email|max:200',
+            'walkin_type' => 'required|in:now,hold',
+            'adult_count' => 'required|integer|min:1|max:100',
+            'child_count' => 'required|integer|min:0|max:100',
+            'check_out' => 'required|date_format:Y-m-d|after:today',
+        ]);
+        return DB::transaction(function () use ($data) {
+            $rooms = \App\Models\Room::with('roomType')->whereIn('id', $data['room_ids'])->orderBy('id')->lockForUpdate()->get();
+            if ($rooms->count() !== count($data['room_ids']) || $rooms->contains(fn ($room) => $room->status !== 'available')) {
+                return response()->json(['success'=>false, 'message'=>'Phòng chưa sẵn sàng. Vui lòng chọn phòng đang trống.'], 409);
             }
-        }
-
-        $today = date('Y-m-d');
-        if ($checkOut <= $today) {
-            return response()->json(['success' => false, 'message' => 'Ngày trả phòng phải sau ngày nhận phòng (hôm nay).'], 400);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $nights = (int) round((strtotime($checkOut) - strtotime($today)) / 86400);
-            if ($nights <= 0) $nights = 1;
-
-            $roomIds = array_values(array_unique(array_map('intval', (array) $roomIds)));
-            $placeholders = implode(',', array_fill(0, count($roomIds), '?'));
-
-            // Kiểm tra trạng thái phòng hợp lệ
-            if ($walkinType === 'hold') {
-                $invalidRooms = DB::select("
-                    SELECT r.room_number, r.status
-                    FROM rooms r
-                    WHERE r.id IN ($placeholders)
-                      AND NOT (
-                          r.status = 'available'
-                          OR (
-                              r.status = 'occupied'
-                              AND EXISTS (
-                                  SELECT 1
-                                  FROM booking_rooms br
-                                  JOIN bookings b ON b.id = br.booking_id
-                                  WHERE br.room_id = r.id
-                                    AND b.status = 'checked_in'
-                                    AND b.check_out = ?
-                              )
-                          )
-                      )
-                    LIMIT 1
-                ", array_merge($roomIds, [$today]));
-            } else {
-                $invalidRooms = DB::select("
-                    SELECT room_number, status
-                    FROM rooms
-                    WHERE id IN ($placeholders)
-                      AND status <> 'available'
-                    LIMIT 1
-                ", $roomIds);
+            if ($rooms->sum(fn ($room) => (int) $room->roomType->max_guests) < $data['adult_count'] + $data['child_count']) {
+                return response()->json(['success'=>false, 'message'=>'Các phòng đã chọn không đủ sức chứa cho số khách.'], 422);
             }
-
-            if (!empty($invalidRooms)) {
-                $r = $invalidRooms[0];
-                DB::rollBack();
-                return response()->json(['success' => false, 'message' => 'Phòng ' . $r->room_number . ' không ở trạng thái trống nên không thể tạo walk-in/giữ chỗ.'], 409);
-            }
-
-            // Kiểm tra lịch trùng
-            $conflictParams = array_merge($roomIds, [$checkOut, $today]);
-            $conflicts = DB::select("
-                SELECT b.id, b.customer_name, b.check_in, b.check_out,
-                       GROUP_CONCAT(r.room_number ORDER BY r.room_number SEPARATOR ', ') AS room_numbers
-                FROM bookings b
-                JOIN booking_rooms br ON br.booking_id = b.id
-                JOIN rooms r ON r.id = br.room_id
-                WHERE br.room_id IN ($placeholders)
-                  AND (
-                      b.status IN ('pending', 'confirmed')
-                      OR (b.status = 'checked_in' AND r.status = 'occupied')
-                  )
-                  AND b.check_in < ?
-                  AND b.check_out > ?
-                GROUP BY b.id, b.customer_name, b.check_in, b.check_out
-                LIMIT 1
-            ", $conflictParams);
-
-            if (!empty($conflicts)) {
-                $c = $conflicts[0];
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Không thể tạo booking vì phòng ' . $c->room_numbers . ' đã có lịch từ ' . date('d/m/Y', strtotime($c->check_in)) . ' đến ' . date('d/m/Y', strtotime($c->check_out)) . '.'
-                ], 409);
-            }
-
-            $totalPrice = 0;
-            foreach ($roomIds as $rid) {
-                $roomInfo = DB::selectOne("
-                    SELECT rt.price 
-                    FROM rooms r
-                    JOIN room_types rt ON r.room_type_id = rt.id
-                    WHERE r.id = ?
-                ", [$rid]);
-                if ($roomInfo) {
-                    $totalPrice += PriceSetting::calculateTotalPrice((float) $roomInfo->price, $today, $checkOut);
-                }
-            }
-
-            $bookingStatus = ($walkinType === 'now') ? 'checked_in' : 'confirmed';
-
-            DB::statement("
-                INSERT INTO bookings 
-                (user_id, customer_name, customer_email, customer_phone, check_in, check_out, actual_check_in, adult_count, child_count, total_price, deposit_amount, payment_method, payment_status, status, created_at, updated_at)
-                VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'cash', 'pending', ?, NOW(), NOW())
-            ", [
-                $customerName,
-                $customerEmail ?: $customerPhone . '@hotel.com',
-                $customerPhone,
-                $today,
-                $checkOut,
-                ($walkinType === 'now') ? Carbon::now() : null,
-                $adultCount,
-                $childCount,
-                $totalPrice,
-                $bookingStatus
+            $reserved = \App\Models\Booking::reservedRoomIds(now()->toDateString(), $data['check_out']);
+            $conflict = $rooms->pluck('id')->intersect($reserved)->isNotEmpty();
+            if ($conflict) return response()->json(['success'=>false, 'message'=>'Phòng đã có lịch đặt trong thời gian này. Vui lòng chọn lại.'], 409);
+            $total = $rooms->sum(fn ($room) => PriceSetting::calculateTotalPrice((float) $room->roomType->price, now()->toDateString(), $data['check_out']));
+            $booking = \App\Models\Booking::create([
+                'user_id'=>null, 'customer_name'=>$data['customer_name'],
+                'customer_phone'=>$data['customer_phone'], 'customer_email'=>$data['customer_email'] ?? '',
+                'check_in'=>now()->toDateString(), 'check_out'=>$data['check_out'],
+                'actual_check_in'=>$data['walkin_type'] === 'now' ? now() : null,
+                'adult_count'=>$data['adult_count'], 'child_count'=>$data['child_count'],
+                'total_price'=>$total, 'deposit_amount'=>0, 'payment_method'=>'cash', 'payment_status'=>'pending',
+                'status'=>$data['walkin_type'] === 'now' ? 'checked_in' : 'confirmed',
             ]);
-
-            $bookingId = (int) DB::getPdo()->lastInsertId();
-
-            foreach ($roomIds as $rid) {
-                DB::statement("
-                    INSERT INTO booking_rooms (booking_id, room_id) 
-                    VALUES (?, ?)
-                ", [$bookingId, $rid]);
-
-                if ($walkinType === 'now') {
-                    DB::statement("
-                        UPDATE rooms SET status = 'occupied' 
-                        WHERE id = ?
-                    ", [$rid]);
-                }
-            }
-
-            DB::commit();
-
-            $successMsg = ($walkinType === 'now') ? 'Check-in khách vãng lai thành công!' : 'Giữ chỗ phòng thành công!';
-            return response()->json([
-                'success' => true,
-                'message' => $successMsg
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
-        }
+            $booking->rooms()->attach($rooms->pluck('id'));
+            if ($data['walkin_type'] === 'now') \App\Models\Room::whereIn('id', $rooms->pluck('id'))->update(['status'=>'occupied']);
+            return response()->json(['success'=>true, 'message'=>$data['walkin_type'] === 'now' ? 'Nhận phòng thành công.' : 'Giữ chỗ phòng thành công.']);
+        });
     }
 
     /**
@@ -593,14 +466,16 @@ class ReceptionController extends Controller
     public function extendStay(Request $request)
     {
         $roomId = (int) $request->input('room_id');
-        $days = (int) $request->input('days', 0);
+        $mode = $request->input('mode', 'days');
+        $amount = (int) $request->input('amount', $request->input('days', 0));
 
         if ($roomId <= 0) {
             return response()->json(['success' => false, 'message' => 'Phòng không hợp lệ.'], 400);
         }
 
-        if ($days < 1 || $days > 30) {
-            return response()->json(['success' => false, 'message' => 'Số ngày gia hạn phải từ 1 đến 30.'], 400);
+        $max = $mode === 'hours' ? 12 : 30;
+        if (!in_array($mode, ['hours', 'days'], true) || $amount < 1 || $amount > $max) {
+            return response()->json(['success' => false, 'message' => 'Thời lượng gia hạn không hợp lệ.'], 400);
         }
 
         try {
@@ -621,8 +496,16 @@ class ReceptionController extends Controller
                 return response()->json(['success' => false, 'message' => 'Phòng đang ở trạng thái sử dụng nhưng chưa có booking checked-in liên kết.'], 404);
             }
 
+            if ($mode === 'hours') {
+                $addedAmount = $amount * 200000;
+                $newTotal = (float) $booking->total_price + $addedAmount;
+                DB::update('UPDATE bookings SET total_price = ? WHERE id = ? AND status = ?', [$newTotal, $booking->id, 'checked_in']);
+                DB::commit();
+                return response()->json(['success' => true, 'message' => 'Gia hạn thành công '.$amount.' giờ · '.number_format($addedAmount, 0, ',', '.').'đ.', 'added_amount' => $addedAmount, 'total_price' => $newTotal]);
+            }
+
             $oldCheckout = $booking->check_out;
-            $newCheckout = date('Y-m-d', strtotime($oldCheckout . ' +' . $days . ' day'));
+            $newCheckout = date('Y-m-d', strtotime($oldCheckout . ' +' . $amount . ' day'));
 
             $rooms = DB::select("
                 SELECT r.id, r.room_number, rt.price
@@ -686,7 +569,7 @@ class ReceptionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Gia hạn thành công ' . $days . ' ngày. Ngày trả mới: ' . date('d/m/Y', strtotime($newCheckout)) . '.',
+                'message' => 'Gia hạn thành công ' . $amount . ' ngày. Ngày trả mới: ' . date('d/m/Y', strtotime($newCheckout)) . '.',
                 'booking_id' => $booking->id,
                 'old_checkout' => $oldCheckout,
                 'new_checkout' => $newCheckout,
@@ -696,7 +579,7 @@ class ReceptionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Không thể xử lý lúc này. Vui lòng thử lại.'], 500);
         }
     }
 
@@ -729,7 +612,7 @@ class ReceptionController extends Controller
             return response()->json(['success' => false, 'message' => 'Không tìm thấy lịch đặt trước hôm nay cho phòng này.'], 404);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Không thể xử lý lúc này. Vui lòng thử lại.'], 500);
         }
     }
 
@@ -771,7 +654,7 @@ class ReceptionController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Không thể xử lý lúc này. Vui lòng thử lại.'], 500);
         }
     }
 
@@ -863,26 +746,14 @@ class ReceptionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'Không thể xử lý lúc này. Vui lòng thử lại.'], 500);
         }
     }
     public function cancellations()
     {
-        $cancellations = \DB::select("
-            SELECT b.id, b.customer_name, b.customer_phone, b.customer_email,
-                b.check_in, b.check_out, b.total_price, b.refund_status,
-                b.refund_amount, b.cancellation_reason, b.cancelled_at,
-                b.payment_method,
-                GROUP_CONCAT(r.room_number ORDER BY r.room_number SEPARATOR ', ') as room_numbers
-            FROM bookings b
-            JOIN booking_rooms br ON br.booking_id = b.id
-            JOIN rooms r ON r.id = br.room_id
-            WHERE b.status = 'cancelled'
-            GROUP BY b.id, b.customer_name, b.customer_phone, b.customer_email,
-                    b.check_in, b.check_out, b.total_price, b.refund_status,
-                    b.refund_amount, b.cancellation_reason, b.cancelled_at, b.payment_method
-            ORDER BY b.cancelled_at DESC
-        ");
+        $cancellations = \App\Models\Booking::with('rooms')
+            ->where('status', 'cancelled')->orderByDesc('cancelled_at')->get()
+            ->each(fn ($booking) => $booking->setAttribute('room_numbers', $booking->rooms->sortBy('room_number')->pluck('room_number')->join(', ')));
 
         return view('staff.cancellations', compact('cancellations'));
     }

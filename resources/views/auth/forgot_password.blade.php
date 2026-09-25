@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="auth-card" data-aos="fade-up" data-aos-duration="1000">
-    <div class="hotel-brand">Royal Hotel</div>
+    @include('auth.partials.brand')
     <p class="subtitle">Khôi phục mật khẩu tài khoản</p>
 
     <form action="{{ route('password.forgot') }}" method="POST" autocomplete="on" novalidate>
@@ -27,7 +27,7 @@
         </div>
         
         <div class="text-center">
-            <a href="{{ route('login') }}" style="color: #b08d28; font-weight: 600; text-decoration: none;">Quay lại Đăng Nhập</a>
+            <a href="{{ route('home') }}">Trở về Royal Hotel</a>
         </div>
     </form>
 </div>

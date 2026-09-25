@@ -78,6 +78,10 @@ class ReviewController extends Controller
             return redirect()->route('home')->with('error', 'Chỉ có thể đánh giá sau khi đã hoàn tất thủ tục trả phòng.');
         }
 
+        if (!$booking->rooms()->where('room_type_id', $request->room_type_id)->exists()) {
+            return redirect()->route('home')->with('error', 'Loại phòng này không thuộc kỳ nghỉ của bạn.');
+        }
+
         // Kiểm tra trùng lặp
         $existing = Review::where('user_id', $userId)
             ->where('room_type_id', $request->room_type_id)

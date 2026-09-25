@@ -105,7 +105,7 @@
         margin-bottom: 30px;
     }
     .auth-header h2 {
-        font-family: 'Playfair Display', serif;
+        font-family: 'Inter', sans-serif;
         font-weight: 700;
         color: #1e3a8a;
         margin-bottom: 10px;

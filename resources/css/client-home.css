@@ -1,0 +1,56 @@
+/* Homepage hero and booking ribbon refinements inspired by the supplied Letters reference. */
+.hero{min-height:0;min-height:unset;margin:12px 12px 0;padding:clamp(92px,10vw,142px) 24px 40px;display:flex;flex-direction:column;align-items:center;overflow:visible;border-radius:28px;background-color:#8eafd0;background-image:radial-gradient(circle at 7% 19%,rgba(255,255,255,.38) 0 1px,transparent 1.8px),radial-gradient(circle at 82% 27%,rgba(255,255,255,.32) 0 1px,transparent 1.8px),radial-gradient(circle at 22% 68%,rgba(255,255,255,.24) 0 1px,transparent 1.8px),radial-gradient(circle at 93% 75%,rgba(255,255,255,.3) 0 1px,transparent 1.8px),linear-gradient(180deg,var(--sky-start),var(--sky-mid) 57%,var(--sky-end));background-size:180px 180px,230px 230px,280px 280px,210px 210px,auto}
+.hero:before{border-radius:inherit;background:radial-gradient(ellipse at 50% -10%,rgba(255,255,255,.58),transparent 52%),linear-gradient(120deg,rgba(255,255,255,.12),transparent 60%)}
+.hero__glow{bottom:5%;height:min(24vw,260px);opacity:.7}
+.hero__content{width:min(820px,100%)}
+.hero h1{font-size:clamp(48px,6.7vw,76px);line-height:.99;letter-spacing:-.055em}
+.hero__description{max-width:510px;font-size:17px}
+.availability-card{position:relative;inset:auto;top:-1.5cm;transform:none;grid-template-columns:1.25fr 1.25fr .75fr .75fr auto;width:min(1120px,100%);margin:64px auto -118px;padding:10px;border-radius:999px}
+.availability-card__field{min-width:0;padding:9px 14px}
+.availability-card__field input{min-width:0;font-size:13px}
+.availability-card__submit{min-height:50px;padding-inline:20px;font-size:13px}
+.section--rooms{padding-top:150px}
+@media(max-width:900px){.availability-card{grid-template-columns:1.2fr 1.2fr .8fr .8fr;row-gap:8px;border-radius:26px}.availability-card__field:nth-child(2){border-right:0}.availability-card__submit{grid-column:1/-1;width:100%;margin-top:2px}.section--rooms{padding-top:138px}}
+@media(max-width:680px){.hero{margin:8px 8px 0;padding:82px 16px 28px;border-radius:22px}.hero h1{font-size:clamp(40px,11vw,52px);line-height:1.02}.hero__description{max-width:390px;margin:18px auto 24px;font-size:15px}.hero__actions{gap:13px}.availability-card{grid-template-columns:1fr 1fr;row-gap:0;width:100%;margin:34px auto -104px;padding:12px;border-radius:20px}.availability-card__field{padding:8px 10px 11px;border-right:1px solid var(--line)}.availability-card__field:nth-child(2){border-right:0}.availability-card__field:nth-child(-n+2){border-bottom:1px solid var(--line)}.availability-card__field input{font-size:12px}.availability-card__field--compact{padding-block:10px 8px}.availability-card__submit{grid-column:1/-1;min-height:48px;width:100%;margin-top:10px;padding-inline:12px;white-space:normal}.field-error{left:10px}.section--rooms{padding-top:112px}}
+@media(max-width:380px){.hero h1{font-size:38px}.availability-card__field{padding-inline:7px}.availability-card__field label{font-size:9px}}
+
+/* A photographic welcome, with calm motion that follows the guest's scroll. */
+.scroll-progress{position:fixed;top:0;left:0;z-index:60;width:100%;height:2px;transform:scaleX(0);transform-origin:left center;background:linear-gradient(90deg,#68a8d1,#c9e0ef,#fff);pointer-events:none}
+.hero{isolation:isolate;background-color:#8eafd0;background-image:radial-gradient(circle at 7% 19%,rgba(255,255,255,.38) 0 1px,transparent 1.8px),radial-gradient(circle at 82% 27%,rgba(255,255,255,.32) 0 1px,transparent 1.8px),radial-gradient(circle at 22% 68%,rgba(255,255,255,.24) 0 1px,transparent 1.8px),radial-gradient(circle at 93% 75%,rgba(255,255,255,.3) 0 1px,transparent 1.8px),linear-gradient(180deg,var(--sky-start),var(--sky-mid) 57%,var(--sky-end));background-size:180px 180px,230px 230px,280px 280px,210px 210px,auto}
+.hero:before{z-index:0;border-radius:inherit;background:radial-gradient(ellipse at 50% -10%,rgba(255,255,255,.58),transparent 52%),linear-gradient(120deg,rgba(255,255,255,.12),transparent 60%)}
+.hero__glow{z-index:0;background:rgba(255,255,255,.25);mix-blend-mode:normal}
+.hero__content{z-index:1;transform:translateY(calc(-14px - 2cm))}
+.hero h1,.section-heading h2,.quiet-panel h2,.closing-cta h2{font-family:'Inter',Arial,sans-serif;font-weight:600;letter-spacing:-.045em}
+.hero h1{font-size:clamp(56px,6.2vw,80px);line-height:1.12;text-shadow:none}
+.hero__description{max-width:530px;text-shadow:none}
+.availability-card{z-index:2}
+.section-heading h2,.quiet-panel h2,.closing-cta h2{font-size:clamp(42px,4.6vw,64px);line-height:.98}
+.room-card,.review-card{transition:transform .45s cubic-bezier(.2,.7,.2,1),box-shadow .45s ease}
+.room-card:hover,.review-card:hover{transform:translateY(-6px)}
+@media(max-width:680px){.hero h1{font-size:clamp(46px,12vw,60px);line-height:1.08}.section-heading h2,.quiet-panel h2,.closing-cta h2{font-size:clamp(40px,10vw,52px)}}
+html{scroll-behavior:auto}
+.hero__actions .button,.hero__actions .text-link--light{width:236px;min-height:50px;justify-content:center;padding:0 22px;font-size:14px;font-weight:600;line-height:1;white-space:nowrap}
+.hero__actions .text-link--light{border:1px solid rgba(255,255,255,.62);border-radius:999px;background:rgba(255,255,255,.1);backdrop-filter:blur(10px);transition:transform .22s ease,background-color .22s ease,border-color .22s ease}
+.hero__actions .text-link--light:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.9);background:rgba(255,255,255,.2)}
+.review-carousel{width:100%}
+@media(max-width:680px){.review-carousel{overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x mandatory;scrollbar-width:none;width:100%;-webkit-overflow-scrolling:touch}.review-carousel::-webkit-scrollbar{display:none}.review-grid[data-review-track]{display:flex;width:max-content;grid-template-columns:none;gap:14px;user-select:none}.review-grid[data-review-track] .review-card{flex:0 0 min(82vw,360px);max-width:calc(100vw - 64px);scroll-snap-align:start}.review-grid[data-review-track].is-dragging{cursor:grabbing}}
+@media(max-width:680px){.review-grid[data-review-track]{touch-action:pan-y;cursor:grab}}
+
+/* Small tactile details keep the home page responsive without competing with the content. */
+.hero__actions .button,.hero__actions .text-link--light{flex:0 1 236px}
+@media(max-width:680px){.hero{padding-top:52px}.hero__actions .button,.hero__actions .text-link--light{flex:0 0 50px;width:min(236px,100%);height:50px}}
+@media(max-width:680px){.hero.hero{min-height:calc(100svh - 8px)}}
+@media(max-width:380px){.hero.hero{padding:58px 16px 12px}.hero .hero__content .eyebrow{margin-bottom:10px}.hero .hero__description{margin:14px auto 18px;font-size:14px}}
+@media(max-width:320px){body.client-shell{min-width:0}}
+.hero__actions .button:active,.hero__actions .text-link--light:active,.availability-card__submit:active,.closing-cta .button:active{transform:scale(.975)}
+.availability-card{transition:box-shadow .35s ease,border-color .35s ease}
+.availability-card:focus-within{border-color:rgba(37,151,208,.38);box-shadow:0 20px 46px rgba(16,55,132,.08),0 0 0 4px rgba(37,151,208,.08)}
+.room-card__image{overflow:hidden}
+.room-card__image img{transition:transform .8s cubic-bezier(.2,.7,.2,1),filter .5s ease;will-change:transform}
+.room-card__availability{transition:transform .35s cubic-bezier(.2,.7,.2,1),background-color .35s ease}
+.icon-link span{display:inline-block;transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+.room-card__footer .icon-link:hover span{transform:translate(4px,-2px)}
+.review-card{transition:transform .45s cubic-bezier(.2,.7,.2,1),box-shadow .45s ease,border-color .35s ease}
+.review-card:hover{box-shadow:0 22px 50px rgba(16,55,132,.1);border-color:rgba(37,151,208,.24)}
+@media(hover:hover){.room-card:hover .room-card__image img{transform:scale(1.045);filter:saturate(1.04)}.room-card:hover .room-card__availability{transform:translateY(-3px)}}
+.home-page .availability-card:focus-within{border-color:rgba(255,255,255,.72)!important;box-shadow:0 20px 46px rgba(16,55,132,.08)!important}

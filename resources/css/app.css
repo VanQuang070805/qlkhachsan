@@ -1,4 +1,13 @@
 @import 'tailwindcss';
+@import 'lenis/dist/lenis.css';
+@import './client.css';
+@import './client-rooms.css';
+@import './client-home.css';
+@import './client-header.css';
+@import './client-header-scroll.css';
+@import './customer-pages.css';
+@import './date-picker.css';
+@import './client-layout-finish.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,6 +15,6 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }

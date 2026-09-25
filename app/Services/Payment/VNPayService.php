@@ -49,6 +49,6 @@ class VNPayService
         unset($data['vnp_SecureHash'], $data['vnp_SecureHashType']);
         ksort($data);
         $query = http_build_query($data);
-        return hash_hmac('sha512', $query, $this->hashSecret) === $received;
+        return hash_equals(hash_hmac('sha512', $query, $this->hashSecret), (string) $received);
     }
 }

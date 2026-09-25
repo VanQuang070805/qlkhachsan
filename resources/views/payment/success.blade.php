@@ -3,7 +3,7 @@
 @section('title', 'Đặt phòng thành công!')
 
 @push('styles')
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     .success-card {
         background: #fff;
@@ -15,7 +15,7 @@
         text-align: center;
     }
     .booking-code {
-        background: #9A7335;
+        background: #386b97;
         color: #fff;
         padding: 12px 30px;
         border-radius: 8px;
@@ -79,9 +79,9 @@
 
 @section('content')
 <div class="py-4">
-    <div class="success-card">
+    <div class="success-card" data-reveal>
 
-        <h1 style="font-size:1.8rem;font-weight:700;color:#1e3a8a;">Đặt Phòng Thành Công!</h1>
+        <h1 style="font-size:1.8rem;font-weight:700;color:#151515;">Đặt Phòng Thành Công!</h1>
 
         <div class="booking-code">
             Mã đặt phòng: <strong>#{{ $booking->id }}</strong>
@@ -93,7 +93,7 @@
         </div>
 
         <div class="booking-details">
-            <h3 style="font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:15px;">
+            <h3 style="font-family:'Inter',sans-serif;font-size:1.5rem;margin-bottom:15px;">
                 <i class="bi bi-info-circle me-2"></i>Chi Tiết Đặt Phòng
             </h3>
 
@@ -156,7 +156,7 @@
         @endif
 
         <div class="action-buttons mt-4 d-flex gap-3 justify-content-center flex-wrap">
-            <a href="{{ route('home') }}" class="btn btn-outline-warning">
+            <a href="{{ route('home') }}" class="btn btn-outline-primary">
                 <i class="bi bi-house me-2"></i>Về Trang Chủ
             </a>
             <a href="{{ route('booking.mine') }}" class="btn btn-primary">

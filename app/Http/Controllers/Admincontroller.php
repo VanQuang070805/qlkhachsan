@@ -16,7 +16,7 @@ class AdminController extends Controller
 
     public function dashboard()
     {
-        return view('admin.dashboard');
+        return redirect()->route('admin.reports');
     }
 
     // ──────────────────────────────────────────────────────────
@@ -25,6 +25,13 @@ class AdminController extends Controller
 
     public function reports(Request $request)
     {
+        $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'room_type_id' => 'nullable|integer|exists:room_types,id',
+            'status' => 'nullable|in:pending,confirmed,checked_in,completed,cancelled',
+        ]);
+
         $filters = [
             'start_date'   => $request->input('start_date', ''),
             'end_date'     => $request->input('end_date', ''),
@@ -37,16 +44,58 @@ class AdminController extends Controller
 
         $stats                     = $bookingModel->getReportStats($filters);
         $stats['total_customers']  = $userModel->countCustomers();
-        $chartData                 = $bookingModel->getReportChartData($filters);
+        $roomCount                 = max(1, (int) DB::table('rooms')->count());
+        $firstStay                 = $filters['start_date'] ?: DB::table('bookings')->min('check_in') ?: now()->toDateString();
+        $lastStay                  = $filters['end_date'] ?: DB::table('bookings')->max('check_out') ?: now()->toDateString();
+        $periodDays                = max(1, \Carbon\Carbon::parse($firstStay)->diffInDays(\Carbon\Carbon::parse($lastStay)) + 1);
+        $soldNights                = max(0, (int) ($stats['total_nights'] ?? 0));
+        $stats['adr']              = $soldNights > 0 ? $stats['total_revenue'] / $soldNights : 0;
+        $stats['revpar']           = $stats['total_revenue'] / ($roomCount * $periodDays);
+        $stats['occupancy_rate']   = min(100, ($soldNights / ($roomCount * $periodDays)) * 100);
+        $trendRows                 = $bookingModel->getReportChartData($filters);
+        $trendEnd                  = $filters['end_date']
+            ? \Carbon\Carbon::parse($filters['end_date'])->startOfDay()
+            : (count($trendRows) ? \Carbon\Carbon::parse(end($trendRows)->date)->startOfDay() : now()->startOfDay());
+        $trendStart                 = $filters['start_date']
+            ? \Carbon\Carbon::parse($filters['start_date'])->startOfDay()
+            : (count($trendRows) ? \Carbon\Carbon::parse($trendRows[0]->date)->startOfDay() : $trendEnd->copy()->subDays(29));
+        if ($trendStart->greaterThan($trendEnd)) {
+            [$trendStart, $trendEnd] = [$trendEnd->copy(), $trendStart->copy()];
+        }
+        if ($trendStart->diffInDays($trendEnd) > 364) {
+            $trendStart = $trendEnd->copy()->subDays(364);
+        }
+        $trendsByDate = collect($trendRows)->keyBy(fn ($row) => (string) $row->date);
+        $chartData = [];
+        for ($date = $trendStart->copy(); $date->lte($trendEnd); $date->addDay()) {
+            $row = $trendsByDate->get($date->toDateString());
+            $chartData[] = [
+                'date' => $date->toDateString(),
+                'revenue' => (float) ($row->revenue ?? 0),
+                'bookings' => (int) ($row->bookings ?? 0),
+            ];
+        }
+        $typeChartData             = $bookingModel->getReportRoomTypeData($filters);
+        $statusChartData = [
+            ['Chờ xác nhận', (int) ($stats['pending_count'] ?? 0)],
+            ['Đã xác nhận', (int) ($stats['confirmed_count'] ?? 0)],
+            ['Đang lưu trú', (int) ($stats['checked_in_count'] ?? 0)],
+            ['Hoàn thành', (int) ($stats['completed_count'] ?? 0)],
+            ['Đã hủy', (int) ($stats['cancelled_count'] ?? 0)],
+        ];
         $bookings                  = $bookingModel->getFilteredBookings($filters);
         $roomTypes                 = DB::select('SELECT id, type_name FROM room_types');
+        $roomInventory             = DB::table('rooms')->selectRaw('room_type_id, COUNT(*) AS total')->groupBy('room_type_id')->pluck('total', 'room_type_id');
 
         return view('admin.reports', [
             'stats'     => $stats,
-            'chartData' => json_encode($chartData),
+            'chartData' => $chartData,
+            'typeChartData' => $typeChartData,
+            'statusChartData' => $statusChartData,
             'bookings'  => $bookings,
             'filters'   => $filters,
             'roomTypes' => $roomTypes,
+            'roomInventory' => $roomInventory,
         ]);
     }
 

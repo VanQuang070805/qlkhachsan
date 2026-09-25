@@ -9,11 +9,9 @@
     $uniqueTypes = [];
     $uniqueCapacities = [];
     $counts = [
-        'available' => 0, 
-        'occupied' => 0, 
+        'available' => 0,
+        'occupied' => 0,
         'cleaning' => 0,
-        'has_booking' => 0, 
-        'no_booking' => 0
     ];
 
     foreach ($floors as $floor => $rooms) {
@@ -26,11 +24,6 @@
                 $counts[$uiStatus]++;
             }
             
-            if ($room['has_today_booking']) {
-                $counts['has_booking']++;
-            } else {
-                $counts['no_booking']++;
-            }
         }
     }
     asort($uniqueTypes);
@@ -225,106 +218,152 @@
         50% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
         100% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.98); }
     }
+
+    /* Operations board: compact, theme-aware and responsive. */
+    .operations-bar { display:grid; grid-template-columns:minmax(240px,1fr) auto; gap:12px; align-items:center; margin-bottom:14px; }
+    .operations-search { display:flex; align-items:center; gap:10px; min-height:44px; padding:0 13px; border:1px solid var(--line); border-radius:11px; background:var(--panel); color:var(--muted); }
+    .operations-search:focus-within { border-color:var(--blue-deep); box-shadow:0 0 0 3px color-mix(in srgb,var(--blue-deep) 18%,transparent); }
+    .operations-search input { width:100%; min-width:0; border:0!important; outline:0; background:transparent!important; color:var(--ink)!important; box-shadow:none!important; }
+    .operations-actions { display:flex; align-items:center; gap:8px; }
+    .control-toggle { min-height:42px; display:inline-flex; align-items:center; gap:8px; margin:0; padding:0 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel-raised); color:var(--ink); font-size:.78rem; font-weight:600; white-space:nowrap; cursor:pointer; }
+    .control-toggle .form-check-input { margin:0!important; flex:0 0 auto; }
+    .operation-button { min-height:42px; display:inline-flex!important; align-items:center; justify-content:center; gap:8px; border-radius:10px!important; padding:0 13px!important; font-size:.78rem!important; font-weight:650!important; white-space:nowrap; box-shadow:none!important; }
+    .legend-row { display:flex; flex-wrap:nowrap; gap:7px; margin-bottom:14px; overflow-x:auto; scrollbar-width:none; }
+    .legend-row::-webkit-scrollbar { display:none; }
+    .legend-badge { min-height:36px; flex:0 0 auto; padding:7px 11px; border-radius:9px; border:1px solid var(--line)!important; background:var(--panel)!important; color:var(--muted)!important; font-size:.72rem; font-weight:600; box-shadow:none; }
+    .legend-badge:hover { transform:none; background:var(--panel-raised)!important; color:var(--ink)!important; }
+    .legend-badge.active-filter { border-color:var(--blue-deep)!important; color:var(--ink)!important; box-shadow:0 0 0 2px color-mix(in srgb,var(--blue-deep) 18%,transparent)!important; }
+    .filter-card { margin-bottom:18px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:none; }
+    .filter-grid { grid-template-columns:repeat(4,minmax(120px,1fr)) auto; gap:9px; }
+    .filter-label { color:var(--muted); font-size:.62rem; letter-spacing:.08em; }
+    .filter-card select,.filter-card input { min-height:38px; padding:6px 10px; border-color:var(--line); border-radius:8px; background:var(--panel-raised); color:var(--ink); font-size:.78rem; }
+    .floor-section { margin:0 0 14px!important; padding:16px; border:1px solid var(--line); border-radius:14px; background:var(--panel); }
+    .floor-section>h6 { margin:0 0 12px!important; color:var(--ink)!important; font-size:.76rem; letter-spacing:.04em; }
+    .room-card { height:104px; padding:14px; border-radius:11px; border:1px solid var(--line)!important; background:var(--panel-raised)!important; box-shadow:none; overflow:hidden; }
+    .room-card::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:#6f7680; }
+    .room-card.status-available::before { background:#46a273; }
+    .room-card.status-occupied::before { background:#5e8fc0; }
+    .room-card.status-cleaning::before { background:#d6a13d; }
+    .internal-shell .room-card.status-available,.internal-shell .room-card.status-occupied,.internal-shell .room-card.status-cleaning { background:var(--panel-raised)!important; }
+    .room-card:hover { transform:translateY(-2px); border-color:color-mix(in srgb,var(--blue-deep) 50%,var(--line))!important; box-shadow:0 10px 24px rgba(0,0,0,.08); }
+    .room-card.selected { border-color:var(--blue-deep)!important; box-shadow:0 0 0 3px color-mix(in srgb,var(--blue-deep) 18%,transparent)!important; }
+    .room-number,.room-status-text,.room-capacity { color:var(--ink); }
+    .room-number { font-size:1.08rem; }
+    .room-status-text,.room-capacity { color:var(--muted); font-size:.68rem; }
+    .room-icon { top:14px; right:14px; font-size:1rem; }
+    .right-panel { background:var(--panel)!important; color:var(--ink); }
+    .detail-img { height:150px; border-radius:11px; margin-bottom:16px; }
+    .detail-label { color:var(--muted); font-size:.76rem; }
+    .detail-value { color:var(--ink); font-size:.8rem; }
+    .floor-switcher { display:flex; align-items:center; gap:7px; margin:0 0 12px; padding:6px; overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--panel); scrollbar-width:none; }
+    .floor-switcher::-webkit-scrollbar { display:none; }
+    .floor-switcher button { min-height:38px; flex:0 0 auto; display:inline-flex; align-items:center; gap:8px; padding:0 12px; border:1px solid transparent; border-radius:9px; background:transparent; color:var(--muted); font-size:.76rem; font-weight:600; white-space:nowrap; }
+    .floor-switcher button span { display:grid; min-width:21px; height:21px; place-items:center; padding:0 5px; border-radius:7px; background:var(--panel-raised); color:var(--muted); font-size:.66rem; font-variant-numeric:tabular-nums; }
+    .floor-switcher button:hover { color:var(--ink); background:var(--panel-raised); }
+    .floor-switcher button.is-active { background:var(--ink); color:var(--bg); }
+    .floor-switcher button.is-active span { background:color-mix(in srgb,var(--bg) 14%,transparent); color:inherit; }
+    .floor-section { position:relative; overflow:hidden; }
+    .floor-section::after { content:""; position:absolute; top:0; right:0; width:160px; height:110px; pointer-events:none; opacity:.42; background:radial-gradient(circle at 80% 0,color-mix(in srgb,var(--blue-deep) 18%,transparent),transparent 70%); }
+    .floor-section>h6 { display:flex; align-items:center; gap:8px; }
+    .floor-section>h6::after { content:""; height:1px; flex:1; margin-left:8px; background:var(--line); }
+    .legend-badge strong { min-width:18px; text-align:center; font-size:.68rem; font-variant-numeric:tabular-nums; }
+    .room-card.status-soon_to_checkin::before,.room-card.status-soon_to_checkout::before { background:#ad91e8; }
+    .room-card.status-maintenance::before,.room-card.status-overdue::before { background:#e78383; }
+    .room-card.status-booked::before { background:#e6b85c; }
+    .internal-shell[data-theme="dark"] .room-card.status-soon_to_checkin,.internal-shell[data-theme="dark"] .room-card.status-soon_to_checkout { border-color:#3b3150!important; }
+    .internal-shell[data-theme="dark"] .room-card.status-maintenance { border-color:#503035!important; }
+    @media(max-width:1050px){.operations-bar{grid-template-columns:1fr}.operations-actions{justify-content:flex-start}.filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.filter-grid>button{grid-column:1/-1}.action-label{display:none}.operation-button{width:42px;padding:0!important}.control-toggle span,.control-toggle input{position:absolute;opacity:0;pointer-events:none}.control-toggle:has(input:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}}
+    @media(max-width:640px){.operations-bar{gap:9px}.operations-actions{display:flex}.control-toggle{justify-content:center;width:42px;padding:0}.filter-grid{grid-template-columns:1fr 1fr}.legend-badge{font-size:.68rem}.floor-section{padding:12px}.room-card{height:96px}.floor-switcher{margin-inline:-2px}.floor-switcher button{padding-inline:10px}}
+    .operations-bar { grid-template-columns:minmax(0,1fr) auto!important; }
+    .operations-more { position:relative; z-index:20; }
+    .operations-more summary { display:flex;align-items:center;gap:9px;min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:.8rem;font-weight:600;cursor:pointer;list-style:none;white-space:nowrap; }
+    .operations-more summary::-webkit-details-marker { display:none; }
+    .operations-more[open] summary,.operations-more summary:hover { background:var(--panel-raised); }
+    .operations-more summary .fa-chevron-down { font-size:.65rem;transition:transform .2s ease; }
+    .operations-more[open] summary .fa-chevron-down { transform:rotate(180deg); }
+    .operations-more__panel { position:absolute;top:calc(100% + 8px);right:0;width:min(490px,calc(100vw - 110px));padding:17px;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:0 24px 55px rgba(23,43,59,.16); }
+    .operations-more .operations-actions { flex-wrap:wrap;margin-bottom:14px; }
+    .operations-more .filter-card { margin:0;padding:0;border:0!important;background:transparent!important; }
+    .operations-more .filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)) auto!important;align-items:end; }
+    .operations-more .filter-grid>button { grid-column:auto!important;min-height:38px;border-radius:999px; }
+    .operations-more .operation-button,.operations-more .control-toggle { border-radius:999px!important; }
+    .operations-more .operation-button,.operations-more .control-toggle { width:auto!important;padding:0 13px!important; }
+    .operations-more .control-toggle input,.operations-more .control-toggle span { position:static!important;opacity:1!important;pointer-events:auto!important; }
+    .legend-row { flex-wrap:wrap;gap:8px;overflow:visible; }
+    .legend-row .legend-badge { min-height:38px;padding:7px 14px;border-radius:999px!important;display:inline-flex;align-items:center;gap:7px;cursor:pointer; }
+    .legend-row .legend-badge.active-filter { background:var(--ink)!important;color:var(--bg)!important;border-color:var(--ink)!important;box-shadow:none!important; }
+    .legend-row .dot { width:7px;height:7px;border-radius:50%; }
+    .status-dot--available { background:#4aa57c; }.status-dot--occupied { background:#71a9d1; }.status-dot--cleaning { background:#dbb662; }
+    .internal-shell .staff-workspace .room-card:hover { border-color:var(--line)!important;box-shadow:0 10px 24px rgba(22,42,58,.12)!important; }
+    .internal-shell .staff-workspace .room-card.selected { outline:0!important;border:1px solid var(--line)!important;background:var(--panel)!important;box-shadow:0 16px 34px rgba(19,47,67,.18)!important;animation:room-select-pop .28s cubic-bezier(.2,.8,.3,1) both; }
+    @keyframes room-select-pop { from { transform:translateY(2px) scale(.985) } to { transform:translateY(-2px) scale(1) } }
+    @media(max-width:640px){.operations-bar{grid-template-columns:minmax(0,1fr) auto!important}.operations-more summary{padding:0 11px;font-size:0}.operations-more summary i{font-size:.85rem}.operations-more__panel{padding:14px}.operations-more .filter-grid{grid-template-columns:1fr 1fr!important}.operations-more .filter-grid>button{grid-column:1/-1!important}.legend-row .legend-badge{font-size:.68rem}}
+    @media(prefers-reduced-motion:reduce){.internal-shell .staff-workspace .room-card.selected{animation:none}}
 </style>
 
 <!-- Main Center Column -->
 <main class="main-content">
-    <!-- Header Area -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold m-0 text-dark">Sơ đồ trạng thái phòng</h4>
-            <p class="text-muted m-0" style="font-size:0.85rem;">Quản lý và cập nhật sơ đồ đặt phòng theo thời gian thực</p>
-        </div>
-        <div class="d-flex align-items-center gap-3">
-            <!-- Toggle Multi-select mode -->
-            <div class="form-check form-switch bg-white px-3 py-2 border rounded-pill shadow-sm" style="font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                <input class="form-check-input ms-0 me-2" type="checkbox" id="multi-select-toggle" onchange="toggleMultiSelectMode()">
-                <label class="form-check-label text-secondary mb-0" for="multi-select-toggle" style="cursor: pointer;">Chọn nhiều phòng</label>
+    <div class="operations-bar" aria-label="Tìm và quản lý phòng">
+        <label class="operations-search" for="search-input">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="search" id="search-input" placeholder="Tìm phòng, khách hoặc số điện thoại" oninput="debounceFilterRooms()">
+        </label>
+        <details class="operations-more">
+            <summary><i class="fa-solid fa-sliders" aria-hidden="true"></i> Tùy chọn <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+            <div class="operations-more__panel">
+                <div class="operations-actions">
+                    <label class="control-toggle" for="multi-select-toggle">
+                        <input class="form-check-input" type="checkbox" id="multi-select-toggle" onchange="toggleMultiSelectMode()">
+                        <span>Chọn nhiều</span>
+                    </label>
+                    <a href="{{ route('staff.cancellations') }}" class="btn btn-outline-secondary operation-button">Hoàn tiền @if(($pendingRefunds ?? 0) > 0)<strong>{{ $pendingRefunds }}</strong>@endif</a>
+                    <button type="button" class="btn btn-primary operation-button" onclick="openQRScannerModal()">Quét QR</button>
+                </div>
+                <div class="filter-card">
+                    <div class="filter-grid">
+                        <div class="filter-group visually-hidden">
+                            <label for="filter-floor">Tầng</label>
+                            <select id="filter-floor" aria-label="Lọc theo tầng" onchange="filterRooms()">
+                                <option value="Tất cả">Tất cả tầng</option>
+                                @foreach ($allFloors as $fl)<option value="{{ $fl }}">Tầng {{ $fl }}</option>@endforeach
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="filter-type">Loại phòng</label>
+                            <select id="filter-type" onchange="filterRooms()">
+                                <option value="Tất cả">Mọi loại phòng</option>
+                                @foreach ($uniqueTypes as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="filter-guests">Sức chứa</label>
+                            <select id="filter-guests" onchange="filterRooms()">
+                                <option value="Tất cả">Mọi sức chứa</option>
+                                @foreach ($uniqueCapacities as $cap)<option value="{{ $cap }}">{{ $cap }} người</option>@endforeach
+                                <option value="5+">5+ người</option>
+                            </select>
+                        </div>
+                        <div class="filter-group visually-hidden">
+                            <label for="filter-status">Trạng thái</label>
+                            <select id="filter-status" onchange="filterRooms()">
+                                <option value="Tất cả">Tất cả</option>
+                                <option value="available">Trống</option>
+                                <option value="occupied">Đang ở</option>
+                                <option value="cleaning">Dọn phòng</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary" onclick="resetFilters()">Đặt lại</button>
+                    </div>
+                </div>
             </div>
-            <div class="input-group shadow-sm" style="width: 320px; border-radius: 8px; overflow: hidden;">
-                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
-                <input type="text" id="search-input" class="form-control border-start-0 py-2" placeholder="Tìm tên khách, số điện thoại, số phòng..." oninput="filterRooms()">
-            </div>
-            <a href="{{ route('staff.cancellations') }}" class="btn btn-outline-danger d-flex align-items-center gap-2 shadow-sm py-2 px-3 fw-bold position-relative" style="border-radius: 8px; font-size: 0.875rem;">
-                <i class="fa-solid fa-ban"></i> Quản lý huỷ phòng
-                @if(($pendingRefunds ?? 0) > 0)
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.7rem;">
-                        {{ $pendingRefunds }}
-                    </span>
-                @endif
-            </a>
-            <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm py-2 px-3 fw-bold" style="border-radius: 8px; font-size: 0.875rem;" onclick="openQRScannerModal()">
-                <i class="fa-solid fa-qrcode fs-5"></i> Quét QR
-            </button>
-        </div>
+        </details>
     </div>
 
-    <!-- Interactive Legend Box -->
-    <div class="legend-row">
-        <div class="legend-badge status-available" data-status-val="available" onclick="toggleLegendFilter(this)">
-            <span class="dot" style="background: #2d9f58;"></span> Đang trống (<span id="count-available">{{ $counts['available'] }}</span>)
-        </div>
-        <div class="legend-badge status-occupied" data-status-val="occupied" onclick="toggleLegendFilter(this)">
-            <span class="dot" style="background: #2b6ff2;"></span> Đang sử dụng (<span id="count-occupied">{{ $counts['occupied'] }}</span>)
-        </div>
-        <div class="legend-badge status-cleaning" data-status-val="cleaning" onclick="toggleLegendFilter(this)">
-            <span class="dot" style="background: #f59e0b;"></span> Đang dọn dẹp (<span id="count-cleaning">{{ $counts['cleaning'] }}</span>)
-        </div>
-        <div class="legend-badge border-danger text-danger bg-white" data-status-val="has_booking" onclick="toggleLegendFilter(this)">
-            <span class="dot bg-danger"></span> Có lịch đặt hôm nay (<span id="count-has_booking">{{ $counts['has_booking'] }}</span>)
-        </div>
-        <div class="legend-badge border-secondary text-secondary bg-white" data-status-val="no_booking" onclick="toggleLegendFilter(this)">
-            <span class="dot bg-secondary"></span> Chưa có lịch đặt (<span id="count-no_booking">{{ $counts['no_booking'] }}</span>)
-        </div>
-    </div>
-
-    <!-- Filter Bar Card -->
-    <div class="filter-card">
-        <div class="filter-grid">
-            <div class="filter-group">
-                <span class="filter-label">Tầng</span>
-                <select id="filter-floor" onchange="filterRooms()">
-                    <option value="Tất cả">Tất cả tầng</option>
-                    @foreach ($allFloors as $fl)
-                        <option value="{{ $fl }}">Tầng {{ $fl }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="filter-group">
-                <span class="filter-label">Loại phòng</span>
-                <select id="filter-type" onchange="filterRooms()">
-                    <option value="Tất cả">Tất cả loại phòng</option>
-                    @foreach ($uniqueTypes as $id => $name)
-                        <option value="{{ $id }}">{{ $name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="filter-group">
-                <span class="filter-label">Sức chứa</span>
-                <select id="filter-guests" onchange="filterRooms()">
-                    <option value="Tất cả">Tất cả sức chứa</option>
-                    @foreach ($uniqueCapacities as $cap)
-                        <option value="{{ $cap }}">{{ $cap }} người</option>
-                    @endforeach
-                    <option value="5+">5+ người</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <span class="filter-label">Trạng thái</span>
-                <select id="filter-status" onchange="filterRooms()">
-                    <option value="Tất cả">Tất cả trạng thái</option>
-                    <option value="available">Đang trống</option>
-                    <option value="occupied">Đang sử dụng</option>
-                    <option value="cleaning">Đang dọn dẹp</option>
-                    <option value="has_booking">Có lịch đặt hôm nay</option>
-                    <option value="no_booking">Chưa có lịch đặt</option>
-                </select>
-            </div>
-
-            <button class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center gap-1 py-2" style="border-radius: 8px; height: 38px;" onclick="resetFilters()">
-                <i class="fa-solid fa-rotate-right"></i> Làm mới
-            </button>
-        </div>
+    <div class="legend-row" aria-label="Lọc trạng thái phòng">
+        <button type="button" class="legend-badge active-filter" data-status-val="Tất cả" onclick="toggleLegendFilter(this)">Tất cả <strong>{{ array_sum(array_map('count', $floors)) }}</strong></button>
+        <button type="button" class="legend-badge" data-status-val="available" onclick="toggleLegendFilter(this)"><span class="dot status-dot--available"></span> Trống <strong id="count-available">{{ $counts['available'] }}</strong></button>
+        <button type="button" class="legend-badge" data-status-val="occupied" onclick="toggleLegendFilter(this)"><span class="dot status-dot--occupied"></span> Đang ở <strong id="count-occupied">{{ $counts['occupied'] }}</strong></button>
+        <button type="button" class="legend-badge" data-status-val="cleaning" onclick="toggleLegendFilter(this)"><span class="dot status-dot--cleaning"></span> Dọn phòng <strong id="count-cleaning">{{ $counts['cleaning'] }}</strong></button>
     </div>
 
     <!-- Floors & Rooms Grid -->
@@ -335,22 +374,22 @@
                 <div class="row g-3">
                     @foreach ($rooms as $room)
                         @php
-                            if ($room['status'] === 'occupied') {
-                                $statusText = 'Đang sử dụng';
-                                $icon = 'fa-user-check';
-                            } elseif ($room['status'] === 'cleaning') {
-                                $statusText = 'Đang dọn dẹp';
-                                $icon = 'fa-broom';
-                            } else {
-                                $statusText = 'Đang trống';
-                                $icon = 'fa-door-open';
-                            }
+                            [$statusText, $icon] = match ($room['status']) {
+                                'soon_to_checkin' => ['Sắp nhận phòng', 'fa-clock'],
+                                'occupied' => ['Đang lưu trú', 'fa-user-check'],
+                                'soon_to_checkout' => ['Sắp trả phòng', 'fa-right-from-bracket'],
+                                'cleaning' => ['Đang dọn dẹp', 'fa-broom'],
+                                'maintenance' => ['Bảo trì', 'fa-screwdriver-wrench'],
+                                'booked' => ['Đã đặt', 'fa-calendar-check'],
+                                'overdue' => ['Quá giờ trả', 'fa-clock'],
+                                default => ['Đang trống', 'fa-door-open'],
+                            };
                             
                             $room['ui_status'] = $room['status'];
                             $room['status_text'] = $statusText;
                         @endphp
                         <div class="col-md-4 col-sm-6 col-xl-2 col-xxl-2 room-card-wrapper">
-                            <div class="room-card status-{{ $room['status'] }}" 
+                            <div class="room-card status-{{ $room['status'] }}" role="button" tabindex="0" aria-label="Phòng {{ $room['room_number'] }}" onkeydown="if(event.key === 'Enter' || event.key === ' '){event.preventDefault();selectRoom(this)}"
                                  data-floor="{{ $room['floor'] }}"
                                  data-type="{{ $room['room_type_id'] }}"
                                  data-guests="{{ $room['max_guests'] }}"
@@ -383,9 +422,11 @@
 
 <!-- Right Sidebar (Details) -->
 <aside class="right-panel shadow-sm" id="room-detail-panel" style="display: none; flex-direction: column;">
+    <div class="window-controls window-controls--panel" role="group" aria-label="Điều khiển thông tin phòng">
+        <button class="window-control window-control--close" type="button" onclick="closeDetailPanel()" aria-label="Đóng thông tin phòng"></button>
+    </div>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold m-0" id="detail-title">Thông tin phòng</h5>
-        <button type="button" class="btn-close" onclick="closeDetailPanel()"></button>
     </div>
     
     <!-- Single room details -->
@@ -553,9 +594,9 @@
 <div class="modal fade" id="checkoutScopeModal" tabindex="-1" aria-labelledby="checkoutScopeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 14px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden;">
+            @include('client.partials.window-controls', ['controls' => ['close'], 'dismiss' => 'modal', 'class' => 'window-controls--modal', 'label' => 'trả phòng'])
             <div class="modal-header bg-success text-white py-3 px-4" style="border: none;">
                 <h5 class="modal-title fw-bold" id="checkoutScopeModalLabel"><i class="fa-solid fa-door-open me-2"></i>Trả phòng</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4" style="background: #f8fafc;">
                 <div class="fw-bold fs-5 mb-2" id="checkout-room-label">---</div>
@@ -578,19 +619,19 @@
 <div class="modal fade" id="checkoutPaymentModal" tabindex="-1" aria-labelledby="checkoutPaymentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 14px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden;">
+            @include('client.partials.window-controls', ['controls' => ['close'], 'dismiss' => 'modal', 'class' => 'window-controls--modal', 'label' => 'thanh toán trả phòng'])
             <div class="modal-header bg-success text-white py-3 px-4" style="border: none;">
                 <h5 class="modal-title fw-bold" id="checkoutPaymentModalLabel"><i class="fa-solid fa-receipt me-2"></i>Trả phòng & Thanh toán</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4" style="background: #f8fafc;">
                 <div class="bg-white rounded p-3 mb-3 border">
                     <div class="d-flex justify-content-between mb-2"><span class="text-muted">Khách hàng</span><strong id="mo-customer">---</strong></div>
                     <div class="d-flex justify-content-between mb-2"><span class="text-muted">Phòng</span><strong id="mo-room">---</strong></div>
                     <div class="d-flex justify-content-between mb-2"><span class="text-muted">Check-in</span><strong id="mo-checkin">---</strong></div>
-                    <div class="d-flex justify-content-between mb-2"><span class="text-muted">Check-out (Hôm nay)</span><strong id="mo-checkout">---</strong></div>
+                    <div class="d-flex justify-content-between mb-2"><span class="text-muted">Ngày trả dự kiến</span><strong id="mo-checkout">---</strong></div>
                     <hr class="my-2">
                     <div class="d-flex justify-content-between mb-1"><span class="text-muted">Tổng tiền</span><strong class="text-primary fs-5" id="mo-total">0 đ</strong></div>
-                    <div class="d-flex justify-content-between mb-1" id="mo-late-fee-row" style="display:none">
+                    <div class="d-flex justify-content-between mb-1" id="mo-late-fee-row" hidden>
                         <span class="text-warning"><i class="fa-solid fa-clock me-1"></i>Phụ thu trả muộn</span>
                         <strong class="text-warning" id="mo-late-fee">0 đ</strong>
                     </div>
@@ -623,7 +664,7 @@
                 </div>
             </div>
             <div class="modal-footer px-4 py-3" style="border-top: 1px solid #f1f5f9; background: #f8fafc;">
-                <div class="form-check mb-2">
+                <div class="form-check mb-2" id="late-fee-waiver" hidden>
                     <input class="form-check-input" type="checkbox" id="waive-late-fee" onchange="toggleWaiveLateFee()">
                     <label class="form-check-label text-muted" for="waive-late-fee">
                         Miễn phụ thu trả muộn
@@ -642,23 +683,20 @@
 <div class="modal fade" id="extendStayModal" tabindex="-1" aria-labelledby="extendStayModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 14px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden;">
+            @include('client.partials.window-controls', ['controls' => ['close'], 'dismiss' => 'modal', 'class' => 'window-controls--modal', 'label' => 'gia hạn lưu trú'])
             <div class="modal-header bg-info text-white py-3 px-4" style="border: none;">
                 <h5 class="modal-title fw-bold" id="extendStayModalLabel"><i class="fa-solid fa-calendar-plus me-2"></i>Gia hạn lưu trú</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4" style="background: #f8fafc;">
                 <div class="mb-3">
                     <div class="text-muted small fw-semibold mb-1">Phòng</div>
                     <div class="fw-bold fs-5" id="extend-room-label">---</div>
                 </div>
-                <div class="mb-3">
-                    <label for="extend-days" class="form-label fw-semibold">Số ngày gia hạn</label>
-                    <input type="number" id="extend-days" class="form-control" min="1" max="30" value="1" required>
-                    <div class="form-text">Hệ thống sẽ kiểm tra lịch đặt trùng trước khi cập nhật.</div>
-                </div>
+                <div class="mb-3"><label for="extend-mode" class="form-label fw-semibold">Hình thức gia hạn</label><select id="extend-mode" class="form-select" onchange="syncExtendMode()"><option value="hours">Theo giờ · 200.000đ/giờ</option><option value="days">Theo ngày · giá phòng hiện tại</option></select></div>
+                <div class="mb-3"><label for="extend-amount" class="form-label fw-semibold" id="extend-amount-label">Số giờ gia hạn</label><input type="number" id="extend-amount" class="form-control" min="1" max="12" value="1" required><div class="form-text" id="extend-help">Tối đa 12 giờ. Phí 200.000đ cho mỗi giờ.</div></div>
                 <div class="alert alert-info mb-0 py-2" style="font-size: 0.875rem;">
                     <i class="fa-solid fa-circle-info me-1"></i>
-                    Tiền phòng sẽ được cộng thêm theo giá đêm của các phòng.
+                    Hệ thống sẽ kiểm tra lịch trùng trước khi gia hạn theo ngày.
                 </div>
             </div>
             <div class="modal-footer px-4 py-3" style="border-top: 1px solid #f1f5f9; background: #f8fafc;">
@@ -675,9 +713,9 @@
 <div class="modal fade" id="walkinCheckinModal" tabindex="-1" aria-labelledby="walkinCheckinModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden;">
+            @include('client.partials.window-controls', ['controls' => ['close'], 'dismiss' => 'modal', 'class' => 'window-controls--modal', 'label' => 'check-in khách vãng lai'])
             <div class="modal-header bg-primary text-white py-3 px-4" style="border: none;">
                 <h5 class="modal-title fw-bold" id="walkinCheckinModalTitle"><i class="fa-solid fa-user-plus me-2"></i>Check-in Khách Vãng Lai</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 <form id="walkin-checkin-form">
@@ -727,9 +765,9 @@
 <div class="modal fade" id="prebookCheckinModal" tabindex="-1" aria-labelledby="prebookCheckinModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden;">
+            @include('client.partials.window-controls', ['controls' => ['close'], 'dismiss' => 'modal', 'class' => 'window-controls--modal', 'label' => 'xác nhận lịch đặt trước'])
             <div class="modal-header bg-primary text-white py-3 px-4" style="border: none;">
                 <h5 class="modal-title fw-bold" id="prebookCheckinModalLabel"><i class="fa-solid fa-address-card me-2"></i>Xác nhận Lịch Đặt Trước</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4" style="background: #f8fafc;">
                 <input type="hidden" id="prebook-id">
@@ -787,9 +825,9 @@
 <div class="modal fade" id="qrScannerModal" tabindex="-1" aria-labelledby="qrScannerModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden;">
+            @include('client.partials.window-controls', ['controls' => ['close'], 'dismiss' => 'modal', 'class' => 'window-controls--modal', 'label' => 'quét QR phòng'])
             <div class="modal-header bg-dark text-white py-3 px-4" style="border: none;">
                 <h5 class="modal-title fw-bold" id="qrScannerModalLabel"><i class="fa-solid fa-qrcode me-2 text-warning"></i>Quét QR phòng</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="closeQRScanner()"></button>
             </div>
             <div class="modal-body p-4 text-center" style="background: #f8fafc;">
                 <div class="mb-3 text-start">
@@ -831,9 +869,9 @@
 <div class="modal fade" id="qrResultModal" tabindex="-1" aria-labelledby="qrResultModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden;">
+            @include('client.partials.window-controls', ['controls' => ['close'], 'dismiss' => 'modal', 'class' => 'window-controls--modal', 'label' => 'kết quả quét QR'])
             <div class="modal-header bg-primary text-white py-3 px-4" style="border: none;">
                 <h5 class="modal-title fw-bold" id="qrResultModalLabel"><i class="fa-solid fa-square-poll-horizontal me-2"></i>Kết quả quét mã QR</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4" style="background: #f8fafc;">
                 <div class="row g-4">
@@ -916,6 +954,12 @@
     let selectedRoomIds = [];
     let selectedRoomsData = [];
 
+    function setRoomDetailOpen(open) {
+        const workspace = document.querySelector('.staff-workspace');
+        const mutate = () => workspace?.classList.toggle('has-room-detail', open);
+        window.animateInternalRoomLayout ? window.animateInternalRoomLayout(mutate) : mutate();
+    }
+
     const roomImages = {
         'Phòng Đơn Tiêu Chuẩn': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80',
         'Phòng Đôi Tiêu Chuẩn': 'https://images.unsplash.com/photo-1631049552057-403cdb8f0658?w=600&q=80',
@@ -941,6 +985,9 @@
         return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]} 12:00` : value;
     }
 
+    let boardRefreshController = null;
+    let filterDebounceTimer = null;
+
     function refreshReceptionBoard({ reselectCurrentRoom = true } = {}) {
         const previousSelectedRoomId = selectedRoomId;
         const previousFilters = {
@@ -951,8 +998,12 @@
             status: document.getElementById('filter-status')?.value || 'Tất cả'
         };
 
+        if (boardRefreshController) boardRefreshController.abort();
+        boardRefreshController = new AbortController();
+
         return fetch(window.location.href, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            signal: boardRefreshController.signal
         })
         .then(response => response.text())
         .then(html => {
@@ -992,7 +1043,9 @@
                 if (card) card.click();
             }
         })
-        .catch(error => console.error('Silent board refresh failed:', error));
+        .catch(error => {
+            if (error.name !== 'AbortError') console.error('Silent board refresh failed:', error);
+        });
     }
 
     function toggleMultiSelectMode() {
@@ -1028,16 +1081,17 @@
             }
 
             if (selectedRoomIds.length > 0) {
+                setRoomDetailOpen(true);
                 document.getElementById('empty-detail-panel').style.display = 'none';
                 document.getElementById('room-detail-panel').style.display = 'flex';
+                document.getElementById('room-detail-panel').classList.add('is-open');
                 document.getElementById('single-room-container').style.display = 'none';
                 document.getElementById('multi-room-container').style.display = 'flex';
 
-                const isBefore14h = new Date().getHours() < 14;
                 const btnMultiHold = document.getElementById('btn-multi-hold');
                 if (btnMultiHold) {
                     btnMultiHold.style.display = 'block';
-                    btnMultiHold.disabled = !isBefore14h;
+                    btnMultiHold.disabled = false;
                 }
 
                 document.getElementById('detail-title').innerText = 'Đặt nhiều phòng';
@@ -1062,6 +1116,7 @@
                 closeDetailPanel();
             }
         } else {
+            setRoomDetailOpen(true);
             selectedRoomId = roomData.id;
             selectedRoomData = roomData;
 
@@ -1070,6 +1125,7 @@
 
             document.getElementById('empty-detail-panel').style.display = 'none';
             document.getElementById('room-detail-panel').style.display = 'flex';
+                document.getElementById('room-detail-panel').classList.add('is-open');
             document.getElementById('single-room-container').style.display = 'block';
             document.getElementById('multi-room-container').style.display = 'none';
 
@@ -1078,14 +1134,19 @@
             document.getElementById('detail-capacity').innerText = roomData.max_guests + ' người';
             document.getElementById('detail-price').innerText = new Intl.NumberFormat('vi-VN').format(roomData.price) + ' đ / đêm';
             document.getElementById('detail-amenities').innerText = roomData.amenities_list || 'Không có';
-            document.getElementById('detail-img').src = roomImages[roomData.type_name] || defaultImg;
+            document.getElementById('detail-img').src = roomData.image_url || roomImages[roomData.type_name] || defaultImg;
 
             let badgeClass = 'bg-secondary';
             let statusText = '';
-            switch(roomData.ui_status || roomData.status) {
+                switch(roomData.ui_status || roomData.status) {
                 case 'available': badgeClass = 'bg-success'; statusText = 'Đang trống'; break;
-                case 'occupied': badgeClass = 'bg-primary'; statusText = 'Đang sử dụng'; break;
+                case 'soon_to_checkin': badgeClass = 'bg-info'; statusText = 'Sắp nhận phòng'; break;
+                case 'occupied': badgeClass = 'bg-primary'; statusText = 'Đang lưu trú'; break;
+                case 'soon_to_checkout': badgeClass = 'bg-info'; statusText = 'Sắp trả phòng'; break;
                 case 'cleaning': badgeClass = 'bg-warning text-dark'; statusText = 'Đang dọn dẹp'; break;
+                case 'maintenance': badgeClass = 'bg-danger'; statusText = 'Bảo trì'; break;
+                case 'booked': badgeClass = 'bg-warning text-dark'; statusText = 'Đã đặt'; break;
+                case 'overdue': badgeClass = 'bg-danger'; statusText = 'Quá giờ trả'; break;
             }
             document.getElementById('detail-status-badge').innerHTML = `<span class="badge ${badgeClass} rounded-pill px-3">${statusText}</span>`;
 
@@ -1160,8 +1221,11 @@
     }
 
     function closeDetailPanel() {
-        document.getElementById('room-detail-panel').style.display = 'none';
-        document.getElementById('empty-detail-panel').style.display = 'flex';
+        const panel = document.getElementById('room-detail-panel');
+        setRoomDetailOpen(false);
+        panel.classList.remove('is-open');
+        setTimeout(() => panel.style.display = 'none', 220);
+        document.getElementById('empty-detail-panel').style.display = 'none';
         document.getElementById('single-room-container').style.display = 'block';
         document.getElementById('multi-room-container').style.display = 'none';
         document.querySelectorAll('.room-card').forEach(el => el.classList.remove('selected'));
@@ -1186,14 +1250,12 @@
         if (btnCleaningDone) { btnCleaningDone.style.display = 'none'; btnCleaningDone.disabled = false; }
         if (btnHold) { btnHold.style.display = 'none'; btnHold.disabled = false; }
 
-        const isBefore14h = new Date().getHours() < 14;
-
         if (currentStatus === 'available') {
             if (btnOccupied) btnOccupied.style.display = 'block';
             if (btnHold) {
                 btnHold.style.display = 'block';
                 const hasBookingToday = selectedRoomData && parseInt(selectedRoomData.has_today_booking) > 0;
-                btnHold.disabled = !isBefore14h || hasBookingToday;
+                btnHold.disabled = hasBookingToday;
             }
         } else if (currentStatus === 'occupied') {
             if (btnAvailable) btnAvailable.style.display = 'block';
@@ -1221,21 +1283,33 @@
         }
 
         document.getElementById('extend-room-label').innerText = 'Phòng ' + selectedRoomData.room_number;
-        document.getElementById('extend-days').value = 1;
+        document.getElementById('extend-mode').value = 'hours';
+        document.getElementById('extend-amount').value = 1;
+        syncExtendMode();
 
         const modal = new bootstrap.Modal(document.getElementById('extendStayModal'));
         modal.show();
     }
 
+    function syncExtendMode() {
+        const mode = document.getElementById('extend-mode').value;
+        const amount = document.getElementById('extend-amount');
+        document.getElementById('extend-amount-label').textContent = mode === 'hours' ? 'Số giờ gia hạn' : 'Số ngày gia hạn';
+        document.getElementById('extend-help').textContent = mode === 'hours' ? 'Tối đa 12 giờ. Phí 200.000đ cho mỗi giờ.' : 'Từ 1 đến 30 ngày, tính theo giá phòng hiện tại.';
+        amount.max = mode === 'hours' ? 12 : 30;
+    }
+
     function submitExtendStay() {
         if (!selectedRoomId) return;
 
-        const daysInput = document.getElementById('extend-days');
-        const days = parseInt(daysInput.value, 10);
+        const mode = document.getElementById('extend-mode').value;
+        const amountInput = document.getElementById('extend-amount');
+        const amount = parseInt(amountInput.value, 10);
+        const max = mode === 'hours' ? 12 : 30;
 
-        if (!days || days < 1 || days > 30) {
-            showToast('Số ngày gia hạn phải từ 1 đến 30.', 'bg-warning text-dark');
-            daysInput.focus();
+        if (!amount || amount < 1 || amount > max) {
+            showToast(`Số ${mode === 'hours' ? 'giờ' : 'ngày'} gia hạn phải từ 1 đến ${max}.`, 'bg-warning text-dark');
+            amountInput.focus();
             return;
         }
 
@@ -1246,7 +1320,7 @@
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': CSRF_TOKEN
             },
-            body: JSON.stringify({ room_id: selectedRoomId, days: days })
+            body: JSON.stringify({ room_id: selectedRoomId, mode, amount })
         })
         .then(response => response.json())
         .then(data => {
@@ -1352,8 +1426,8 @@
 
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        document.getElementById('walkin-checkout').min = tomorrow.toISOString().split('T')[0];
-        document.getElementById('walkin-checkout').value = tomorrow.toISOString().split('T')[0];
+        document.getElementById('walkin-checkout').min = [tomorrow.getFullYear(), String(tomorrow.getMonth()+1).padStart(2,'0'), String(tomorrow.getDate()).padStart(2,'0')].join('-');
+        document.getElementById('walkin-checkout').value = [tomorrow.getFullYear(), String(tomorrow.getMonth()+1).padStart(2,'0'), String(tomorrow.getDate()).padStart(2,'0')].join('-');
 
         document.getElementById('walkin-name').value = '';
         document.getElementById('walkin-phone').value = '';
@@ -1479,27 +1553,30 @@
         const paid = Number(selectedRoomData.active_deposit_amount || 0);
 
         const now = new Date();
-        const checkoutHour = now.getHours() + now.getMinutes() / 60;
+        const lateDeadline = selectedRoomData.active_check_out
+            ? new Date(`${selectedRoomData.active_check_out}T13:00:00+07:00`)
+            : null;
         const nightRate = Number(selectedRoomData.active_room_price_per_night || 0);
-        let lateFee = 0;
-        if (checkoutHour > 12.5 && nightRate > 0) {
-            lateFee = checkoutHour <= 18 ? Math.round(nightRate * 0.5) : nightRate;
-        }currentLateFee = lateFee;
+        const lateFee = lateDeadline && now > lateDeadline && nightRate > 0
+            ? Math.round(nightRate * 0.5)
+            : 0;
+        currentLateFee = lateFee;
 
         const remaining = (baseTotal - paid) + lateFee;
 
         const lateFeeRow = document.getElementById('mo-late-fee-row');
+        document.getElementById('late-fee-waiver').hidden = lateFee <= 0;
         if (lateFee > 0) {
-            lateFeeRow.style.removeProperty('display');
+            lateFeeRow.hidden = false;
             document.getElementById('mo-late-fee').innerText = new Intl.NumberFormat('vi-VN').format(lateFee) + ' đ';
         } else {
-            lateFeeRow.style.display = 'none';
+            lateFeeRow.hidden = true;
         }
 
         document.getElementById('mo-customer').innerText = selectedRoomData.customer_name || '---';
         document.getElementById('mo-room').innerText = 'Phòng ' + selectedRoomData.room_number;
         document.getElementById('mo-checkin').innerText = formatCheckinVi(selectedRoomData.active_check_in);
-        document.getElementById('mo-checkout').innerText = new Date().toLocaleDateString('vi-VN');
+        document.getElementById('mo-checkout').innerText = formatDateVi(selectedRoomData.active_check_out);
         
         document.getElementById('mo-total').innerText = new Intl.NumberFormat('vi-VN').format(baseTotal) + ' đ';
         document.getElementById('mo-paid').innerText = new Intl.NumberFormat('vi-VN').format(paid) + ' đ';
@@ -1581,6 +1658,28 @@
             return;
         }
 
+        const optimisticCard = document.getElementById(`room-card-${selectedRoomId}`);
+        const optimisticSnapshot = optimisticCard ? {
+            status: optimisticCard.dataset.status,
+            className: optimisticCard.className,
+            label: optimisticCard.querySelector('.room-status-text')?.textContent
+        } : null;
+        const labels = { available: 'Đang trống', occupied: 'Đang lưu trú', cleaning: 'Đang dọn dẹp', maintenance: 'Bảo trì', soon_to_checkin: 'Sắp nhận phòng', soon_to_checkout: 'Sắp trả phòng', booked: 'Đã đặt', overdue: 'Quá giờ trả' };
+        if (optimisticCard) {
+            optimisticCard.className = optimisticCard.className.replace(/status-(available|occupied|cleaning)/, `status-${newStatus}`);
+            optimisticCard.dataset.status = newStatus;
+            const label = optimisticCard.querySelector('.room-status-text');
+            if (label) label.textContent = labels[newStatus] || newStatus;
+            optimisticCard.classList.add('is-syncing');
+        }
+        const rollbackOptimisticCard = () => {
+            if (!optimisticCard || !optimisticSnapshot) return;
+            optimisticCard.className = optimisticSnapshot.className;
+            optimisticCard.dataset.status = optimisticSnapshot.status;
+            const label = optimisticCard.querySelector('.room-status-text');
+            if (label) label.textContent = optimisticSnapshot.label;
+        };
+
         fetch("{{ route('staff.reception.update-status') }}", {
             method: 'POST',
             headers: {
@@ -1606,10 +1705,12 @@
                 showToast(data.message, 'bg-success');
                 refreshReceptionBoard();
             } else {
+                rollbackOptimisticCard();
                 showToast('Lỗi: ' + data.message, 'bg-danger');
             }
         })
         .catch(error => {
+            rollbackOptimisticCard();
             console.error(error);
             showToast('Lỗi hệ thống khi cập nhật trạng thái phòng.', 'bg-danger');
         });
@@ -1645,6 +1746,16 @@
         const typeVal = document.getElementById('filter-type').value;
         const guestsVal = document.getElementById('filter-guests').value;
         const statusVal = document.getElementById('filter-status').value;
+
+        document.querySelectorAll('[data-floor-tab]').forEach(tab => {
+            tab.classList.toggle('is-active', tab.dataset.floorTab === floorVal);
+            tab.setAttribute('aria-pressed', String(tab.dataset.floorTab === floorVal));
+        });
+        document.querySelectorAll('.legend-badge').forEach(tab => {
+            const active = tab.dataset.statusVal === statusVal;
+            tab.classList.toggle('active-filter', active);
+            tab.setAttribute('aria-pressed', String(active));
+        });
         
         document.querySelectorAll('.room-card-wrapper').forEach(wrapper => {
             const card = wrapper.querySelector('.room-card');
@@ -1653,7 +1764,6 @@
             const guests = parseInt(card.getAttribute('data-guests'));
             const status = card.getAttribute('data-status');
             const search = card.getAttribute('data-search');
-            const hasBooking = card.getAttribute('data-has-booking');
             
             let match = true;
             
@@ -1669,15 +1779,7 @@
                 }
             }
             
-            if (statusVal !== 'Tất cả') {
-                if (statusVal === 'has_booking') {
-                    if (hasBooking !== '1') match = false;
-                } else if (statusVal === 'no_booking') {
-                    if (hasBooking !== '0') match = false;
-                } else {
-                    if (status !== statusVal) match = false;
-                }
-            }
+            if (statusVal !== 'Tất cả' && status !== statusVal) match = false;
             
             wrapper.style.display = match ? 'block' : 'none';
         });
@@ -1686,21 +1788,46 @@
             const visibleRooms = section.querySelectorAll('.room-card-wrapper[style="display: block;"]');
             section.style.display = visibleRooms.length === 0 ? 'none' : 'block';
         });
+
+        const params = new URLSearchParams();
+        if (searchVal) params.set('q', searchVal);
+        if (floorVal !== 'Tất cả') params.set('floor', floorVal);
+        if (typeVal !== 'Tất cả') params.set('type', typeVal);
+        if (guestsVal !== 'Tất cả') params.set('guests', guestsVal);
+        if (statusVal !== 'Tất cả') params.set('status', statusVal);
+        history.replaceState({ roomFilters: true }, '', `${location.pathname}${params.size ? '?' + params : ''}`);
+    }
+
+    function selectFloorTab(button) {
+        const floorFilter = document.getElementById('filter-floor');
+        if (!floorFilter) return;
+        floorFilter.value = button.dataset.floorTab;
+        filterRooms();
+    }
+
+    function debounceFilterRooms() {
+        clearTimeout(filterDebounceTimer);
+        filterDebounceTimer = setTimeout(filterRooms, 180);
+    }
+
+    function restoreFiltersFromUrl() {
+        const params = new URLSearchParams(location.search);
+        const values = {
+            'search-input': params.get('q') || '',
+            'filter-floor': params.get('floor') || 'Tất cả',
+            'filter-type': params.get('type') || 'Tất cả',
+            'filter-guests': params.get('guests') || 'Tất cả',
+            'filter-status': params.get('status') || 'Tất cả'
+        };
+        Object.entries(values).forEach(([id, value]) => {
+            const field = document.getElementById(id);
+            if (field && (id === 'search-input' || [...(field.options || [])].some(option => option.value === value))) field.value = value;
+        });
+        filterRooms();
     }
 
     function toggleLegendFilter(element) {
-        const statusVal = element.getAttribute('data-status-val');
-        const filterStatusSelect = document.getElementById('filter-status');
-        
-        if (element.classList.contains('active-filter')) {
-            element.classList.remove('active-filter');
-            filterStatusSelect.value = 'Tất cả';
-        } else {
-            document.querySelectorAll('.legend-badge').forEach(el => el.classList.remove('active-filter'));
-            element.classList.add('active-filter');
-            filterStatusSelect.value = statusVal;
-        }
-        
+        document.getElementById('filter-status').value = element.dataset.statusVal;
         filterRooms();
     }
 
@@ -1711,13 +1838,11 @@
         document.getElementById('filter-guests').value = 'Tất cả';
         document.getElementById('filter-status').value = 'Tất cả';
         
-        document.querySelectorAll('.legend-badge').forEach(el => el.classList.remove('active-filter'));
-        
         filterRooms();
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-        resetFilters();
+        restoreFiltersFromUrl();
         const manualBookingInput = document.getElementById('manual-booking-id');
         if (manualBookingInput) {
             manualBookingInput.addEventListener('keydown', (event) => {
@@ -1727,7 +1852,9 @@
                 }
             });
         }
+        document.getElementById('qrScannerModal')?.addEventListener('hidden.bs.modal', stopQRScanner);
     });
+    window.addEventListener('popstate', restoreFiltersFromUrl);
 
     let html5QrCode = null;
     let qrCameras = [];
@@ -1953,8 +2080,8 @@
         resultModal.show();
     }
 
-    function performQuickCheckin(bookingId) {
-        if (!confirm('Xác nhận nhận phòng nhanh cho tất cả các phòng thuộc đơn đặt này?')) return;
+    async function performQuickCheckin(bookingId) {
+        if (!await window.confirmOperation('Xác nhận nhận phòng nhanh cho tất cả các phòng thuộc đơn đặt này?')) return;
         
         fetch("{{ route('staff.reception.quick-checkin') }}", {
             method: 'POST',
@@ -1991,10 +2118,10 @@
 
         const lateFeeRow = document.getElementById('mo-late-fee-row');
         if (fee > 0) {
-            lateFeeRow.style.removeProperty('display');
+            lateFeeRow.hidden = false;
             document.getElementById('mo-late-fee').innerText = new Intl.NumberFormat('vi-VN').format(fee) + ' đ';
         } else {
-            lateFeeRow.style.display = 'none';
+            lateFeeRow.hidden = true;
         }
         document.getElementById('mo-remaining').innerText =
             new Intl.NumberFormat('vi-VN').format((baseTotal - paid) + fee) + ' đ';

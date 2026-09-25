@@ -48,7 +48,7 @@ class UserController extends Controller
     {
         $request->validate([
             'username' => 'required|string|max:50|unique:users,username',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:8|confirmed',
             'fullname' => 'required|string|max:150',
             'email'    => 'required|email|max:150|unique:users,email',
             'phone'    => 'nullable|string|max:30',
@@ -91,7 +91,7 @@ class UserController extends Controller
     {
         $request->validate([
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:6|confirmed',
+            'password' => 'nullable|string|min:8|confirmed',
             'fullname' => 'required|string|max:150',
             'email'    => ['required', 'email', 'max:150', Rule::unique('users')->ignore($user->id)],
             'phone'    => 'nullable|string|max:30',

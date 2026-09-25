@@ -14,47 +14,53 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\RecceiptionUsserController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\GoogleAuthController;
 
 // ============================================================
 // PUBLIC — Không cần đăng nhập
 // ============================================================
 Route::get('/',           [HomeController::class, 'index'])->name('home');
-Route::get('/about',      [HomeController::class, 'about'])->name('about');
 Route::get('/contact',    [HomeController::class, 'contact'])->name('contact');
+Route::redirect('/about', '/contact', 301)->name('about');
 Route::get('/payment/momo/return', [PaymentController::class, 'momoReturn'])->name('payment.momo.return');
-Route::post('/chatbot/api', [ChatbotController::class, 'api'])->name('chatbot.api');
+Route::get('/preview/payment/{bookingId}', [PaymentController::class, 'preview'])->name('payment.preview');
+Route::post('/chatbot/api', [ChatbotController::class, 'api'])->middleware('throttle:30,1')->name('chatbot.api');
+Route::post('/chatbot/stream', [ChatbotController::class, 'stream'])->middleware('throttle:30,1')->name('chatbot.stream');
 
 // Phòng
 Route::get('/rooms',               [RoomController::class, 'index'])->name('rooms.index');
 Route::get('/rooms/search',        [RoomController::class, 'search'])->name('rooms.search');
 Route::get('/rooms/{id}',          [RoomController::class, 'detail'])->name('rooms.detail');
 Route::get('/rooms/{id}/amenities',[RoomController::class, 'amenities'])->name('rooms.amenities');
-Route::get('/amenities',           [RoomController::class, 'amenities'])->name('amenities');
+Route::redirect('/amenities', '/rooms', 301)->name('amenities');
 
 // ============================================================
 // AUTH — Chỉ dành cho khách chưa đăng nhập
 // ============================================================
 Route::middleware('guest')->group(function () {
     Route::get('/login',                  [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login',                 [AuthController::class, 'login']);
+    Route::post('/login',                 [AuthController::class, 'login'])->middleware('throttle:8,1');
     Route::get('/register',               [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register',              [AuthController::class, 'register']);
+    Route::post('/register',              [AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::get('/verify',                 [AuthController::class, 'showVerify'])->name('verify');
-    Route::post('/verify',                [AuthController::class, 'verify']);
-    Route::get('/verify/resend',          [AuthController::class, 'resendVerifyOtp'])->name('verify.resend');
-    Route::get('/forgot-password',        [AuthController::class, 'showForgot'])->name('password.forgot');
-    Route::post('/forgot-password',       [AuthController::class, 'sendReset']);
-    Route::get('/forgot-password/resend', [AuthController::class, 'resendResetOtp'])->name('password.resend-otp');
-    Route::get('/reset-password',         [AuthController::class, 'showReset'])->name('password.reset');
-    Route::post('/reset-password',        [AuthController::class, 'reset']);
-    Route::get('/verify-reset-otp',       [AuthController::class, 'showVerifyOtp'])->name('password.verify-otp');
-    Route::post('/verify-reset-otp',      [AuthController::class, 'verifyOtp']);
+    Route::post('/verify',                [AuthController::class, 'verify'])->middleware('throttle:8,1');
+    Route::get('/verify/resend',          [AuthController::class, 'resendVerifyOtp'])->middleware('throttle:3,1')->name('verify.resend');
+    Route::get('/auth/google',             [GoogleAuthController::class, 'redirect'])->name('auth.google');
+    Route::get('/auth/google/callback',    [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 });
+
+// Khách đã đăng nhập vẫn có thể xác minh email để đổi mật khẩu.
+Route::get('/forgot-password',        [AuthController::class, 'showForgot'])->name('password.forgot');
+Route::post('/forgot-password',       [AuthController::class, 'sendReset'])->middleware('throttle:5,1');
+Route::get('/forgot-password/resend', [AuthController::class, 'resendResetOtp'])->middleware('throttle:3,1')->name('password.resend-otp');
+Route::get('/reset-password',         [AuthController::class, 'showReset'])->name('password.reset');
+Route::post('/reset-password',        [AuthController::class, 'reset'])->middleware('throttle:5,1');
+Route::get('/verify-reset-otp',       [AuthController::class, 'showVerifyOtp'])->name('password.verify-otp');
+Route::post('/verify-reset-otp',      [AuthController::class, 'verifyOtp'])->middleware('throttle:8,1');
 
 // Internal Auth (Nhân viên)
 Route::get('/internalauth/login',   [InternalAuthController::class, 'showLogin'])->name('internalauth.login');
-Route::post('/internalauth/login',  [InternalAuthController::class, 'login']);
-Route::get('/internalauth/logout',  [InternalAuthController::class, 'logout']);
+Route::post('/internalauth/login',  [InternalAuthController::class, 'login'])->middleware('throttle:internal-login');
 Route::post('/internalauth/logout', [InternalAuthController::class, 'logout'])->name('internalauth.logout');
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -69,6 +75,8 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
     Route::post('/booking',             [BookingController::class, 'store'])->name('booking.store');
     Route::get('/booking/success/{id}', [BookingController::class, 'success'])->name('booking.success');
     Route::get('/my-bookings',          [BookingController::class, 'myBookings'])->name('booking.mine');
+    Route::get('/account',               [AuthController::class, 'account'])->name('account.show');
+    Route::patch('/account',             [AuthController::class, 'updateAccount'])->name('account.update');
 
     // Thanh toán
     Route::get('/payment/{bookingId}/form',    [PaymentController::class, 'form'])->name('payment.form');
@@ -92,7 +100,7 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
 // ============================================================
 use App\Http\Controllers\ReceptionUserController;
 
-Route::prefix('receptionist')->name('receptionist.')->group(function () {
+Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('receptionist')->name('receptionist.')->group(function () {
     Route::get('/profile',                  [ReceptionUserController::class, 'profile'])->name('profile');
     Route::post('/profile/update-info',     [ReceptionUserController::class, 'updateInfo'])->name('profile.update-info');
     Route::post('/profile/update-password', [ReceptionUserController::class, 'updatePassword'])->name('profile.update-password');
@@ -120,7 +128,6 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
 
     // API sơ đồ phòng lễ tân
     Route::get('/cancellations', [ReceptionController::class, 'cancellations'])->name('cancellations');
-    Route::patch('/cancellations/{id}/refund', [CancellationController::class, 'processRefund'])->name('bookings.refund');
     Route::get('/reception/today-booking',            [ReceptionController::class, 'getTodayBooking'])->name('reception.today-booking');
     Route::get('/reception/booking-by-scan',          [ReceptionController::class, 'getBookingByScan'])->name('reception.booking-by-scan');
     Route::post('/reception/walkin',                  [ReceptionController::class, 'walkinCheckin'])->name('reception.walkin');
@@ -151,38 +158,3 @@ Route::middleware(['auth.custom', 'role:admin'])->prefix('admin')->name('admin.'
     Route::patch('users/{user}/toggle-verified', [UserController::class, 'toggleVerified'])
          ->name('users.toggle-verified');
 });
-
-// ============================================================
-// WEBHOOK
-// ============================================================
-Route::prefix('webhook')->name('webhook.')->group(function () {
-    Route::post('/momo',        [PaymentController::class, 'webhookMomo'])->name('momo');
-    Route::post('/zalopay',     [PaymentController::class, 'webhookZalopay'])->name('zalopay');
-    Route::post('/vnpay',       [PaymentController::class, 'webhookVnpay'])->name('vnpay');
-    Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
-});
-
-// ============================================================
-// ROUTE ĐỘNG CŨ — Giữ nguyên để tương thích MVC cũ
-// ============================================================
-Route::any('/{controller}/{action?}', function ($controller, $action = 'index') {
-    // Chặn các controller đã chuyển sang Laravel routing
-    if (in_array($controller, ['admin', 'receptionist'])) {
-        abort(404);
-    }
-
-    $className = 'App\\Http\\Controllers\\' . ucfirst(strtolower($controller)) . 'controller';
-    if (!class_exists($className)) {
-        abort(404, 'Controller not found');
-    }
-
-    $instance = new $className();
-    if (!method_exists($instance, $action)) {
-        abort(404, 'Action not found');
-    }
-
-    ob_start();
-    $instance->$action();
-    $output = ob_get_clean();
-    return $output;
-})->where('controller', '^(?!admin|receptionist).*$');

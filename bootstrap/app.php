@@ -12,6 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [
+            \App\Http\Middleware\ForceHttps::class,
+            \App\Http\Middleware\SetContextSessionMiddleware::class,
+        ]);
+
         // Đăng ký alias middleware
         $middleware->alias([
             'auth.custom' => App\Http\Middleware\AuthCustomMiddleware::class,
@@ -23,7 +28,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // Exclude webhook routes khỏi CSRF
         $middleware->validateCsrfTokens(except: [
             'api/webhook/*',
-            'chatbot/api',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -1,0 +1,4 @@
+<footer class="site-footer">
+    <div class="site-footer__grid"><section class="site-footer__intro" aria-label="Royal Hotel"><a class="brand" href="{{ route('home') }}">@include('client.partials.brand-mark')<span>ROYAL</span></a><p>Một không gian lưu trú riêng tư, được chăm chút để mỗi nhịp nghỉ đều nhẹ nhàng và trọn vẹn.</p></section><section><h2>Khám phá</h2><a href="{{ route('rooms.index') }}">Phòng nghỉ</a><a href="{{ route('contact') }}#royal-story">Về Royal Hotel</a></section><section><h2>Hỗ trợ</h2><a href="{{ route('contact') }}#contact-details">Liên hệ</a>@if(session('user_id'))<a href="{{ route('booking.mine') }}">Đặt phòng của tôi</a>@else<a href="{{ route('login') }}">Đăng nhập</a>@endif</section></div>
+    <div class="site-footer__bottom"><span>© {{ date('Y') }} Royal Hotel</span><span>Việt Nam · VND</span></div>
+</footer>

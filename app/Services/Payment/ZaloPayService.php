@@ -35,7 +35,7 @@ class ZaloPayService
 
         $mac = hash_hmac('sha256', $data, $this->key1);
 
-        $response = Http::withoutVerifying()->post($this->endpoint, [
+        $response = Http::timeout(10)->retry(2, 250)->post($this->endpoint, [
             'app_id' => (int) $this->appId,
             'app_trans_id' => $appTransId,
             'app_user' => $appUser,
@@ -56,6 +56,6 @@ class ZaloPayService
     public function verifyCallback(array $data): bool
     {
         $mac = hash_hmac('sha256', $data['data'] ?? '', $this->key2);
-        return $mac === ($data['mac'] ?? '');
+        return hash_equals($mac, (string) ($data['mac'] ?? ''));
     }
 }

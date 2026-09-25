@@ -13,9 +13,9 @@ class InternalAuthController extends Controller
      */
     public function showLogin()
     {
-        // Nếu đã đăng nhập thì chuyển hướng đến trang phù hợp
-        if (session('user')) {
-            $user = session('user');
+        // Nếu đã đăng nhập nhân viên thì chuyển hướng đến trang phù hợp
+        if (session('staff_user')) {
+            $user = session('staff_user');
             $redirect = match ($user['role'] ?? 'customer') {
                 'admin' => route('admin.dashboard'),
                 'receptionist' => route('staff.bookings'),
@@ -44,74 +44,68 @@ class InternalAuthController extends Controller
 
         if (!$user) {
             return back()->withInput($request->only('username'))
-                ->with('error', 'Tài khoản không tồn tại!');
+                ->withErrors(['username' => 'Không tìm thấy tài khoản này.']);
         }
 
-        // Tương thích các hình thức mật khẩu (bcrypt của Laravel, md5 cũ và văn bản thuần plaintext)
-        $validPassword = false;
-        try {
-            if (Hash::check($password, $user->password)) {
-                $validPassword = true;
-            }
-        } catch (\Throwable $e) {
-            // Bắt ngoại lệ nếu chuỗi hash không đúng định dạng Bcrypt
-        }
-
-        if (!$validPassword && md5($password) === $user->password) {
-            $validPassword = true;
-        } elseif (!$validPassword && $password === $user->password) {
-            $validPassword = true;
-        }
+        $validPassword = Hash::check($password, $user->password);
 
         if (!$validPassword) {
             return back()->withInput($request->only('username'))
-                ->with('error', 'Sai mật khẩu!');
+                ->withErrors(['password' => 'Mật khẩu chưa chính xác.']);
         }
 
         // Chặn nhân viên bị khóa tài khoản
         if (!$user->verified) {
             return back()->withInput($request->only('username'))
-                ->with('error', 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+                ->withErrors(['username' => 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.']);
         }
 
         // Kiểm tra quyền nhân viên (receptionist hoặc admin)
         $role = $user->role ?? 'customer';
         if ($role === 'customer') {
             return back()->withInput($request->only('username'))
-                ->with('error', 'Tài khoản khách hàng không được phép đăng nhập tại đây!');
+                ->withErrors(['username' => 'Tài khoản này không có quyền truy cập hệ thống nội bộ.']);
         }
 
-        // Lưu thông tin đăng nhập vào Session của Laravel
+        $userData = [
+            'id'       => $user->id,
+            'fullname' => $user->fullname,
+            'email'    => $user->email,
+            'phone'    => $user->phone,
+            'role'     => $user->role,
+            'verified' => $user->verified,
+        ];
+
+        $request->session()->regenerate();
+        auth()->login($user);
+
+        // Lưu session riêng cho Nhân viên (Staff/Admin)
         session([
-            'auth_user_id' => $user->id,
-            'user_id'      => $user->id,  // tương thích AuthCustomMiddleware
-            'user' => [
-                'id'       => $user->id,
-                'fullname' => $user->fullname,
-                'email'    => $user->email,
-                'phone'    => $user->phone,
-                'role'     => $user->role,
-                'verified' => $user->verified,
-            ],
+            'staff_user_id' => $user->id,
+            'staff_user'    => $userData,
+            'auth_user_id'  => $user->id,
+            'user_id'       => $user->id,
+            'user'          => $userData,
         ]);
 
         $redirect = match ($user->role) {
-    'admin'        => route('admin.dashboard'),
-    'receptionist' => route('staff.bookings'),
-    default        => route('home'),
-};
+            'admin'        => route('admin.dashboard'),
+            'receptionist' => route('staff.bookings'),
+            default        => route('home'),
+        };
 
-return redirect($redirect)
-    ->with('success', 'Đăng nhập thành công! Chào mừng quay trở lại, ' . $user->fullname . '.');
+        return redirect($redirect);
     }
 
     /**
      * Đăng xuất nhân viên khỏi hệ thống.
      */
-    public function logout()
+    public function logout(Request $request)
     {
-        session()->flush();
-        return redirect()->route('login')
-            ->with('success', 'Bạn đã đăng xuất khỏi hệ thống.');
+        auth()->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('internalauth.login');
     }
 }

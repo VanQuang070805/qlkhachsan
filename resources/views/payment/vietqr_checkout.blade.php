@@ -42,7 +42,7 @@
                 </div>
 
                 <div style="background:#fff3cd;border:1px solid #ffeeba;padding:10px;border-radius:8px;margin-top:10px;font-size:14px;text-align:center;">
-                    Mã QR còn hiệu lực trong  <strong id="countdown">5:00</strong>
+                    Mã QR còn hiệu lực trong <strong id="countdown">30:00</strong>
                 </div>
 
                 {{-- Trạng thái polling --}}
@@ -153,7 +153,7 @@
     if (!localStorage.getItem(timerKey)) {
         localStorage.setItem(timerKey, Date.now().toString());
     }
-    let time = Math.max(0, 300 - Math.floor((Date.now() - parseInt(localStorage.getItem(timerKey))) / 1000));
+    let time = Math.max(0, 1800 - Math.floor((Date.now() - parseInt(localStorage.getItem(timerKey))) / 1000));
 
     const countdownEl = document.getElementById('countdown');
     const fmt = t => Math.floor(t/60) + ':' + (t%60 < 10 ? '0' : '') + (t%60);

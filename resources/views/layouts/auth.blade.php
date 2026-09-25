@@ -3,258 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($pageTitle ?? 'Khách sạn Royal Hotel') ?></title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-
+    <meta name="theme-color" content="#779bc1">
+    <title>{{ $pageTitle ?? 'Tài khoản · Royal Hotel' }}</title>
+    <link rel="icon" href="{{ asset('royal-hotel-logo.png') }}" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            margin: 0;
-            background-color: #0f172a; /* Dark fallback */
-        }
-
-        .auth-container {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 80px 20px;
-            position: relative;
-            background-image: url('https://i.pinimg.com/1200x/a7/cc/2a/a7cc2a6bdcf9ec356b624620785053e7.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-
-        /* Soft overlay to let the bright image show but keep text readable */
-        .auth-container::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.1));
-            z-index: 1;
-        }
-
-        .auth-wrapper {
-            position: relative;
-            z-index: 2;
-            width: 100%;
-        }
-
-        .auth-card {
-            max-width: 480px;
-            width: 100%;
-            /* Premium White Glassmorphism effect */
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-            padding: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-            margin: 0 auto;
-        }
-
-        .auth-card.register-card {
-            max-width: 500px;
-        }
-
-        .auth-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(212, 175, 55, 0.5); /* Gold accent on hover */
-            box-shadow: 0 25px 60px rgba(0,0,0,0.2);
-        }
-
-        .hotel-brand {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #b08d28; /* Deeper Champagne Gold for white bg */
-            text-align: center;
-            margin-bottom: 10px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .auth-card p.subtitle {
-            color: #475569;
-            text-align: center;
-            font-size: 0.95rem;
-            margin-bottom: 30px;
-            font-weight: 400;
-        }
-
-        .auth-card .form-label {
-            font-weight: 600;
-            color: #1e293b;
-            font-size: 0.9rem;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
-        }
-
-        .auth-card .form-control {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            padding: 12px 15px;
-            font-size: 1rem;
-            color: #1e293b;
-            transition: all 0.3s ease;
-        }
-
-        .auth-card .form-control::placeholder {
-            color: #94a3b8;
-        }
-
-        .auth-card .form-control:focus {
-            background: #ffffff;
-            border-color: #d4af37;
-            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
-            outline: none;
-        }
-
-        .password-wrapper { position: relative; }
-        .toggle-password {
-            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
-            border: none; background: transparent; color: #64748b; cursor: pointer;
-            transition: color 0.3s ease;
-        }
-        .toggle-password:hover { color: #d4af37; }
-
-        .auth-card .btn-auth, .auth-card .btn-primary {
-            background: linear-gradient(135deg, #d4af37, #b08d28);
-            border: none;
-            padding: 12px;
-            font-weight: 600;
-            border-radius: 10px;
-            color: #ffffff;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            width: 100%;
-            font-size: 1rem;
-            margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
-        }
-
-        .auth-card .btn-auth:hover, .auth-card .btn-primary:hover {
-            background: linear-gradient(135deg, #e5c158, #c49e35);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
-            color: #ffffff;
-        }
-
-        .auth-card a {
-            color: #b08d28;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: color 0.3s ease;
-        }
-
-        .auth-card a:hover {
-            color: #8c6e1e;
-            text-decoration: underline;
-        }
-
-        .auth-card .text-center { font-size: 0.95rem; color: #475569; }
-
-        .auth-card .alert {
-            backdrop-filter: blur(5px);
-            border-radius: 10px;
-        }
-        .auth-card .alert-danger {
-            background: rgba(220, 53, 69, 0.1);
-            border: 1px solid rgba(220, 53, 69, 0.2);
-            color: #dc3545;
-        }
-        .auth-card .alert-success {
-            background: rgba(25, 135, 84, 0.1);
-            border: 1px solid rgba(25, 135, 84, 0.2);
-            color: #198754;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: #94a3b8;
-            margin: 25px 0;
-            font-weight: 500;
-        }
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #cbd5e1;
-        }
-        .divider:not(:empty)::before { margin-right: 15px; }
-        .divider:not(:empty)::after { margin-left: 15px; }
-
-        @media (max-width: 768px) {
-            .auth-container { padding: 40px 15px; }
-            .auth-card { padding: 30px 20px; max-width: 100%; border-radius: 15px; }
-            .hotel-brand { font-size: 1.8rem; }
-            .auth-card .form-control { padding: 10px 12px; font-size: 0.95rem; }
-            .auth-card .btn-auth, .auth-card .btn-primary { padding: 10px; font-size: 0.95rem; }
-        }
+        :root { --auth-ink:#151515; --auth-blue:#779bc1; --auth-sky:#9abfda; }
+        * { box-sizing:border-box; }
+        body.auth-shell { margin:0; min-height:100vh; color:var(--auth-ink); font-family:Inter, sans-serif; background:linear-gradient(180deg,#779bc1 0%,#9abfda 57%,#cbdcec 100%); }
+        .auth-container { min-height:100svh; display:grid; place-items:center; padding:clamp(24px,5vw,64px) 18px; overflow:hidden; position:relative; isolation:isolate; }
+        .auth-container::before,.auth-container::after { content:""; position:absolute; z-index:-1; border-radius:50%; pointer-events:none; filter:blur(1px); }
+        .auth-container::before { width:min(58vw,680px); aspect-ratio:1; top:-34%; right:-8%; background:radial-gradient(circle,rgba(255,255,255,.26),transparent 68%); }
+        .auth-container::after { width:min(42vw,500px); aspect-ratio:1; bottom:-30%; left:-10%; background:radial-gradient(circle,rgba(37,151,208,.18),transparent 70%); }
+        .auth-wrapper { width:min(100%,390px); margin:auto; }
+        .auth-card { width:100%; padding:clamp(25px,3.8vw,34px); border:1px solid rgba(255,255,255,.8); border-radius:22px; background:rgba(255,255,255,.92); box-shadow:0 24px 66px rgba(24,50,76,.17); backdrop-filter:blur(18px); animation:auth-enter .7s cubic-bezier(.2,.75,.25,1) both; }
+        .auth-card.register-card { width:100%; }
+        .auth-card.register-card { padding:24px 28px; }
+        .auth-card.register-card .auth-intro { margin-bottom:12px; }
+        .auth-card.register-card .auth-brand__mark { width:42px; height:42px; border-radius:13px; }
+        .auth-card.register-card .subtitle { margin-bottom:14px; }
+        .auth-card.register-card .form-group { margin-bottom:9px; }
+        .auth-card.register-card .form-control { min-height:40px; padding-block:7px; }
+        .auth-card.register-card .field-error { margin-top:4px; }
+        .auth-card.register-card .divider { margin:13px 0; }
+        .auth-brand { display:inline-flex; align-items:center; justify-content:center; color:var(--auth-ink)!important; text-decoration:none!important; margin:0 auto 8px; }
+        .auth-brand__logo { display:block; width:118px; height:64px; object-fit:contain; }
+        .auth-brand__mark { display:grid; width:48px; height:48px; place-items:center; border-radius:15px; background:#09090b; color:#fff; box-shadow:0 10px 24px rgba(9,9,11,.16); }
+        .auth-brand__svg { width:29px; height:29px; }
+        .hotel-brand { color:var(--auth-ink); font:700 clamp(1.35rem,4vw,1.7rem)/1 Inter,sans-serif; letter-spacing:.18em; text-align:center; margin:0; padding-left:.18em; }
+        .auth-card .subtitle { text-align:center; color:#686c75; margin:0 0 22px; font-size:.86rem; }
+        .auth-card .form-label { color:#34363d; font-size:.83rem; font-weight:600; margin-bottom:8px; }.auth-card input[required]+.field-error{}.auth-card .form-label:has(+ input[required])::after,.auth-card .form-label:has(+ .password-wrapper input[required])::after{content:" *";color:#a33131}
+        .auth-card .form-control,.auth-card select.form-control { min-height:44px; border:1px solid #e5e8ed; border-radius:11px; padding:9px 13px; background:#fff; box-shadow:none; font:400 .9rem Inter,sans-serif; }
+        .auth-card .form-control:focus { border-color:#c9cdd2; outline:0; box-shadow:none; }
+        .auth-card .form-control:focus-visible { border-color:#34363d; outline:1px solid rgba(21,21,21,.3); outline-offset:1px; box-shadow:none; }
+        .auth-card .btn-auth,.auth-card .btn-primary { min-height:49px; width:100%; border:0!important; border-radius:999px; padding:12px 20px; background:#09090b!important; color:#fff!important; font:600 .94rem Inter,sans-serif; text-transform:none; letter-spacing:0; box-shadow:0 9px 22px rgba(10,17,27,.14); transition:transform .25s ease,box-shadow .25s ease,background .25s ease; }
+        .auth-card .btn-auth:hover,.auth-card .btn-primary:hover { background:#24272d; transform:translateY(-2px); box-shadow:0 14px 26px rgba(10,17,27,.2); }
+        .auth-card .auth-register-link { margin-top:17px!important; }
+        .auth-card a { color:#386b97!important; text-decoration:none; font-weight:600; }
+        .auth-card a:hover { color:#17496f; text-decoration:underline; }
+        .auth-card .text-center { color:#656b75; }
+        .auth-form-status { display:flex; align-items:flex-start; gap:8px; margin:0 0 14px; padding:0; color:#356a55; font-size:.78rem; line-height:1.45; }
+        .auth-form-status.is-error { color:#a33131; }
+        .auth-card .password-wrapper { position:relative; }
+        .auth-card .password-wrapper .form-control { padding-right:48px; }
+        .auth-card .toggle-password { position:absolute; top:50%; right:10px; transform:translateY(-50%); border:0; background:transparent; color:#777f8a; padding:8px; }
+        .auth-card .divider { display:flex; align-items:center; gap:14px; color:#9297a0; margin:17px 0; font-size:.76rem; }
+        .auth-card .divider::before,.auth-card .divider::after { content:""; height:1px; background:#e5e8ed; flex:1; }
+        .auth-provider{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:46px;margin-bottom:14px;border:1px solid #dfe3e7;border-radius:999px;background:#fff;color:#25272b!important;font-size:.86rem;font-weight:600!important;text-decoration:none!important;transition:transform .2s,border-color .2s,box-shadow .2s}.auth-provider:hover{border-color:#bfc7ce;box-shadow:0 8px 20px rgba(20,45,70,.08);transform:translateY(-1px)}.auth-provider__mark{display:block;width:18px;height:18px;flex:0 0 18px}.auth-card ::placeholder{color:#9aa0a7;opacity:1}
+        .auth-card .field-error { position:static; display:flex; align-items:center; gap:6px; min-height:18px; margin:6px 0 0; color:#a33131; font-size:.76rem; line-height:1.35; }
+        .auth-card .field-error:empty { display:none; }
+        .auth-card .credential-hint { display:flex; align-items:flex-start; gap:7px; margin:11px 0 0; color:#777d86; font-size:.72rem; line-height:1.45; }
+        .auth-card .credential-hint i { color:#386b97; margin-top:1px; }
+        .auth-card .credential-hint strong { color:#4e5560; font-weight:600; }
+        .auth-card .form-control.is-invalid { border-color:#b84a4a; background-image:none; box-shadow:0 0 0 4px rgba(184,74,74,.08); }
+        .auth-card .form-control.is-valid { border-color:#76a38f; background-image:none; }
+        .auth-card .auth-intro { margin-bottom:20px; text-align:center; }
+        .auth-card .form-group { margin-bottom:14px; }
+        .auth-card .mb-4 { margin-bottom:1rem!important; }
+        .auth-card .mt-4 { margin-top:1rem!important; }
+        .auth-back { display:inline-flex; align-items:center; gap:8px; color:#fff!important; margin:0 0 18px 4px; font-size:.88rem; text-decoration:none!important; text-shadow:0 1px 8px rgba(20,45,70,.18); }
+        @keyframes auth-enter { from { opacity:0; transform:translateY(18px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @media(max-width:520px) { .auth-container { padding:18px 14px; } .auth-card { border-radius:20px; padding:24px 20px; } }
     </style>
 </head>
-<body>
-
-    <div class="auth-container">
+<body class="auth-shell">
+    @include('client.partials.page-loader')
+    <main class="auth-container">
         <div class="auth-wrapper">
-            <!-- FLASH MESSAGE -->
-            @if(session('success'))
-                <div style="max-width:480px;margin:0 auto 15px auto;">
-                    <div class="alert alert-success alert-dismissible fade show text-center" role="alert">
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </div>
-            @endif
-            @if(session('error'))
-                <div style="max-width:480px;margin:0 auto 15px auto;">
-                    <div class="alert alert-danger alert-dismissible fade show text-center" role="alert">
-                        {{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </div>
-            @endif
-
+            <a class="auth-back" href="{{ route('home') }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Royal Hotel</a>
             @yield('content')
         </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        AOS.init({ once: true, offset: 100 });
-        
-        // Toggle show/hide password for all inputs on the page
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggles = document.querySelectorAll('.toggle-password');
-            toggles.forEach(function(btn) {
-                const wrapper = btn.closest('.password-wrapper');
-                if (!wrapper) return;
-                const pwd = wrapper.querySelector('input');
-                if (!pwd) return;
-                
-                btn.addEventListener('click', function() {
-                    const isPwd = pwd.getAttribute('type') === 'password';
-                    pwd.setAttribute('type', isPwd ? 'text' : 'password');
-                    this.innerHTML = isPwd ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('.toggle-password');
+            if (!button) return;
+            const input = button.closest('.password-wrapper')?.querySelector('input');
+            if (!input) return;
+            const reveal = input.type === 'password';
+            input.type = reveal ? 'text' : 'password';
+            button.setAttribute('aria-label', reveal ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+            button.innerHTML = reveal ? '<i class="bi bi-eye-slash" aria-hidden="true"></i>' : '<i class="bi bi-eye" aria-hidden="true"></i>';
+        });
+
+        document.querySelectorAll('form[data-inline-validation]').forEach((form) => {
+            const fields = [...form.querySelectorAll('input[data-validate]')];
+            const messageFor = (field) => {
+                if (field.validity.valueMissing) return field.dataset.requiredMessage || 'Vui lòng điền thông tin này.';
+                if (field.validity.typeMismatch) return field.dataset.typeMessage || 'Thông tin chưa đúng định dạng.';
+                if (field.validity.tooShort) return field.dataset.minMessage || `Vui lòng nhập ít nhất ${field.minLength} ký tự.`;
+                if (field.validity.patternMismatch) return field.dataset.patternMessage || 'Thông tin chưa đúng định dạng.';
+                if (field.name === 'password_confirmation' && field.value !== form.querySelector('[name="password"]')?.value) return 'Mật khẩu xác nhận chưa trùng khớp.';
+                return '';
+            };
+            const render = (field) => {
+                const error = form.querySelector(`[data-error-for="${field.name}"]`);
+                if (!error) return true;
+                const message = messageFor(field);
+                error.textContent = message;
+                field.classList.toggle('is-invalid', Boolean(message));
+                field.classList.toggle('is-valid', !message && field.value.length > 0);
+                field.setAttribute('aria-invalid', String(Boolean(message)));
+                return !message;
+            };
+            fields.forEach((field) => {
+                field.addEventListener('blur', () => render(field));
+                field.addEventListener('input', () => {
+                    if (field.classList.contains('is-invalid')) render(field);
+                    if (field.name === 'password') {
+                        const confirmation = form.querySelector('[name="password_confirmation"]');
+                        if (confirmation?.value) render(confirmation);
+                    }
                 });
+            });
+            form.addEventListener('submit', (event) => {
+                const firstInvalid = fields.filter((field) => !render(field))[0];
+                if (!firstInvalid) return;
+                event.preventDefault();
+                firstInvalid.focus();
+                firstInvalid.scrollIntoView({ behavior:'smooth', block:'center' });
             });
         });
     </script>
+    @stack('scripts')
 </body>
 </html>
