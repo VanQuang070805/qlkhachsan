@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AdminUser;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class ReceptionUserController extends Controller
 {
-    private function getCurrentUser(): ?AdminUser
+    private function getCurrentUser(): ?User
     {
         $userId = session('user_id');
         if (!$userId) return null;
-        return AdminUser::find($userId);
+        return User::find($userId);
     }
 
     public function profile()

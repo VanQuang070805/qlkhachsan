@@ -46,4 +46,24 @@ class User extends Authenticatable
     {
         return self::where('role', 'customer')->orWhereNull('role')->count();
     }
+
+    public function getRoleLabelAttribute(): string
+    {
+        return match ($this->role) {
+            'admin'        => 'Quản trị viên',
+            'receptionist' => 'Lễ tân',
+            'customer'     => 'Khách hàng',
+            default        => (string) $this->role,
+        };
+    }
+
+    public function getRoleBadgeAttribute(): string
+    {
+        return match ($this->role) {
+            'admin'        => 'danger',
+            'receptionist' => 'warning',
+            'customer'     => 'primary',
+            default        => 'secondary',
+        };
+    }
 }

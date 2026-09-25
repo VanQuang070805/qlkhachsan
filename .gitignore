@@ -16,9 +16,16 @@
 /public/build
 /public/hot
 /public/storage
+/public/temp/*.png
+/public/graph.html
 /storage/*.key
 /storage/pail
 /vendor
+/.agents
+/docs
+/AGENTS.md
+/graphify-out
 Homestead.json
 Homestead.yaml
 Thumbs.db
+

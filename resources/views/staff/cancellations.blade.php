@@ -1,4 +1,4 @@
-@extends('layouts.receiption')
+@extends('layouts.dashboard')
 @section('title', 'Hoàn tiền · Royal Hotel')
 @section('content')
 @php

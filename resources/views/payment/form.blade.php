@@ -23,7 +23,7 @@
     ])
 
     <div class="payment-layout">
-        <aside class="payment-summary" data-reveal>
+        <aside class="payment-summary">
             <div class="payment-summary__top"><span>Tóm tắt lưu trú</span><i class="bi bi-shield-check" aria-hidden="true"></i></div>
             <h2>{{ $booking->rooms->map(fn($room) => 'Phòng '.$room->room_number)->join(', ') }}</h2>
             <dl class="payment-summary__facts">

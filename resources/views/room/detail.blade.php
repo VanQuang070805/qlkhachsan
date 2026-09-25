@@ -671,7 +671,7 @@ $galleryThird = $galleryImages[2] ?? $gallerySecond;
         <div class="right-sticky">
 
             <!-- Booking card -->
-            <div class="bk-card" id="reserve" data-reveal data-window-frame data-window-title="Đặt phòng">
+            <div class="bk-card" id="reserve" data-window-frame data-window-title="Đặt phòng">
                 @include('client.partials.window-controls', ['label' => 'đặt phòng'])
                 @include('client.partials.booking-steps', ['currentStep' => 1])
                 <div class="bk-header">

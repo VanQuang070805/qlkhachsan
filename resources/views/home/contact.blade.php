@@ -5,7 +5,7 @@
 @section('content')
 <div class="contact-page contact-page--combined">
     <section class="contact-hero" aria-labelledby="contact-title">
-        <div class="contact-hero__copy" data-reveal>
+        <div class="contact-hero__copy">
             <h1 id="contact-title">A thoughtful stay,<br>close to everything</h1>
             <p>Một nơi dừng chân thanh lịch, riêng tư và đủ gần để bạn chạm tới nhịp sống Hà Nội.</p>
             <div class="contact-hero__actions">

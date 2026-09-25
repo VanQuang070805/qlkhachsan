@@ -64,29 +64,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!reduceMotion) {
         const metrics = document.querySelectorAll('.operations-overview .metric-grid > .metric');
-        if (metrics.length) gsap.fromTo(metrics, { autoAlpha: 0, y: 16 }, {
-            autoAlpha: 1, y: 0, duration: .48, stagger: .065, ease: 'power2.out',
+        if (metrics.length) gsap.fromTo(metrics, { autoAlpha: 0, y: 12 }, {
+            autoAlpha: 1, y: 0, duration: .32, stagger: .04, ease: 'power2.out',
             clearProps: 'opacity,transform,visibility',
-            scrollTrigger: { trigger: metrics[0].parentElement, start: 'top 92%', once: true },
+            scrollTrigger: { trigger: metrics[0].parentElement, start: 'top 95%', once: true },
         });
-        const operationalBlocks = document.querySelectorAll('.internal-main > .data-panel, .internal-main > .module-head, .internal-main > .price-summary, .internal-main .card, .internal-main .user-card, .report-charts > .data-panel, .staff-workspace .floor-section, .staff-workspace .refund-metrics, .staff-workspace .refund-toolbar, .staff-workspace .refund-record, .staff-workspace .main-content > .filter-card');
+        const operationalBlocks = document.querySelectorAll('.internal-main > .data-panel, .internal-main > .module-head, .internal-main > .price-summary, .report-charts > .data-panel, .staff-workspace .refund-metrics, .staff-workspace .refund-toolbar');
         if (operationalBlocks.length) ScrollTrigger.batch(operationalBlocks, {
-            start: 'top 94%', once: true, interval: .06, batchMax: 6,
-            onEnter: batch => gsap.fromTo(batch, { autoAlpha: 0, y: 28, scale: .992 }, {
-                autoAlpha: 1, y: 0, scale: 1, duration: .68, stagger: .07, ease: 'power3.out',
+            start: 'top 95%', once: true, interval: .04, batchMax: 6,
+            onEnter: batch => gsap.fromTo(batch, { autoAlpha: 0, y: 14 }, {
+                autoAlpha: 1, y: 0, duration: .34, stagger: .04, ease: 'power2.out',
                 clearProps: 'opacity,transform,visibility',
             }),
-        });
-        document.querySelectorAll('.internal-shell .btn, .internal-shell .primary-action, .internal-shell .operation-button').forEach(button => {
-            button.addEventListener('pointerdown', () => gsap.to(button, { scale: .97, duration: .1, overwrite: true }));
-            button.addEventListener('pointerup', () => gsap.to(button, { scale: 1, duration: .24, ease: 'back.out(2)', overwrite: true }));
-            button.addEventListener('pointerleave', () => gsap.to(button, { scale: 1, duration: .18, overwrite: true }));
-        });
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('show.bs.modal', () => {
-                const dialog = modal.querySelector('.modal-dialog');
-                if (dialog) gsap.fromTo(dialog, { autoAlpha: 0, y: 22, scale: .94 }, { autoAlpha: 1, y: 0, scale: 1, duration: .34, ease: 'cubic-bezier(0.16, 1, 0.3, 1)', clearProps: 'opacity,transform,visibility' });
-            });
         });
         window.addEventListener('load', () => ScrollTrigger.refresh(), { once: true });
     }
@@ -96,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gsap.set('.workspace-content', { clearProps: 'opacity,visibility,transform' });
         if (event.persisted) ScrollTrigger.refresh();
     });
+
     window.confirmOperation = message => new Promise(resolve => {
         const dialog = document.getElementById('operationConfirm');
         if (dialog.open) return resolve(false);
@@ -137,19 +127,5 @@ document.addEventListener('DOMContentLoaded', () => {
         const submit = event.target.querySelector('[type=submit]');
         submit.disabled = true;
         submit.textContent = 'Đang ghi nhận…';
-    });
-
-    document.querySelectorAll('.workspace-sidebar nav a').forEach((link) => {
-        link.addEventListener('click', (event) => {
-            if (reduceMotion || event.metaKey || event.ctrlKey || event.shiftKey || link.href === location.href) return;
-            event.preventDefault();
-            gsap.to('.workspace-content', {
-                autoAlpha: 0,
-                y: -5,
-                duration: 0.16,
-                ease: 'power1.in',
-                onComplete: () => location.assign(link.href),
-            });
-        });
     });
 });

@@ -5,11 +5,11 @@ main:has(.hero),main:has(.page-hero),main:has(.editorial-hero),main:has(.contact
 /* Shared ambient star layer for every blue guest surface; it does not affect document flow. */
 [data-star-surface] { position:relative; isolation:isolate; }
 .ambient-stars { position:absolute; z-index:0; overflow:hidden; border-radius:inherit; pointer-events:none; inset:0; }
-.ambient-star { position:absolute; top:var(--star-y); left:var(--star-x); width:var(--star-size); height:var(--star-size); border-radius:50%; background:rgba(255,255,255,var(--star-alpha)); box-shadow:0 0 calc(var(--star-size) * 5) rgba(255,255,255,.58); will-change:transform,opacity; }
-.ambient-star--far { filter:blur(.25px); }
-.ambient-star--mid { box-shadow:0 0 10px rgba(255,255,255,.58); }
-.ambient-star--near { background:#fff; box-shadow:0 0 5px #fff,0 0 16px rgba(255,255,255,.86); }
-.ambient-comet { position:absolute; left:-130px; width:104px; height:1.5px; border-radius:999px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.94)); filter:drop-shadow(0 0 7px rgba(255,255,255,.66)); opacity:0; transform:rotate(-12deg); transform-origin:right center; will-change:transform,opacity; }
+.ambient-star { position:absolute; top:var(--star-y); left:var(--star-x); width:var(--star-size); height:var(--star-size); border-radius:50%; background:rgba(255,255,255,var(--star-alpha)); box-shadow:0 0 calc(var(--star-size) * 4) rgba(255,255,255,.52); }
+.ambient-star--far { opacity:.75; }
+.ambient-star--mid { box-shadow:0 0 8px rgba(255,255,255,.54); }
+.ambient-star--near { background:#fff; box-shadow:0 0 4px #fff,0 0 12px rgba(255,255,255,.82); }
+.ambient-comet { position:absolute; left:-130px; width:104px; height:1.5px; border-radius:999px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.94)); filter:drop-shadow(0 0 7px rgba(255,255,255,.66)); opacity:0; transform:rotate(-12deg); transform-origin:right center; }
 .ambient-comet::after { content:""; position:absolute; top:50%; right:-3px; width:5px; height:5px; border-radius:50%; background:#fff; box-shadow:0 0 6px #fff,0 0 14px rgba(255,255,255,.95); transform:translateY(-50%); }
 .hero__content,.page-hero>:not(.ambient-stars),.search-hero>:not(.ambient-stars),.editorial-hero>:not(.ambient-stars),.contact-hero__copy { position:relative; z-index:2; }
 .auth-container>.auth-wrapper { position:relative; z-index:2; }

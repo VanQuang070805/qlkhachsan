@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 use App\Mail\AccountLockedMail;
 use App\Http\Controllers\Controller;
-use App\Models\AdminUser;
+use App\Models\User;
 use App\Mail\ReceptionistAccountMail;
 use App\Mail\AccountUpdatedMail;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AdminUser::query();
+        $query = User::query();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -57,7 +57,7 @@ class UserController extends Controller
 
         $plainPassword = $request->password;
 
-        $user = AdminUser::create([
+        $user = User::create([
             'username' => $request->username,
             'password' => Hash::make($plainPassword),
             'fullname' => $request->fullname,
@@ -82,12 +82,12 @@ class UserController extends Controller
                          ->with('success', 'Tạo tài khoản thành công!');
     }
 
-    public function edit(AdminUser $user)
+    public function edit(User $user)
     {
         return view('admin.users.edit', compact('user'));
     }
 
-    public function update(Request $request, AdminUser $user)
+    public function update(Request $request, User $user)
     {
         $request->validate([
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($user->id)],
@@ -131,7 +131,7 @@ class UserController extends Controller
                          ->with('success', 'Cập nhật tài khoản thành công!');
     }
 
-    public function destroy(AdminUser $user)
+    public function destroy(User $user)
     {
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Không thể xóa tài khoản đang đăng nhập!');
@@ -152,7 +152,7 @@ class UserController extends Controller
                          ->with('success', 'Xóa tài khoản thành công!');
     }
 
-    public function toggleVerified(AdminUser $user)
+    public function toggleVerified(User $user)
 {
     if ($user->id === auth()->id()) {
         return response()->json([

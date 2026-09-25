@@ -28,18 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
         content.prepend(controls);
     });
 
-    document.querySelectorAll('.modal').forEach((modal) => {
-        modal.addEventListener('show.bs.modal', () => {
-            const dialog = modal.querySelector('.modal-dialog');
-            if (dialog && !reduceMotion) {
-                gsap.fromTo(dialog,
-                    { autoAlpha: 0, y: 22, scale: 0.94 },
-                    { autoAlpha: 1, y: 0, scale: 1, duration: 0.35, ease: 'cubic-bezier(0.16, 1, 0.3, 1)', clearProps: 'opacity,transform,visibility' }
-                );
-            }
-        });
-    });
-
     enhanceDatePickers();
 
     if (pageLoader) {
@@ -50,51 +38,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const revealPage = () => {
             sessionStorage.setItem('royal-arrival-seen', '1');
-            if (reduceMotion) {
+            if (reduceMotion || hasArrived) {
                 pageLoader.classList.add('is-hidden');
                 return;
             }
 
-            const timeline = gsap.timeline({
+            const starsTween = gsap.to(stars, { y: -10, autoAlpha: 0.35, duration: 1.4, stagger: 0.06, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+            gsap.timeline({
                 defaults: { ease: 'power3.out' },
-                onComplete: () => pageLoader.classList.add('is-hidden'),
-            });
-            timeline
-                .fromTo(content, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: hasArrived ? 0.2 : 0.48 })
-                .to(progress, { scaleX: 1, duration: hasArrived ? 0.16 : 0.55, ease: 'power2.inOut' }, '<')
-                .to(content, { autoAlpha: 0, y: -10, duration: 0.28 }, '+=0.06')
-                .to(pageLoader, { autoAlpha: 0, duration: 0.42, ease: 'power2.inOut' }, '-=0.1');
-            gsap.to(stars, { y: -14, autoAlpha: 0.35, duration: 1.8, stagger: 0.08, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+                onComplete: () => {
+                    starsTween.kill();
+                    pageLoader.classList.add('is-hidden');
+                },
+            })
+                .fromTo(content, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.28 })
+                .to(progress, { scaleX: 1, duration: 0.32, ease: 'power2.inOut' }, '<')
+                .to(content, { autoAlpha: 0, y: -8, duration: 0.18 }, '+=0.04')
+                .to(pageLoader, { autoAlpha: 0, duration: 0.24, ease: 'power2.out' }, '-=0.08');
         };
 
         revealPage();
         window.addEventListener('pageshow', (event) => {
-            if (event.persisted) gsap.set(pageLoader, { autoAlpha: 0 });
-        });
-
-        document.addEventListener('click', (event) => {
-            const link = event.target.closest('a[href]');
-            if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-            if (link.target === '_blank' || link.hasAttribute('download') || link.dataset.noTransition !== undefined) return;
-
-            const destination = new URL(link.href, window.location.href);
-            if (destination.origin !== window.location.origin || destination.protocol !== window.location.protocol) return;
-            if (destination.pathname === window.location.pathname && destination.search === window.location.search && destination.hash) return;
-
-            event.preventDefault();
-            if (reduceMotion) {
-                window.location.assign(destination.href);
-                return;
-            }
-
-            pageLoader.classList.remove('is-hidden');
-            gsap.killTweensOf([pageLoader, content, progress]);
-            gsap.set(progress, { scaleX: 0.08 });
-            gsap.timeline({ onComplete: () => window.location.assign(destination.href) })
-                .set(pageLoader, { autoAlpha: 0 })
-                .to(pageLoader, { autoAlpha: 1, duration: 0.32, ease: 'power2.inOut' })
-                .fromTo(content, { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.28 }, '<0.08')
-                .to(progress, { scaleX: 0.72, duration: 0.34, ease: 'power2.out' }, '<');
+            if (event.persisted) pageLoader.classList.add('is-hidden');
         });
     }
 
@@ -122,17 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const authCard = document.querySelector('.auth-card');
     if (authCard && !reduceMotion) {
-        authCard.style.animation = 'none';
-        gsap.fromTo(authCard,
-            { autoAlpha: 0, y: 28, scale: .975 },
-            { autoAlpha: 1, y: 0, scale: 1, duration: .82, ease: 'power3.out', clearProps: 'opacity,visibility,transform' },
-        );
         gsap.from(authCard.querySelectorAll('.auth-intro > *, .form-group, .btn-auth, .divider'), {
             autoAlpha: 0,
-            y: 12,
-            duration: .52,
-            stagger: .045,
-            delay: .18,
+            y: 10,
+            duration: .38,
+            stagger: .035,
+            delay: .08,
             ease: 'power2.out',
             clearProps: 'opacity,visibility,transform',
         });
@@ -199,62 +159,76 @@ document.addEventListener('DOMContentLoaded', () => {
             const starfield = document.createElement('div');
             starfield.className = 'ambient-stars';
             starfield.setAttribute('aria-hidden', 'true');
+            const starTweens = [];
 
-            for (let index = 0; index < 78; index += 1) {
+            for (let index = 0; index < 28; index += 1) {
                 const star = document.createElement('span');
-                const depth = index % 9 === 0 ? 'near' : index % 3 === 0 ? 'mid' : 'far';
-                const depthFactor = depth === 'near' ? 1.8 : depth === 'mid' ? 1.25 : 0.8;
-                const size = (index % 7 === 0 ? 3.6 : 1.25 + (index % 3) * 0.7) * depthFactor;
+                const depth = index % 7 === 0 ? 'near' : index % 3 === 0 ? 'mid' : 'far';
+                const depthFactor = depth === 'near' ? 1.65 : depth === 'mid' ? 1.2 : 0.85;
+                const size = (index % 6 === 0 ? 3.2 : 1.3 + (index % 3) * 0.65) * depthFactor;
                 star.className = `ambient-star ambient-star--${depth}`;
                 star.style.setProperty('--star-x', `${(index * 37 + 9) % 96}%`);
                 star.style.setProperty('--star-y', `${(index * 53 + 7) % 92}%`);
                 star.style.setProperty('--star-size', `${size}px`);
-                star.style.setProperty('--star-alpha', `${0.42 + (index % 5) * 0.1}`);
+                star.style.setProperty('--star-alpha', `${0.44 + (index % 5) * 0.1}`);
                 starfield.appendChild(star);
 
                 const tween = gsap.to(star, {
-                    x: ((index % 5) - 2) * (10 + (index % 8) * depthFactor),
-                    y: -(28 + (index % 7) * 8) * depthFactor,
-                    opacity: depth === 'near' ? 0.95 : 0.28 + (index % 4) * 0.19,
-                    scale: index % 2 ? 1.75 : 0.46,
-                    duration: (depth === 'near' ? 2.4 : depth === 'mid' ? 3.4 : 5.2) + (index % 5) * 0.44,
+                    x: ((index % 5) - 2) * (8 + (index % 6) * depthFactor),
+                    y: -(22 + (index % 5) * 7) * depthFactor,
+                    opacity: depth === 'near' ? 0.92 : 0.32 + (index % 4) * 0.16,
+                    scale: index % 2 ? 1.45 : 0.6,
+                    duration: (depth === 'near' ? 2.8 : depth === 'mid' ? 3.8 : 5.4) + (index % 5) * 0.4,
                     delay: -(index % 7) * 0.65,
                     ease: 'sine.inOut',
                     repeat: -1,
                     yoyo: true,
                 });
+                starTweens.push(tween);
                 cleanup.push(() => tween.kill());
             }
 
-            [18, 48, 74].forEach((top, index) => {
-                const comet = document.createElement('span');
-                comet.className = 'ambient-comet';
-                comet.style.top = `${top}%`;
-                starfield.appendChild(comet);
+            const comet = document.createElement('span');
+            comet.className = 'ambient-comet';
+            comet.style.top = '26%';
+            starfield.appendChild(comet);
 
-                const flight = gsap.fromTo(comet, {
-                    x: 0,
-                    y: 0,
-                    autoAlpha: 0,
-                }, {
-                    x: () => surface.clientWidth + 180,
-                    y: () => surface.clientHeight * 0.18,
-                    autoAlpha: 0.72,
-                    duration: 2.2 + index * 0.38,
-                    delay: 1.1 + index * 3.2,
-                    ease: 'power1.inOut',
-                    repeat: -1,
-                    repeatDelay: 4.5 + index * 2.4,
-                    keyframes: [
-                        { autoAlpha: 0, duration: 0.15 },
-                        { autoAlpha: 0.72, duration: 0.35 },
-                        { autoAlpha: 0, duration: 0.3, delay: 1.45 + index * 0.38 },
-                    ],
-                });
-                cleanup.push(() => flight.kill());
+            const flight = gsap.fromTo(comet, {
+                x: 0,
+                y: 0,
+                autoAlpha: 0,
+            }, {
+                x: () => surface.clientWidth + 180,
+                y: () => surface.clientHeight * 0.18,
+                autoAlpha: 0.72,
+                duration: 2.3,
+                delay: 1.8,
+                ease: 'power1.inOut',
+                repeat: -1,
+                repeatDelay: 6.5,
+                keyframes: [
+                    { autoAlpha: 0, duration: 0.15 },
+                    { autoAlpha: 0.72, duration: 0.35 },
+                    { autoAlpha: 0, duration: 0.3, delay: 1.5 },
+                ],
             });
+            starTweens.push(flight);
+            cleanup.push(() => flight.kill());
 
             surface.prepend(starfield);
+
+            const visibilityTrigger = ScrollTrigger.create({
+                trigger: surface,
+                start: 'top bottom',
+                end: 'bottom top',
+                onToggle: (self) => {
+                    starTweens.forEach((tween) => {
+                        if (self.isActive) tween.play();
+                        else tween.pause();
+                    });
+                },
+            });
+            cleanup.push(() => visibilityTrigger.kill());
 
             const moveFieldX = gsap.quickTo(starfield, 'x', { duration: 0.8, ease: 'power3.out' });
             const moveFieldY = gsap.quickTo(starfield, 'y', { duration: 0.8, ease: 'power3.out' });
@@ -263,8 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const bounds = surface.getBoundingClientRect();
                 const normalizedX = (event.clientX - bounds.left) / bounds.width - 0.5;
                 const normalizedY = (event.clientY - bounds.top) / bounds.height - 0.5;
-                moveFieldX(normalizedX * 34);
-                moveFieldY(normalizedY * 26);
+                moveFieldX(normalizedX * 26);
+                moveFieldY(normalizedY * 18);
             };
             const resetStarField = () => {
                 moveFieldX(0);
@@ -292,17 +266,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const customerReveals = document.querySelectorAll(
-            '[data-reveal], .legacy-main .search-card, .legacy-main .filter-card, .legacy-main .room-card, .legacy-main .bk-card, .legacy-main .rs-card, .legacy-main .review-card'
-        );
+        const customerReveals = [...document.querySelectorAll(
+            '[data-reveal], .legacy-main .search-card, .legacy-main .filter-card, .legacy-main .room-card, .legacy-main .review-card'
+        )].filter((el) => !el.closest('.section'));
         if (customerReveals.length) ScrollTrigger.batch(customerReveals, {
             start: 'top 90%',
             once: true,
-            interval: 0.08,
+            interval: 0.06,
             batchMax: 6,
             onEnter: batch => gsap.fromTo(batch,
-                { autoAlpha: 0, y: 36, scale: .985 },
-                { autoAlpha: 1, y: 0, scale: 1, duration: .82, stagger: .09, ease: 'power3.out', clearProps: 'opacity,visibility,transform' },
+                { autoAlpha: 0, y: 20 },
+                { autoAlpha: 1, y: 0, duration: .52, stagger: .065, ease: 'power3.out', clearProps: 'opacity,visibility,transform' },
             ),
         });
 
@@ -429,13 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         end: 'bottom top',
                         scrub: 0.8,
                     },
-                });
-
-                gsap.to(orbit, {
-                    rotate: '+=360',
-                    duration: 42,
-                    ease: 'none',
-                    repeat: -1,
                 });
             }
         }
@@ -737,22 +704,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 cleanup.push(() => titleSplit.revert());
             }
             gsap.from(heroParts, { autoAlpha: 0, y: 16, duration: 0.65, stagger: 0.07, ease: 'power3.out', delay: 0.22 });
-            gsap.to(roomHero, {
-                backgroundPosition: '50% 85%',
-                ease: 'none',
-                scrollTrigger: { trigger: roomHero, start: 'top top', end: 'bottom top', scrub: 0.7 },
-            });
         }
 
         const roomStory = document.querySelector('[data-room-story]');
         if (roomStory && !reduceMotion) {
             gsap.from(roomStory.querySelectorAll('.room-story__heading > *, .room-metric'), {
                 autoAlpha: 0,
-                y: 30,
-                duration: 0.78,
-                stagger: 0.1,
+                y: 22,
+                duration: 0.64,
+                stagger: 0.08,
                 ease: 'power3.out',
-                scrollTrigger: { trigger: roomStory, start: 'top 82%', once: true },
+                scrollTrigger: { trigger: roomStory, start: 'top 84%', once: true },
             });
         }
 
@@ -782,18 +744,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggleClass: { targets: link, className: 'is-active' },
             });
             cleanup.push(() => activeTrigger.kill());
-        });
-
-        if (!reduceMotion) document.querySelectorAll('.room-card, .amenity-card, .contact-method, .bk-card, .rs-card').forEach((card) => {
-            const lift = gsap.quickTo(card, 'y', { duration: 0.34, ease: 'power3.out' });
-            const enter = () => lift(-5);
-            const leave = () => lift(0);
-            card.addEventListener('pointerenter', enter);
-            card.addEventListener('pointerleave', leave);
-            cleanup.push(() => {
-                card.removeEventListener('pointerenter', enter);
-                card.removeEventListener('pointerleave', leave);
-            });
         });
 
         const closingCta = document.querySelector('.closing-cta');
@@ -835,19 +785,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('pagehide', () => {
         cleanup.forEach((dispose) => dispose());
     }, { once: true });
-
-    document.querySelectorAll('.hero__actions .button, .hero__actions .text-link--light, .availability-card__submit, .closing-cta .button').forEach((control) => {
-        control.addEventListener('click', () => {
-            gsap.fromTo(control, { scale: 1 }, {
-                scale: 0.975,
-                duration: 0.09,
-                repeat: 1,
-                yoyo: true,
-                ease: 'power1.inOut',
-                clearProps: 'scale',
-            });
-        });
-    });
 
     document.querySelectorAll('.rm-btn:not(.taken), .payment-choice').forEach((control) => {
         control.addEventListener('click', () => {
