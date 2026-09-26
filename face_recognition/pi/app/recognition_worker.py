@@ -6,6 +6,7 @@ import time
 
 from .cache import FaceCache
 from .config import PiConfig
+from .door_servo import DoorServo
 from .face_detector import FaceDetector
 from .face_recognizer import FaceRecognizer
 from .pi_camera import PiCamera
@@ -40,6 +41,23 @@ class RecognitionWorker:
             LOGGER.exception("Recognition worker cannot load models")
             return
 
+        servo: DoorServo | None = None
+        if self.config.servo_enabled:
+            try:
+                servo = DoorServo(
+                    pin=self.config.servo_gpio_pin,
+                    closed_angle=self.config.servo_closed_angle,
+                    open_angle=self.config.servo_open_angle,
+                    hold_seconds=self.config.servo_hold_seconds,
+                    cooldown_seconds=self.config.servo_cooldown_seconds,
+                    min_pulse_width=self.config.servo_min_pulse_width,
+                    max_pulse_width=self.config.servo_max_pulse_width,
+                    detach_after_move=self.config.servo_detach_after_move,
+                )
+                LOGGER.info("Door servo ready on BCM GPIO %d", self.config.servo_gpio_pin)
+            except Exception:
+                LOGGER.exception("Door servo initialization failed; recognition will continue")
+
         camera = PiCamera(
             self.config.camera_index,
             self.config.camera_width,
@@ -73,6 +91,8 @@ class RecognitionWorker:
                     else:
                         customer_id, name, room = result.split("|", 2)
                         LOGGER.info("Recognition: customer_id=%s name=%s room=%s similarity=%.3f", customer_id, name, room, best_score)
+                        if servo and servo.unlock():
+                            LOGGER.info("Door unlock triggered for customer_id=%s", customer_id)
                     last_result = result
                 now = time.monotonic()
                 if now - last_fps_log >= 5:
@@ -80,3 +100,5 @@ class RecognitionWorker:
                     last_fps_log = now
         finally:
             camera.close()
+            if servo:
+                servo.close()

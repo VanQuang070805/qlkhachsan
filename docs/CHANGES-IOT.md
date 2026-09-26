@@ -7,7 +7,7 @@
 - `routes/web.php`: `/staff/iot` bảo vệ bởi auth + vai trò receptionist/admin, không cache.
 - `resources/views/layouts/dashboard.blade.php`, `layouts/admin.blade.php`: thêm lối vào Camera & IoT.
 - `config/iot.php`, `.env.example`: hiển thị Camera Module Rev 1.3; dùng MySQL phù hợp migration hiện có.
-- `artisan82.bat`, `composer82.bat`, `serve82.bat`: bỏ đường dẫn `C:\Users\admin\...` của máy cũ, hỗ trợ PHP XAMPP và đường dẫn dự án có dấu/khoảng trắng.
+- `artisan82.bat`, `composer82.bat`, `serve82.bat`: bỏ đường dẫn `C:\Users\admin\...` của máy cũ, hỗ trợ PHP XAMPP và đường dẫn dự án có dấu/khoảng trắng; tự bật Face ID PC service và scheduler đồng bộ Pi.
 - `database/seeders/DatabaseSeeder.php`: chuyển dữ liệu giá sang bảng `price_settings`, mật khẩu mẫu từ môi trường, transaction và chặn seed đè dữ liệu hiện có.
 - Chuẩn hóa tên `AdminController.php`, `AdminUser.php` để Composer PSR-4 không bỏ qua class.
 - `tests/Feature/IotPageTest.php`: quyền truy cập và URL camera an toàn.
@@ -19,8 +19,9 @@
 - `main.py`, `camera_test.py`: kiểm tra môi trường, headless/GUI, thời gian test, log, báo cáo JSON, mã thoát.
 - `tests/`: kiểm thử cấu hình, frame và khởi tạo lại camera bằng backend giả lập.
 - `.env.example`, `requirements.txt`: môi trường riêng cho Pi.
-
-Không tạo file rỗng giả cho face/database/door/buttons: sẽ thêm khi triển khai từng mốc. Không thêm endpoint OPEN_DOOR.
+- `face_recognition/pi/app/door_servo.py`: điều khiển servo GPIO18 khi nhận diện
+  đúng, có thời gian giữ, cooldown và tự trả về góc đóng; không thêm endpoint mở
+  cửa từ xa.
 
 ## Kiểm tra tại máy tính ngày 23/09/2026
 

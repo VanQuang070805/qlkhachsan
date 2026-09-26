@@ -36,6 +36,15 @@ class PiConfig:
     start_recognition: bool = False
     reconnect_initial: float = 1.0
     reconnect_max: float = 15.0
+    servo_enabled: bool = False
+    servo_gpio_pin: int = 18
+    servo_closed_angle: float = 0.0
+    servo_open_angle: float = 90.0
+    servo_hold_seconds: float = 3.0
+    servo_cooldown_seconds: float = 8.0
+    servo_min_pulse_width: float = 0.0005
+    servo_max_pulse_width: float = 0.0025
+    servo_detach_after_move: bool = True
 
     @classmethod
     def from_env(cls) -> "PiConfig":
@@ -58,6 +67,15 @@ class PiConfig:
             start_recognition=os.getenv("START_RECOGNITION", "false").lower() in {"1", "true", "yes"},
             reconnect_initial=float(os.getenv("CAMERA_RECONNECT_INITIAL", "1")),
             reconnect_max=float(os.getenv("CAMERA_RECONNECT_MAX", "15")),
+            servo_enabled=os.getenv("SERVO_ENABLED", "false").lower() in {"1", "true", "yes"},
+            servo_gpio_pin=int(os.getenv("SERVO_GPIO_PIN", "18")),
+            servo_closed_angle=float(os.getenv("SERVO_CLOSED_ANGLE", "0")),
+            servo_open_angle=float(os.getenv("SERVO_OPEN_ANGLE", "90")),
+            servo_hold_seconds=float(os.getenv("SERVO_HOLD_SECONDS", "3")),
+            servo_cooldown_seconds=float(os.getenv("SERVO_COOLDOWN_SECONDS", "8")),
+            servo_min_pulse_width=float(os.getenv("SERVO_MIN_PULSE_WIDTH", "0.0005")),
+            servo_max_pulse_width=float(os.getenv("SERVO_MAX_PULSE_WIDTH", "0.0025")),
+            servo_detach_after_move=os.getenv("SERVO_DETACH_AFTER_MOVE", "true").lower() in {"1", "true", "yes"},
         )
         config.validate()
         return config
@@ -81,3 +99,15 @@ class PiConfig:
             raise ValueError("PI_CAMERA_WARMUP_SECONDS must be between 0 and 30")
         if not 0 < self.reconnect_initial <= self.reconnect_max <= 300:
             raise ValueError("Invalid camera reconnect interval")
+        if not 2 <= self.servo_gpio_pin <= 27:
+            raise ValueError("SERVO_GPIO_PIN must be a valid BCM GPIO number")
+        if not -90 <= self.servo_closed_angle <= 90 or not -90 <= self.servo_open_angle <= 90:
+            raise ValueError("Servo angles must be between -90 and 90 degrees")
+        if self.servo_closed_angle == self.servo_open_angle:
+            raise ValueError("Servo open and closed angles must be different")
+        if not 0.1 <= self.servo_hold_seconds <= 60:
+            raise ValueError("SERVO_HOLD_SECONDS must be between 0.1 and 60")
+        if not 0 <= self.servo_cooldown_seconds <= 300:
+            raise ValueError("SERVO_COOLDOWN_SECONDS must be between 0 and 300")
+        if not 0.0001 <= self.servo_min_pulse_width < self.servo_max_pulse_width <= 0.003:
+            raise ValueError("Servo pulse widths are invalid")

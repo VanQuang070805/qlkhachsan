@@ -5,7 +5,7 @@ Rev 1.3 để nhận diện tại chỗ trên Pi.
 
 | Thiết bị | Mã nguồn | Cách chạy |
 |---|---|---|
-| Laptop lễ tân | Laravel ở thư mục gốc (`app`, `resources`, `routes`, `database`) | MySQL XAMPP + `serve82.bat` |
+| Laptop lễ tân | Laravel ở thư mục gốc (`app`, `resources`, `routes`, `database`) | Chạy `serve82.bat` để tự bật MySQL, Face ID, scheduler và web |
 | Raspberry Pi 4 | `raspberry-pi/` để test camera; `face_recognition/pi/` cho dịch vụ nhận diện | `python main.py` hoặc `python run_recognition.py` |
 | Camera Module Rev 1.3 | Cắm cáp CSI trực tiếp vào Pi | Picamera2, mặc định 640x480 @ 15 FPS |
 
@@ -13,7 +13,7 @@ Rev 1.3 để nhận diện tại chỗ trên Pi.
 - [Lệnh cài và test từng bước trên Pi](docs/TEST-PI.md)
 - [Các file đã sửa và kết quả kiểm thử](docs/CHANGES-IOT.md)
 
-Web local: http://localhost:8000/internalauth/login → **Camera & IoT**. Tài khoản mẫu `reception`, mật khẩu riêng trong `storage/app/private/local-demo-access.txt` của máy đã thiết lập.
+Web local: http://localhost:8000/internalauth/login → **Test khuôn mặt đã đăng ký**. Tài khoản mẫu `reception`, mật khẩu riêng trong `storage/app/private/local-demo-access.txt` của máy đã thiết lập. Khi thêm, sửa, xóa Face ID hoặc trả phòng 501, Laravel gửi thay đổi sang Pi ngay; scheduler do `serve82.bat` bật sẽ tự retry nếu Pi tạm mất mạng.
 
 Kiến trúc đích: laptop đăng ký khách và đồng bộ dữ liệu/quyền → Pi lưu SQLite, tự nhận diện và kiểm tra quyền phòng/thời hạn → GPIO relay. Pi không nhận lệnh OPEN_DOOR từ laptop trong luồng thông thường.
 

@@ -1,4 +1,4 @@
-# Install Picamera2, OpenCV and NumPy from Raspberry Pi OS apt packages.
+# Install Picamera2, OpenCV, NumPy and gpiozero from Raspberry Pi OS apt packages.
 # Create the venv with --system-site-packages so these modules are available.
 fastapi>=0.115,<1.0
 uvicorn>=0.30,<1.0

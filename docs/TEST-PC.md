@@ -19,7 +19,8 @@ cd 'C:\Tài liệu học\QLDA\qlkhachsan-main'
 ```
 
 `serve82.bat` tự bật MySQL (nếu XAMPP nằm tại `C:\xampp`), bật dịch vụ Face ID
-trên cổng 8001, chờ health check thành công rồi mới bật Laravel trên cổng 8000.
+trên cổng 8001, bật Laravel scheduler để retry đồng bộ Pi, chờ health check
+thành công rồi mới bật Laravel trên cổng 8000.
 Apache không cần chạy. Nếu Face ID không sẵn sàng sau 20 giây, script dừng và báo
 lỗi thay vì mở web trong trạng thái thiếu dịch vụ.
 
