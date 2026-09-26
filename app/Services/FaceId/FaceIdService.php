@@ -7,7 +7,9 @@ use App\Models\FaceProfile;
 use App\Models\FaceSyncJob;
 use App\Models\Room;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Throwable;
 
 class FaceIdService
 {
@@ -29,7 +31,8 @@ class FaceIdService
 
         $normalized = $this->normalizeEmbedding($embedding);
 
-        return DB::transaction(function () use ($booking, $room, $normalized, $sampleCount, $guest) {
+        $needsSync = false;
+        $profile = DB::transaction(function () use ($booking, $room, $normalized, $sampleCount, $guest, &$needsSync) {
             $duplicate = FaceProfile::query()
                 ->with(['booking:id,customer_name', 'room:id,room_number'])
                 ->where('active', true)
@@ -77,15 +80,21 @@ class FaceIdService
 
             if ($this->shouldSyncToPi($profile)) {
                 $this->replacePendingJob($profile, 'ADD');
+                $needsSync = true;
             }
 
             return $profile->fresh();
         });
+
+        $this->syncAfterCommit($needsSync);
+
+        return $profile;
     }
 
-    public function deactivateForBooking(int $bookingId): int
+    public function deactivateForBooking(int $bookingId, bool $syncImmediately = true): int
     {
-        return DB::transaction(function () use ($bookingId) {
+        $needsSync = false;
+        $count = DB::transaction(function () use ($bookingId, &$needsSync) {
             $profiles = FaceProfile::query()
                 ->with('room:id,room_number')
                 ->lockForUpdate()
@@ -102,11 +111,16 @@ class FaceIdService
 
                 if ($this->shouldSyncToPi($profile)) {
                     $this->replacePendingJob($profile, 'DELETE');
+                    $needsSync = true;
                 }
             }
 
             return $profiles->count();
         });
+
+        $this->syncAfterCommit($needsSync && $syncImmediately);
+
+        return $count;
     }
 
     public function reconcileCheckedOutBookings(): int
@@ -119,7 +133,7 @@ class FaceIdService
             ->pluck('booking_id');
 
         foreach ($bookingIds as $bookingId) {
-            $count += $this->deactivateForBooking((int) $bookingId);
+            $count += $this->deactivateForBooking((int) $bookingId, false);
         }
 
         return $count;
@@ -127,7 +141,8 @@ class FaceIdService
 
     public function updateGuest(FaceProfile $profile, array $guest): FaceProfile
     {
-        return DB::transaction(function () use ($profile, $guest) {
+        $needsSync = false;
+        $updated = DB::transaction(function () use ($profile, $guest, &$needsSync) {
             $locked = FaceProfile::query()->lockForUpdate()->findOrFail($profile->id);
             if (! $locked->active) {
                 throw new InvalidArgumentException('Khách này không còn Face ID hoạt động.');
@@ -142,15 +157,21 @@ class FaceIdService
 
             if ($this->shouldSyncToPi($locked)) {
                 $this->replacePendingJob($locked, 'UPDATE');
+                $needsSync = true;
             }
 
             return $locked->fresh(['room', 'booking']);
         });
+
+        $this->syncAfterCommit($needsSync);
+
+        return $updated;
     }
 
     public function deactivateProfile(FaceProfile $profile): bool
     {
-        return DB::transaction(function () use ($profile) {
+        $needsSync = false;
+        $deactivated = DB::transaction(function () use ($profile, &$needsSync) {
             $locked = FaceProfile::query()
                 ->with('room:id,room_number')
                 ->lockForUpdate()
@@ -168,10 +189,15 @@ class FaceIdService
 
             if ($this->shouldSyncToPi($locked)) {
                 $this->replacePendingJob($locked, 'DELETE');
+                $needsSync = true;
             }
 
             return true;
         });
+
+        $this->syncAfterCommit($needsSync);
+
+        return $deactivated;
     }
 
     private function shouldSyncToPi(FaceProfile $profile): bool
@@ -195,6 +221,23 @@ class FaceIdService
             'retry_count' => 0,
             'next_attempt_at' => now(),
         ]);
+    }
+
+    private function syncAfterCommit(bool $needed): void
+    {
+        if (! $needed || ! config('face_id.sync_immediately', true)) {
+            return;
+        }
+
+        DB::afterCommit(function () {
+            try {
+                app(FaceSyncService::class)->syncPending();
+            } catch (Throwable $error) {
+                Log::warning('[FACE SYNC] Immediate sync failed; scheduler will retry', [
+                    'error' => $error->getMessage(),
+                ]);
+            }
+        });
     }
 
     private function normalizeEmbedding(array $embedding): array

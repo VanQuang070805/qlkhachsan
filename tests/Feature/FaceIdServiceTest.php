@@ -21,6 +21,7 @@ class FaceIdServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['face_id.sync_immediately' => false]);
 
         Schema::create('users', function (Blueprint $table) {
             $table->id();
@@ -233,6 +234,64 @@ class FaceIdServiceTest extends TestCase
                 && count($faces) === 1
                 && $faces[0]['room'] === '501';
         });
+    }
+
+    public function test_room_501_add_and_delete_sync_immediately(): void
+    {
+        config([
+            'face_id.api_key' => 'test-secret',
+            'face_id.pi_room_number' => '501',
+            'face_id.sync_immediately' => true,
+        ]);
+        Http::fake(fn ($request) => Http::response([
+            'status' => $request->method() === 'DELETE' ? 'deleted' : 'added',
+            'cache_count' => $request->method() === 'DELETE' ? 0 : 1,
+        ]));
+
+        $booking = $this->booking('501');
+        $service = app(FaceIdService::class);
+        $profile = $service->enroll($booking, $this->roomFor($booking), $this->embedding(0));
+
+        $this->assertDatabaseHas('face_sync_queue', [
+            'face_profile_id' => $profile->id,
+            'action' => 'ADD',
+            'status' => 'SYNCED',
+        ]);
+
+        $service->deactivateProfile($profile);
+
+        $this->assertDatabaseHas('face_sync_queue', [
+            'face_profile_id' => $profile->id,
+            'action' => 'DELETE',
+            'status' => 'SYNCED',
+        ]);
+        Http::assertSentCount(2);
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && str_ends_with($request->url(), '/api/faces'));
+        Http::assertSent(fn ($request) => $request->method() === 'DELETE'
+            && str_ends_with($request->url(), '/api/faces/'.$profile->id));
+    }
+
+    public function test_immediate_sync_failure_keeps_change_pending_for_scheduler(): void
+    {
+        config([
+            'face_id.api_key' => 'test-secret',
+            'face_id.pi_room_number' => '501',
+            'face_id.sync_immediately' => true,
+        ]);
+        Http::fake(fn () => Http::failedConnection());
+
+        $booking = $this->booking('501');
+        $profile = app(FaceIdService::class)
+            ->enroll($booking, $this->roomFor($booking), $this->embedding(0));
+
+        $this->assertTrue($profile->active);
+        $this->assertDatabaseHas('face_sync_queue', [
+            'face_profile_id' => $profile->id,
+            'action' => 'ADD',
+            'status' => 'PENDING',
+            'retry_count' => 1,
+        ]);
     }
 
     private function booking(string $roomNumber = '501'): Booking

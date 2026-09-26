@@ -33,7 +33,9 @@ gốc bằng:
 .\serve82.bat
 ```
 
-Script tự khởi động và kiểm tra dịch vụ Face ID cổng 8001 trước khi bật Laravel.
+Script tự khởi động và kiểm tra dịch vụ Face ID cổng 8001, bật Laravel scheduler
+để retry đồng bộ Pi, rồi mới bật web. Thay đổi Face ID của phòng 501 được gửi
+sang Pi ngay sau khi lưu; scheduler sẽ gửi lại nếu Pi từng mất kết nối.
 
 Đăng nhập nhân viên tại `http://127.0.0.1:8000/internalauth/login`, sau đó mở
 `http://127.0.0.1:8000/staff/iot`.
@@ -45,7 +47,7 @@ cùng `FACE_API_KEY` với Laravel. Cài camera/OpenCV từ Raspberry Pi OS trư
 
 ```bash
 sudo apt update
-sudo apt install -y python3-picamera2 python3-opencv python3-numpy python3-venv
+sudo apt install -y python3-picamera2 python3-opencv python3-numpy python3-gpiozero python3-venv
 rpicam-hello --list-cameras
 python3 -m venv --system-site-packages .venv
 .venv/bin/python -m pip install -r requirements.txt
@@ -60,6 +62,11 @@ trạng thái nhận diện và similarity. Nhấn `Q` hoặc `Esc` để đóng
 camera CSI. `rpicam-hello --list-cameras` phải thấy cảm biến `ov5647` của Camera
 Module Rev 1.3. Trên PC, sửa `FACE_PI_BASE_URL` trong `.env` thành IP LAN của Pi rồi
 chạy `php artisan config:clear`.
+
+Servo cửa mặc định dùng BCM GPIO18 (chân vật lý 12), góc đóng 0 và góc mở 90.
+Dùng nguồn 5V rời cho servo, nối chung GND nguồn servo với GND Pi, sau đó đặt
+`SERVO_ENABLED=true` trong `.env`. Chạy `.venv/bin/python test_servo.py`
+trước khi chạy nhận diện. Sơ đồ nối dây đầy đủ nằm trong `docs/TEST-PI.md`.
 
 ## Lệnh test
 

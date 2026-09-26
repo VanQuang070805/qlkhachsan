@@ -7,6 +7,7 @@ return [
     'request_timeout' => (float) env('FACE_REQUEST_TIMEOUT', 5),
     'connect_timeout' => (float) env('FACE_CONNECT_TIMEOUT', 2),
     'sync_retry_interval' => (int) env('FACE_SYNC_RETRY_INTERVAL', 15),
+    'sync_immediately' => filter_var(env('FACE_SYNC_IMMEDIATELY', true), FILTER_VALIDATE_BOOL),
     'duplicate_threshold' => (float) env('FACE_DUPLICATE_THRESHOLD', 0.65),
     'pi_room_number' => (string) env('FACE_PI_ROOM_NUMBER', '501'),
 ];

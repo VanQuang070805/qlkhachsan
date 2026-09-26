@@ -75,3 +75,15 @@ def test_incomplete_snapshot_is_rejected_without_deleting_data(tmp_path: Path):
         response = client.post("/api/faces/full-sync", headers=headers, json={"complete": False, "faces": []})
         assert response.status_code == 422
         assert client.get("/api/health").json()["faces"] == 1
+
+
+def test_servo_configuration_validation(tmp_path: Path):
+    config = settings(tmp_path)
+    object.__setattr__(config, "servo_open_angle", 91)
+
+    try:
+        config.validate()
+    except ValueError as error:
+        assert "Servo angles" in str(error)
+    else:
+        raise AssertionError("Invalid servo angle should be rejected")

@@ -35,5 +35,13 @@ if errorlevel 1 (
     exit /b 1
 )
 echo Face ID PC service is ready.
+set "SCHEDULER_RUNNING="
+for /f "delims=" %%P in ('powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'php*' -and $_.CommandLine -like '*artisan*schedule:work*' } | Select-Object -First 1 -ExpandProperty ProcessId"') do set "SCHEDULER_RUNNING=%%P"
+if not defined SCHEDULER_RUNNING (
+    echo Starting Laravel scheduler for Face ID sync retries
+    start "Royal Hotel Scheduler" /min cmd /c call "%~dp0artisan82.bat" schedule:work
+) else (
+    echo Laravel scheduler is already running.
+)
 echo Open http://localhost:8000/internalauth/login
 call "%~dp0artisan82.bat" serve --host=127.0.0.1 --port=8000
