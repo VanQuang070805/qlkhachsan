@@ -6,9 +6,9 @@ import time
 
 from .cache import FaceCache
 from .config import PiConfig
-from .esp32_camera import ESP32Camera
 from .face_detector import FaceDetector
 from .face_recognizer import FaceRecognizer
+from .pi_camera import PiCamera
 
 
 LOGGER = logging.getLogger("hotel-face-pi.recognition")
@@ -40,9 +40,12 @@ class RecognitionWorker:
             LOGGER.exception("Recognition worker cannot load models")
             return
 
-        camera = ESP32Camera(
-            self.config.esp32_cam_url,
-            self.config.request_timeout,
+        camera = PiCamera(
+            self.config.camera_index,
+            self.config.camera_width,
+            self.config.camera_height,
+            self.config.camera_framerate,
+            self.config.camera_warmup_seconds,
             self.config.reconnect_initial,
             self.config.reconnect_max,
         )
@@ -77,4 +80,3 @@ class RecognitionWorker:
                     last_fps_log = now
         finally:
             camera.close()
-

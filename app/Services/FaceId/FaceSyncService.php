@@ -12,16 +12,15 @@ use Throwable;
 
 class FaceSyncService
 {
-    public function __construct(private readonly FaceIdService $faceIds)
-    {
-    }
+    public function __construct(private readonly FaceIdService $faceIds) {}
 
     public function syncPending(int $limit = 50): array
     {
         $deactivated = $this->faceIds->reconcileCheckedOutBookings();
         $jobs = FaceSyncJob::query()
-            ->with('profile.booking.rooms:id,room_number')
+            ->with(['profile.booking', 'profile.room:id,room_number'])
             ->where('status', 'PENDING')
+            ->whereHas('profile.room', fn ($query) => $query->where('room_number', $this->targetRoomNumber()))
             ->where(fn ($query) => $query->whereNull('next_attempt_at')->orWhere('next_attempt_at', '<=', now()))
             ->orderBy('id')
             ->limit(max(1, min($limit, 500)))
@@ -32,6 +31,7 @@ class FaceSyncService
             $result['processed']++;
             $this->syncOne($job) ? $result['synced']++ : $result['failed']++;
         }
+
         return $result;
     }
 
@@ -40,8 +40,9 @@ class FaceSyncService
         $this->guardConfiguration();
         $this->faceIds->reconcileCheckedOutBookings();
         $profiles = FaceProfile::query()
-            ->with('booking.rooms:id,room_number')
+            ->with(['booking', 'room:id,room_number'])
             ->where('active', true)
+            ->whereHas('room', fn ($query) => $query->where('room_number', $this->targetRoomNumber()))
             ->get()
             ->map(fn (FaceProfile $profile) => $this->profilePayload($profile))
             ->values()
@@ -51,16 +52,20 @@ class FaceSyncService
             'complete' => true,
             'faces' => $profiles,
         ]);
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new RuntimeException('Pi full sync failed with HTTP '.$response->status());
         }
-        FaceSyncJob::query()->where('status', 'PENDING')->update([
-            'status' => 'SYNCED',
-            'synced_at' => now(),
-            'last_attempt_at' => now(),
-            'next_attempt_at' => null,
-            'last_error' => null,
-        ]);
+        FaceSyncJob::query()
+            ->where('status', 'PENDING')
+            ->whereHas('profile.room', fn ($query) => $query->where('room_number', $this->targetRoomNumber()))
+            ->update([
+                'status' => 'SYNCED',
+                'synced_at' => now(),
+                'last_attempt_at' => now(),
+                'next_attempt_at' => null,
+                'last_error' => null,
+            ]);
+
         return $response->json();
     }
 
@@ -68,6 +73,7 @@ class FaceSyncService
     {
         try {
             $response = Http::connectTimeout(1)->timeout(2)->get(config('face_id.pi_base_url').'/api/health');
+
             return ['online' => $response->successful(), 'status' => $response->status(), 'data' => $response->json()];
         } catch (Throwable) {
             return ['online' => false, 'status' => null, 'data' => null];
@@ -79,7 +85,7 @@ class FaceSyncService
         try {
             $this->guardConfiguration();
             $profile = $job->profile;
-            if (!$profile) {
+            if (! $profile) {
                 throw new RuntimeException('Face profile no longer exists');
             }
 
@@ -91,7 +97,7 @@ class FaceSyncService
                 default => throw new RuntimeException('Unsupported sync action'),
             };
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 throw new RuntimeException('Pi returned HTTP '.$response->status());
             }
 
@@ -103,6 +109,7 @@ class FaceSyncService
                 'last_error' => null,
             ]);
             Log::info('[FACE SYNC] Success', ['profile_id' => $profile->id, 'action' => $job->action]);
+
             return true;
         } catch (Throwable $error) {
             $retries = $job->retry_count + 1;
@@ -123,6 +130,7 @@ class FaceSyncService
                 'action' => $job->action,
                 'retry_count' => $retries,
             ]);
+
             return false;
         }
     }
@@ -130,15 +138,16 @@ class FaceSyncService
     private function profilePayload(FaceProfile $profile): array
     {
         $booking = $profile->booking;
-        if (!$booking) {
+        if (! $booking) {
             throw new RuntimeException('Booking for face profile no longer exists');
         }
+
         return [
             'customer_id' => $profile->id,
             'booking_id' => $booking->id,
             'user_id' => $profile->user_id,
-            'name' => $booking->customer_name,
-            'room' => $booking->rooms->pluck('room_number')->join(', '),
+            'name' => $profile->guest_name ?: $booking->customer_name,
+            'room' => $profile->room?->room_number,
             'embedding' => $profile->embedding,
             'embedding_model' => $profile->embedding_model,
             'version' => $profile->version,
@@ -156,8 +165,13 @@ class FaceSyncService
 
     private function guardConfiguration(): void
     {
-        if (!config('face_id.api_key')) {
+        if (! config('face_id.api_key')) {
             throw new RuntimeException('FACE_API_KEY is not configured');
         }
+    }
+
+    private function targetRoomNumber(): string
+    {
+        return (string) config('face_id.pi_room_number', '501');
     }
 }

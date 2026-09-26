@@ -134,7 +134,9 @@
         
         
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('staff.iot') }}" class="btn btn-outline-primary">Camera & IoT</a>
+            <a href="{{ route('staff.iot') }}" class="btn btn-outline-primary">
+                <i class="fa-solid fa-user-check me-1"></i> Test khuôn mặt đã đăng ký
+            </a>
             <div class="dropdown">
                 <button class="btn d-flex align-items-center gap-2 p-0 border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <img src="https://ui-avatars.com/api/?name=Reception&background=0D8ABC&color=fff" class="rounded-circle border" width="38" height="38" alt="Avatar">

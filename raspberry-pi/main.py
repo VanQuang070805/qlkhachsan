@@ -1,6 +1,6 @@
 """Milestone 1 only: camera diagnostics. No recognition or GPIO output."""
 import argparse
-import importlib.metadata
+import importlib.util
 import json
 import logging
 import platform
@@ -10,14 +10,14 @@ import time
 
 import cv2
 
-from camera.esp32_camera import ESP32Camera
+from camera.pi_camera import PiCamera
 from config import CameraConfig
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check-env", action="store_true")
-    parser.add_argument("--url", help="Overrides CAMERA_URL")
+    parser.add_argument("--camera-index", type=int, help="Overrides PI_CAMERA_INDEX")
     parser.add_argument("--headless", action="store_true", help="No GUI; use over SSH")
     parser.add_argument("--seconds", type=float, default=0, help="0 = until Ctrl+C; timeout may add read timeout")
     parser.add_argument("--min-frames", type=int, default=1)
@@ -29,20 +29,20 @@ def main():
         print(json.dumps({
             "python": platform.python_version(), "platform": platform.system(),
             "architecture": platform.machine(), "opencv": cv2.__version__,
-            "requests": importlib.metadata.version("requests"),
+            "picamera2": importlib.util.find_spec("picamera2") is not None,
             "yunet_api": hasattr(cv2, "FaceDetectorYN"),
             "sface_api": hasattr(cv2, "FaceRecognizerSF"),
         }, indent=2))
         return 0
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     try:
-        config = CameraConfig.from_env(args.url)
+        config = CameraConfig.from_env(args.camera_index)
     except ValueError as exc:
         parser.error(str(exc))
     stop = threading.Event()
     for signum in (signal.SIGINT, signal.SIGTERM):
         signal.signal(signum, lambda *_: stop.set())
-    camera = ESP32Camera(config)
+    camera = PiCamera(config)
     started = time.monotonic()
     deadline = started + args.seconds if args.seconds else None
     width = height = 0
@@ -55,7 +55,7 @@ def main():
                 logging.info("Frames=%d size=%dx%d failures=%d", camera.frames_received, width, height, camera.failures)
                 last_log = time.monotonic()
             if not args.headless:
-                cv2.imshow("ESP32-CAM - camera test only", frame)
+                cv2.imshow("Raspberry Pi Camera Module - camera test", frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     stop.set()
     except cv2.error:
@@ -72,7 +72,7 @@ def main():
     elapsed = time.monotonic() - started
     report = {
         "milestone": "camera-only", "frames": camera.frames_received,
-        "width": width, "height": height, "connections": camera.connections,
+        "width": width, "height": height, "camera_starts": camera.starts,
         "failures": camera.failures, "elapsed_seconds": round(elapsed, 2),
         "average_fps": round(camera.frames_received / max(elapsed, 0.001), 2),
         "received_minimum_frames": camera.frames_received >= args.min_frames,

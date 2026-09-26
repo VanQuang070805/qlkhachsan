@@ -14,7 +14,6 @@ def settings(tmp_path: Path) -> PiConfig:
         port=8002,
         yunet_model_path=tmp_path / "yunet.onnx",
         sface_model_path=tmp_path / "sface.onnx",
-        esp32_cam_url="http://127.0.0.1/stream",
         detection_threshold=0.9,
         recognition_threshold=0.363,
         process_every_n_frames=3,
@@ -76,4 +75,3 @@ def test_incomplete_snapshot_is_rejected_without_deleting_data(tmp_path: Path):
         response = client.post("/api/faces/full-sync", headers=headers, json={"complete": False, "faces": []})
         assert response.status_code == 422
         assert client.get("/api/health").json()["faces"] == 1
-

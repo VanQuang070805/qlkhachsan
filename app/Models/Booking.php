@@ -115,9 +115,9 @@ class Booking extends Model
         return $this->hasMany(PaymentLog::class);
     }
 
-    public function faceProfile()
+    public function faceProfiles()
     {
-        return $this->hasOne(FaceProfile::class);
+        return $this->hasMany(FaceProfile::class);
     }
 
     // ── Status Helpers ─────────────────────────────────────

@@ -11,19 +11,23 @@
 
 ## Mở lại sau khi tắt máy
 
-1. Mở XAMPP Control Panel và Start **MySQL**. Apache không cần cho cách chạy PHP server này.
-2. Mở PowerShell:
+1. Mở PowerShell:
 
 ```powershell
 cd 'C:\Tài liệu học\QLDA\qlkhachsan-main'
 .\serve82.bat
 ```
 
-3. Giữ terminal đó mở. Truy cập http://localhost:8000/internalauth/login .
-4. Đăng nhập `reception`, dùng mật khẩu trong file riêng ở trên. Bấm **Camera & IoT** hoặc mở http://localhost:8000/staff/iot .
-5. Bấm **Bật camera laptop**, cho phép camera trong trình duyệt. Bấm **Tắt camera** để dừng. Chuyển tab cũng sẽ tắt camera.
-6. Đăng xuất, thử truy cập lại `/staff/iot`: phải yêu cầu đăng nhập. Tài khoản khách không được vào trang này.
-7. Kiểm tra sơ đồ phòng, đặt phòng/check-in/check-out hiện có với dữ liệu mẫu. Các chức năng này **chưa** tạo hoặc thu hồi quyền mở cửa trên Pi.
+`serve82.bat` tự bật MySQL (nếu XAMPP nằm tại `C:\xampp`), bật dịch vụ Face ID
+trên cổng 8001, chờ health check thành công rồi mới bật Laravel trên cổng 8000.
+Apache không cần chạy. Nếu Face ID không sẵn sàng sau 20 giây, script dừng và báo
+lỗi thay vì mở web trong trạng thái thiếu dịch vụ.
+
+2. Giữ terminal đó mở. Truy cập http://localhost:8000/internalauth/login .
+3. Đăng nhập `reception`, dùng mật khẩu trong file riêng ở trên. Bấm **Camera & IoT** hoặc mở http://localhost:8000/staff/iot .
+4. Bấm **Bật camera laptop**, cho phép camera trong trình duyệt. Bấm **Tắt camera** để dừng. Chuyển tab cũng sẽ tắt camera.
+5. Đăng xuất, thử truy cập lại `/staff/iot`: phải yêu cầu đăng nhập. Tài khoản khách không được vào trang này.
+6. Kiểm tra sơ đồ phòng, đặt phòng/check-in/check-out hiện có với dữ liệu mẫu.
 
 Nếu trình duyệt tích hợp không hỗ trợ quyền camera, mở cùng URL bằng Chrome/Edge. `localhost` dùng được webcam; `http://IP-laptop:8000` trên máy khác thường không được phép dùng `getUserMedia` nếu chưa có HTTPS.
 
@@ -36,10 +40,11 @@ node --check public/js/iot-camera-test.js
 cd raspberry-pi
 python main.py --check-env
 python -m unittest discover -s tests -v
-python main.py --headless --seconds 10 --report camera-report.json
 ```
 
-Lệnh cuối dùng ESP32 thật, phải cùng mạng với camera. Mã thoát 1 / `frames: 0` nghĩa là chưa nhận được đủ frame, **không** phải kết quả thành công. Unit test dùng MJPEG giả lập chỉ chứng minh cơ chế đọc/reconnect, không thay thế kiểm tra Pi thật.
+Lệnh test 60 giây trong `docs/TEST-PI.md` phải chạy trực tiếp trên Raspberry Pi có
+Camera Module Rev 1.3. Unit test dùng backend Picamera2 giả lập chỉ chứng minh
+logic đọc/khởi tạo lại, không thay thế kiểm tra phần cứng Pi thật.
 
 ## Cài trên một máy Windows khác
 

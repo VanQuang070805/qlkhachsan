@@ -27,6 +27,11 @@ class Room extends Model
         return $this->belongsToMany(Booking::class, 'booking_rooms');
     }
 
+    public function faceProfiles()
+    {
+        return $this->hasMany(FaceProfile::class);
+    }
+
     public function isAvailable(): bool
     {
         return $this->status === self::STATUS_AVAILABLE;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\FaceProfile;
 use App\Models\FaceSyncJob;
+use App\Models\Room;
 use App\Services\FaceId\FaceIdService;
 use App\Services\FaceId\FaceSyncService;
 use Illuminate\Http\Client\ConnectionException;
@@ -15,19 +16,16 @@ use Throwable;
 
 class FaceIdController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $cameraUrl = config('iot.camera_stream_url');
-        $cameraLinkAllowed = filter_var($cameraUrl, FILTER_VALIDATE_URL)
-            && in_array(parse_url($cameraUrl, PHP_URL_SCHEME), ['http', 'https'], true)
-            && !parse_url($cameraUrl, PHP_URL_USER) && !parse_url($cameraUrl, PHP_URL_PASS);
-        $bookings = Booking::query()
-            ->with(['rooms:id,room_number', 'faceProfile:id,booking_id,active,updated_at'])
-            ->where('status', 'checked_in')
-            ->orderByDesc('actual_check_in')
+        $profiles = FaceProfile::query()
+            ->with(['booking:id,customer_name,status', 'room:id,room_number'])
+            ->where('active', true)
+            ->whereHas('booking', fn ($query) => $query->where('status', 'checked_in'))
+            ->latest('updated_at')
             ->get();
 
-        return response()->view('staff.iot', compact('cameraUrl', 'cameraLinkAllowed', 'bookings'))
+        return response()->view('staff.iot', compact('profiles'))
             ->header('Cache-Control', 'no-store');
     }
 
@@ -35,23 +33,36 @@ class FaceIdController extends Controller
     {
         $validated = $request->validate([
             'booking_id' => ['required', 'integer', 'exists:bookings,id'],
+            'room_id' => ['required', 'integer', 'exists:rooms,id'],
+            'guest_name' => ['required', 'string', 'max:255'],
+            'guest_cccd' => ['nullable', 'regex:/^[0-9]{9,12}$/'],
+            'guest_phone' => ['nullable', 'string', 'max:30'],
             'consent' => ['accepted'],
         ]);
         $booking = Booking::findOrFail($validated['booking_id']);
         if ($booking->status !== 'checked_in') {
             return response()->json(['message' => 'Booking phải đang check-in để đăng ký Face ID.'], 422);
         }
+        $room = Room::findOrFail($validated['room_id']);
+        if (! $booking->rooms()->whereKey($room->id)->exists() || $room->status !== Room::STATUS_OCCUPIED) {
+            return response()->json(['message' => 'Phòng phải thuộc booking và đang có khách để đăng ký Face ID.'], 422);
+        }
 
         try {
             $response = $this->pcClient()->post(config('face_id.pc_service_url').'/api/enrollment-sessions');
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return response()->json(['message' => 'Dịch vụ nhận diện chưa sẵn sàng.'], 503);
             }
             $sessionId = (string) $response->json('session_id');
             session()->put('face_enrollment.'.$sessionId, [
                 'booking_id' => $booking->id,
+                'room_id' => $room->id,
+                'guest_name' => $validated['guest_name'],
+                'guest_cccd' => $validated['guest_cccd'] ?? null,
+                'guest_phone' => $validated['guest_phone'] ?? null,
                 'created_at' => now()->timestamp,
             ]);
+
             return response()->json(['session_id' => $sessionId, 'target' => (int) $response->json('target')]);
         } catch (ConnectionException) {
             return response()->json(['message' => 'Không kết nối được dịch vụ Face ID trên máy lễ tân.'], 503);
@@ -62,8 +73,9 @@ class FaceIdController extends Controller
     {
         $request->validate(['frame' => ['required', 'image', 'max:3072']]);
         $session = session('face_enrollment.'.$sessionId);
-        if (!$session || now()->timestamp - (int) $session['created_at'] > 600) {
+        if (! $session || now()->timestamp - (int) $session['created_at'] > 600) {
             session()->forget('face_enrollment.'.$sessionId);
+
             return response()->json(['message' => 'Phiên đăng ký đã hết hạn.'], 404);
         }
 
@@ -72,14 +84,25 @@ class FaceIdController extends Controller
             $response = $this->pcClient()
                 ->attach('frame', file_get_contents($file->getRealPath()), 'frame.jpg')
                 ->post(config('face_id.pc_service_url').'/api/enrollment-sessions/'.rawurlencode($sessionId).'/samples');
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return response()->json(['message' => 'Không xử lý được khung hình.'], $response->status() >= 500 ? 503 : 422);
             }
 
             $result = $response->json();
-            if (!empty($result['complete'])) {
+            if (! empty($result['complete'])) {
                 $booking = Booking::findOrFail((int) $session['booking_id']);
-                $profile = $faceIds->enroll($booking, $result['embedding'], (int) $result['samples']);
+                $room = Room::findOrFail((int) $session['room_id']);
+                $profile = $faceIds->enroll(
+                    $booking,
+                    $room,
+                    $result['embedding'],
+                    (int) $result['samples'],
+                    [
+                        'guest_name' => $session['guest_name'],
+                        'guest_cccd' => $session['guest_cccd'],
+                        'guest_phone' => $session['guest_phone'],
+                    ],
+                );
                 session()->forget('face_enrollment.'.$sessionId);
                 try {
                     $this->pcClient()->delete(config('face_id.pc_service_url').'/api/enrollment-sessions/'.rawurlencode($sessionId));
@@ -97,6 +120,7 @@ class FaceIdController extends Controller
             } else {
                 unset($result['embedding']);
             }
+
             return response()->json($result);
         } catch (ConnectionException) {
             return response()->json(['message' => 'Mất kết nối dịch vụ Face ID trên máy lễ tân.'], 503);
@@ -107,9 +131,11 @@ class FaceIdController extends Controller
             } catch (Throwable) {
                 // The PC session expires automatically.
             }
+
             return response()->json(['message' => $error->getMessage()], 422);
         } catch (Throwable $error) {
             report($error);
+
             return response()->json(['message' => 'Không thể hoàn tất đăng ký Face ID.'], 500);
         }
     }
@@ -122,6 +148,7 @@ class FaceIdController extends Controller
         } catch (Throwable) {
             // Local session is already invalidated; PC sessions expire automatically.
         }
+
         return response()->json(['status' => 'cancelled']);
     }
 
@@ -129,7 +156,7 @@ class FaceIdController extends Controller
     {
         $request->validate(['frame' => ['required', 'image', 'max:3072']]);
         $profiles = FaceProfile::query()
-            ->with('booking.rooms:id,room_number')
+            ->with(['booking', 'room:id,room_number'])
             ->where('active', true)
             ->whereHas('booking', fn ($query) => $query->where('status', 'checked_in'))
             ->get();
@@ -150,7 +177,7 @@ class FaceIdController extends Controller
                 ->post(config('face_id.pc_service_url').'/api/recognize', [
                     'candidates' => json_encode($candidates, JSON_THROW_ON_ERROR),
                 ]);
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return response()->json(['message' => 'Không xử lý được ảnh test Face ID.'], $response->status() >= 500 ? 503 : 422);
             }
 
@@ -166,7 +193,7 @@ class FaceIdController extends Controller
             }
 
             $profile = $profiles->firstWhere('id', $result['customer_id'] ?? '');
-            if (!$profile || !$profile->booking) {
+            if (! $profile || ! $profile->booking) {
                 return response()->json(['message' => 'Kết quả Face ID không còn hiệu lực.'], 422);
             }
 
@@ -175,31 +202,93 @@ class FaceIdController extends Controller
                 'score' => $result['score'],
                 'threshold' => $result['threshold'],
                 'booking_id' => $profile->booking->id,
-                'customer_name' => $profile->booking->customer_name,
-                'room' => $profile->booking->rooms->pluck('room_number')->join(', '),
+                'customer_name' => $profile->guest_name ?: $profile->booking->customer_name,
+                'guest_cccd' => $profile->guest_cccd,
+                'guest_phone' => $profile->guest_phone,
+                'room' => $profile->room?->room_number,
             ]);
         } catch (ConnectionException) {
             return response()->json(['message' => 'Mất kết nối dịch vụ Face ID trên máy lễ tân.'], 503);
         } catch (Throwable $error) {
             report($error);
+
             return response()->json(['message' => 'Không thể test Face ID lúc này.'], 500);
         }
     }
 
     public function health(FaceSyncService $sync)
     {
+        $targetRoom = (string) config('face_id.pi_room_number', '501');
         try {
             $pc = Http::connectTimeout(1)->timeout(2)->get(config('face_id.pc_service_url').'/api/health');
             $pcOnline = $pc->successful();
         } catch (Throwable) {
             $pcOnline = false;
         }
+
         return response()->json([
             'pc_online' => $pcOnline,
             'pi' => $sync->health(),
-            'pending' => FaceSyncJob::where('status', 'PENDING')->count(),
-            'active_profiles' => FaceProfile::where('active', true)->count(),
+            'pending' => FaceSyncJob::query()
+                ->where('status', 'PENDING')
+                ->whereHas('profile.room', fn ($query) => $query->where('room_number', $targetRoom))
+                ->count(),
+            'active_profiles' => FaceProfile::query()
+                ->where('active', true)
+                ->whereHas('room', fn ($query) => $query->where('room_number', $targetRoom))
+                ->count(),
+            'pi_room' => $targetRoom,
         ]);
+    }
+
+    public function profiles(Request $request)
+    {
+        $validated = $request->validate([
+            'booking_id' => ['required', 'integer', 'exists:bookings,id'],
+            'room_id' => ['required', 'integer', 'exists:rooms,id'],
+        ]);
+        [$booking, $room] = $this->checkedInStay((int) $validated['booking_id'], (int) $validated['room_id']);
+
+        $profiles = FaceProfile::query()
+            ->where('booking_id', $booking->id)
+            ->where('room_id', $room->id)
+            ->where('active', true)
+            ->latest('updated_at')
+            ->get()
+            ->map(fn (FaceProfile $profile) => $this->profileData($profile));
+
+        return response()->json([
+            'booking_id' => $booking->id,
+            'room_id' => $room->id,
+            'room_number' => $room->room_number,
+            'booking_customer_name' => $booking->customer_name,
+            'booking_customer_phone' => $booking->customer_phone,
+            'profiles' => $profiles,
+        ]);
+    }
+
+    public function updateProfile(Request $request, FaceProfile $profile, FaceIdService $faceIds)
+    {
+        $validated = $request->validate([
+            'guest_name' => ['required', 'string', 'max:255'],
+            'guest_cccd' => ['nullable', 'regex:/^[0-9]{9,12}$/'],
+            'guest_phone' => ['nullable', 'string', 'max:30'],
+        ]);
+        $this->assertEditableProfile($profile);
+        $updated = $faceIds->updateGuest($profile, $validated);
+
+        return response()->json([
+            'message' => 'Đã cập nhật thông tin khách.',
+            'profile' => $this->profileData($updated),
+        ]);
+    }
+
+    public function deleteProfile(FaceProfile $profile, FaceIdService $faceIds)
+    {
+        $this->assertEditableProfile($profile);
+        $faceIds->deactivateProfile($profile);
+
+        return response()->json(['message' => 'Đã xóa khách và vô hiệu hóa Face ID.']);
     }
 
     public function sync(FaceSyncService $sync)
@@ -213,6 +302,7 @@ class FaceIdController extends Controller
             return response()->json($sync->fullSync());
         } catch (Throwable $error) {
             report($error);
+
             return response()->json(['message' => 'Full sync thất bại; dữ liệu trên Pi được giữ nguyên.'], 503);
         }
     }
@@ -222,5 +312,39 @@ class FaceIdController extends Controller
         return Http::acceptJson()
             ->connectTimeout((float) config('face_id.connect_timeout', 2))
             ->timeout(15);
+    }
+
+    private function checkedInStay(int $bookingId, int $roomId): array
+    {
+        $booking = Booking::findOrFail($bookingId);
+        $room = Room::findOrFail($roomId);
+        if ($booking->status !== 'checked_in'
+            || $room->status !== Room::STATUS_OCCUPIED
+            || ! $booking->rooms()->whereKey($room->id)->exists()) {
+            abort(422, 'Phòng chưa có khách đang check-in.');
+        }
+
+        return [$booking, $room];
+    }
+
+    private function assertEditableProfile(FaceProfile $profile): void
+    {
+        $profile->loadMissing(['booking:id,status', 'room:id,status']);
+        if (! $profile->active
+            || $profile->booking?->status !== 'checked_in'
+            || $profile->room?->status !== Room::STATUS_OCCUPIED) {
+            abort(422, 'Face ID này không còn thuộc phòng đang có khách.');
+        }
+    }
+
+    private function profileData(FaceProfile $profile): array
+    {
+        return [
+            'id' => $profile->id,
+            'guest_name' => $profile->guest_name ?: $profile->booking?->customer_name,
+            'guest_cccd' => $profile->guest_cccd,
+            'guest_phone' => $profile->guest_phone,
+            'updated_at' => optional($profile->updated_at)->format('d/m/Y H:i'),
+        ];
     }
 }
