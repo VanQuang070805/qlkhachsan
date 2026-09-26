@@ -1,4 +1,4 @@
-"""Run the Pi API and ESP32-CAM recognition worker in one process."""
+"""Run the Pi API and CSI camera recognition worker in one process."""
 from __future__ import annotations
 
 import logging

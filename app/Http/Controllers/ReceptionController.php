@@ -346,7 +346,9 @@ class ReceptionController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Nhận phòng thành công!',
-                    'new_status' => 'occupied'
+                    'new_status' => 'occupied',
+                    'booking_id' => (int) $booking->id,
+                    'room_id' => $roomId,
                 ]);
 
             } elseif ($status === 'available') {
@@ -581,7 +583,9 @@ class ReceptionController extends Controller
             $successMsg = ($walkinType === 'now') ? 'Check-in khách vãng lai thành công!' : 'Giữ chỗ phòng thành công!';
             return response()->json([
                 'success' => true,
-                'message' => $successMsg
+                'message' => $successMsg,
+                'booking_id' => $bookingId,
+                'room_ids' => $roomIds,
             ]);
 
         } catch (\Exception $e) {
@@ -861,7 +865,9 @@ class ReceptionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Nhận phòng nhanh thành công cho ' . count($rooms) . ' phòng!'
+                'message' => 'Nhận phòng nhanh thành công cho ' . count($rooms) . ' phòng!',
+                'booking_id' => $bookingId,
+                'room_ids' => array_map(fn ($room) => (int) $room->room_id, $rooms),
             ]);
 
         } catch (\Exception $e) {

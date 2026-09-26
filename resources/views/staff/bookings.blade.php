@@ -225,6 +225,34 @@
         50% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
         100% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.98); }
     }
+    .face-guest-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
+        gap: 24px;
+    }
+    .face-camera-preview {
+        aspect-ratio: 16 / 10;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #102b25;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    .face-camera-preview video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .face-camera-preview video:not([hidden]) + span { display: none; }
+    .face-camera-preview span { color: #bad2c7; padding: 20px; text-align: center; }
+    .face-guest-list-wrap { max-height: 520px; overflow: auto; }
+    .face-status { min-height: 42px; }
+    .face-table-actions { white-space: nowrap; text-align: right; }
+    @media (max-width: 991.98px) {
+        .face-guest-layout { grid-template-columns: 1fr; }
+    }
 </style>
 
 <!-- Main Center Column -->
@@ -507,6 +535,9 @@
                 </button>
                 <button class="btn btn-outline-info btn-action" id="btn-action-extend" onclick="openExtendStayModal()">
                     <i class="fa-solid fa-calendar-plus"></i> Gia hạn lưu trú
+                </button>
+                <button class="btn btn-outline-primary btn-action" id="btn-action-face-id" onclick="openFaceGuestManager()">
+                    <i class="fa-solid fa-user-plus"></i> Đăng ký khách
                 </button>
                 <button class="btn btn-outline-success btn-action" id="btn-action-cleaning-done" onclick="triggerStatusUpdate('available')">
                     <i class="fa-solid fa-check"></i> Đã dọn dẹp xong
@@ -894,6 +925,88 @@
     </div>
 </div>
 
+<!-- Face ID guest manager -->
+<div id="face-guest-manager"
+     data-profiles-url="{{ route('staff.face-id.profiles.index') }}"
+     data-update-url="{{ route('staff.face-id.profiles.update', ['profile' => '__PROFILE__']) }}"
+     data-delete-url="{{ route('staff.face-id.profiles.delete', ['profile' => '__PROFILE__']) }}"
+     data-create-session-url="{{ route('staff.face-id.sessions.create') }}"
+     data-sample-url="{{ route('staff.face-id.samples.store', ['sessionId' => '__SESSION__']) }}"
+     data-cancel-url="{{ route('staff.face-id.sessions.cancel', ['sessionId' => '__SESSION__']) }}">
+    <div class="modal fade" id="faceGuestModal" tabindex="-1" aria-labelledby="faceGuestModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title fw-bold" id="faceGuestModalLabel">Đăng ký khách</h5>
+                        <div class="small text-muted" id="face-room-label">Phòng ---</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="face-guest-layout">
+                        <section>
+                            <h6 class="fw-bold mb-3" id="face-form-title">Thêm khách và khuôn mặt</h6>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold" for="face-guest-name">Họ tên khách <span class="text-danger">*</span></label>
+                                <input class="form-control" id="face-guest-name" maxlength="255" autocomplete="name">
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label fw-semibold" for="face-guest-cccd">Số CCCD</label>
+                                    <input class="form-control" id="face-guest-cccd" maxlength="12" inputmode="numeric" autocomplete="off">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label fw-semibold" for="face-guest-phone">Số điện thoại</label>
+                                    <input class="form-control" id="face-guest-phone" maxlength="30" inputmode="tel" autocomplete="tel">
+                                </div>
+                            </div>
+                            <div id="face-enrollment-controls">
+                                <div class="face-camera-preview mb-3">
+                                    <video id="face-guest-camera" autoplay muted playsinline hidden aria-label="Camera đăng ký khách"></video>
+                                    <span>Camera đang tắt</span>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" id="face-guest-consent" type="checkbox">
+                                    <label class="form-check-label" for="face-guest-consent">Khách đồng ý đăng ký Face ID trong thời gian lưu trú.</label>
+                                </div>
+                                <div class="progress mb-2" style="height: 10px;">
+                                    <div id="face-sample-progress" class="progress-bar" role="progressbar" style="width: 0%" aria-valuemin="0" aria-valuemax="15" aria-valuenow="0"></div>
+                                </div>
+                            </div>
+                            <p id="face-guest-status" class="face-status small text-muted mb-2" role="status" aria-live="polite">Điền thông tin khách và bật camera.</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-outline-secondary" id="face-start-camera" type="button"><i class="fa-solid fa-camera me-2"></i>Bật camera</button>
+                                <button class="btn btn-primary" id="face-register-guest" type="button"><i class="fa-solid fa-user-plus me-2"></i>Đăng ký khách</button>
+                                <button class="btn btn-primary d-none" id="face-save-guest" type="button"><i class="fa-solid fa-floppy-disk me-2"></i>Lưu thông tin</button>
+                                <button class="btn btn-outline-secondary d-none" id="face-cancel-edit" type="button">Hủy sửa</button>
+                                <button class="btn btn-outline-danger" id="face-cancel-enrollment" type="button" disabled>Hủy đăng ký</button>
+                                <button class="btn btn-outline-secondary" id="face-stop-camera" type="button" disabled>Tắt camera</button>
+                            </div>
+                        </section>
+                        <section>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0">Khách đã đăng ký</h6>
+                                <span class="badge text-bg-primary" id="face-guest-count">0 khách</span>
+                            </div>
+                            <div class="face-guest-list-wrap border rounded">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light sticky-top">
+                                        <tr><th>Khách</th><th>CCCD</th><th>SĐT</th><th class="text-end">Thao tác</th></tr>
+                                    </thead>
+                                    <tbody id="face-guest-list">
+                                        <tr><td colspan="4" class="text-center text-muted py-4">Đang tải...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Status Notification -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
     <div id="statusToast" class="toast align-items-center text-white border-0" role="alert" data-bs-delay="4000">
@@ -907,6 +1020,7 @@
 <script>
     // Laravel Base URL & CSRF Token
     const BASE_URL = "{{ url('/') }}";
+    const PI_ROOM_NUMBER = @json((string) config('face_id.pi_room_number', '501'));
     const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     let selectedRoomId = null;
@@ -915,6 +1029,7 @@
     let isMultiSelectMode = false;
     let selectedRoomIds = [];
     let selectedRoomsData = [];
+    window.getSelectedFaceGuestRoom = () => selectedRoomData;
 
     const roomImages = {
         'Phòng Đơn Tiêu Chuẩn': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80',
@@ -1177,12 +1292,14 @@
         const btnAvailable = document.getElementById('btn-action-available');
         const btnOccupied = document.getElementById('btn-action-occupied');
         const btnExtend = document.getElementById('btn-action-extend');
+        const btnFaceId = document.getElementById('btn-action-face-id');
         const btnCleaningDone = document.getElementById('btn-action-cleaning-done');
         const btnHold = document.getElementById('btn-action-hold');
 
         if (btnAvailable) { btnAvailable.style.display = 'none'; btnAvailable.disabled = false; }
         if (btnOccupied) { btnOccupied.style.display = 'none'; btnOccupied.disabled = false; }
         if (btnExtend) { btnExtend.style.display = 'none'; btnExtend.disabled = false; }
+        if (btnFaceId) { btnFaceId.style.display = 'none'; btnFaceId.disabled = false; }
         if (btnCleaningDone) { btnCleaningDone.style.display = 'none'; btnCleaningDone.disabled = false; }
         if (btnHold) { btnHold.style.display = 'none'; btnHold.disabled = false; }
 
@@ -1200,6 +1317,10 @@
             if (btnExtend) {
                 btnExtend.style.display = 'block';
                 btnExtend.disabled = !(selectedRoomData && parseInt(selectedRoomData.has_active_booking) > 0);
+            }
+            if (btnFaceId) {
+                btnFaceId.style.display = 'block';
+                btnFaceId.disabled = !(selectedRoomData && parseInt(selectedRoomData.has_active_booking) > 0);
             }
         } else if (currentStatus === 'cleaning') {
             if (btnCleaningDone) btnCleaningDone.style.display = 'block';
@@ -1414,6 +1535,17 @@
                 if (modal) modal.hide();
 
                 showToast(data.message, 'bg-success');
+                if (walkinType === 'now' && data.booking_id && data.room_ids?.length) {
+                    const selectedRoom = rooms.find(room => String(room.room_number) === PI_ROOM_NUMBER) || rooms[0];
+                    window.openFaceGuestManager({
+                        bookingId: data.booking_id,
+                        roomId: selectedRoom?.id || data.room_ids[0],
+                        roomNumber: selectedRoom?.room_number,
+                        customerName: name,
+                        customerPhone: phone
+                    });
+                    return;
+                }
                 if (isMultiSelectMode) {
                     toggleMultiSelectMode();
                     document.getElementById('multi-select-toggle').checked = false;
@@ -1604,6 +1736,16 @@
                 }
 
                 showToast(data.message, 'bg-success');
+                if (newStatus === 'occupied' && data.booking_id && data.room_id) {
+                    window.openFaceGuestManager({
+                        bookingId: data.booking_id,
+                        roomId: data.room_id,
+                        roomNumber: selectedRoomData?.room_number,
+                        customerName: selectedRoomData?.customer_name,
+                        customerPhone: selectedRoomData?.customer_phone
+                    });
+                    return;
+                }
                 refreshReceptionBoard();
             } else {
                 showToast('Lỗi: ' + data.message, 'bg-danger');
@@ -1933,7 +2075,8 @@
                 alertContainer.classList.add('alert-info');
                 alertContainer.innerHTML = `<i class="fa-solid fa-circle-info fs-4 text-info"></i><div>Đơn đặt phòng hợp lệ. Có thể tiến hành nhận phòng nhanh cho toàn bộ ${rooms.length} phòng hôm nay.</div>`;
                 btnAction.style.display = 'block';
-                btnAction.onclick = () => performQuickCheckin(booking.id);
+                const faceRoom = rooms.find(room => String(room.room_number) === PI_ROOM_NUMBER) || rooms[0];
+                btnAction.onclick = () => performQuickCheckin(booking.id, faceRoom?.id);
             } else {
                 alertContainer.classList.add('alert-warning');
                 alertContainer.innerHTML = `<i class="fa-solid fa-triangle-exclamation fs-4 text-warning"></i><div>Cảnh báo: Ngày nhận phòng là ${booking.check_in.split('-').reverse().join('/')} (không phải hôm nay).</div>`;
@@ -1953,7 +2096,7 @@
         resultModal.show();
     }
 
-    function performQuickCheckin(bookingId) {
+    function performQuickCheckin(bookingId, roomId) {
         if (!confirm('Xác nhận nhận phòng nhanh cho tất cả các phòng thuộc đơn đặt này?')) return;
         
         fetch("{{ route('staff.reception.quick-checkin') }}", {
@@ -1972,6 +2115,14 @@
                 const modalEl = document.getElementById('qrResultModal');
                 const modalInstance = bootstrap.Modal.getInstance(modalEl);
                 if (modalInstance) modalInstance.hide();
+                const targetRoomId = roomId || data.room_ids?.[0];
+                if (data.booking_id && targetRoomId) {
+                    window.openFaceGuestManager({
+                        bookingId: data.booking_id,
+                        roomId: targetRoomId
+                    });
+                    return;
+                }
                 refreshReceptionBoard({ reselectCurrentRoom: false });
             } else {
                 showToast(data.message || 'Lỗi nhận phòng nhanh.', 'bg-danger');
@@ -2001,4 +2152,5 @@
     }
 
 </script>
+<script src="{{ asset('js/face-guest-manager.js') }}?v={{ filemtime(public_path('js/face-guest-manager.js')) }}" defer></script>
 @endsection

@@ -1,1 +1,1 @@
-"""ESP32-CAM MJPEG input. This package runs on the Pi."""
+"""CSI camera input. This package runs on the Raspberry Pi."""

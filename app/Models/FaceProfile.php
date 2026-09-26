@@ -10,7 +10,8 @@ class FaceProfile extends Model
     use HasUuids;
 
     protected $fillable = [
-        'booking_id', 'user_id', 'embedding', 'embedding_model',
+        'booking_id', 'room_id', 'user_id', 'guest_name', 'guest_cccd', 'guest_phone',
+        'embedding', 'embedding_model',
         'embedding_dimension', 'sample_count', 'version', 'active',
         'consent_at', 'revoked_at',
     ];
@@ -29,6 +30,11 @@ class FaceProfile extends Model
         return $this->belongsTo(Booking::class);
     }
 
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -39,4 +45,3 @@ class FaceProfile extends Model
         return $this->hasMany(FaceSyncJob::class);
     }
 }
-

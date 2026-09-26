@@ -107,6 +107,9 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
     Route::post('/face-id/sessions/{sessionId}/samples', [FaceIdController::class, 'addSample'])->name('face-id.samples.store');
     Route::delete('/face-id/sessions/{sessionId}', [FaceIdController::class, 'cancelSession'])->name('face-id.sessions.cancel');
     Route::post('/face-id/recognize', [FaceIdController::class, 'recognize'])->name('face-id.recognize');
+    Route::get('/face-id/profiles', [FaceIdController::class, 'profiles'])->name('face-id.profiles.index');
+    Route::patch('/face-id/profiles/{profile}', [FaceIdController::class, 'updateProfile'])->name('face-id.profiles.update');
+    Route::delete('/face-id/profiles/{profile}', [FaceIdController::class, 'deleteProfile'])->name('face-id.profiles.delete');
     Route::get('/face-id/health', [FaceIdController::class, 'health'])->name('face-id.health');
     Route::post('/face-id/sync', [FaceIdController::class, 'sync'])->name('face-id.sync');
     Route::post('/face-id/full-sync', [FaceIdController::class, 'fullSync'])->name('face-id.full-sync');

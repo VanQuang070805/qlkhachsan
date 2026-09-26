@@ -2,10 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\PaymentController;
 use App\Models\Booking;
 use App\Models\FaceProfile;
 use App\Models\FaceSyncJob;
-use App\Http\Controllers\PaymentController;
+use App\Models\Room;
 use App\Services\FaceId\FaceIdService;
 use App\Services\FaceId\FaceSyncService;
 use Illuminate\Database\Schema\Blueprint;
@@ -28,6 +29,7 @@ class FaceIdServiceTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->string('customer_name');
+            $table->string('customer_phone')->nullable();
             $table->string('status');
             $table->date('check_out');
             $table->timestamp('actual_check_out')->nullable();
@@ -42,6 +44,7 @@ class FaceIdServiceTest extends TestCase
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
             $table->string('room_number');
+            $table->string('status')->default('occupied');
         });
         Schema::create('booking_rooms', function (Blueprint $table) {
             $table->unsignedBigInteger('booking_id');
@@ -49,8 +52,12 @@ class FaceIdServiceTest extends TestCase
         });
         Schema::create('face_profiles', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->unsignedBigInteger('booking_id')->unique();
+            $table->unsignedBigInteger('booking_id');
+            $table->unsignedBigInteger('room_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('guest_name')->nullable();
+            $table->string('guest_cccd', 20)->nullable();
+            $table->string('guest_phone', 30)->nullable();
             $table->longText('embedding');
             $table->string('embedding_model');
             $table->unsignedSmallInteger('embedding_dimension');
@@ -78,9 +85,22 @@ class FaceIdServiceTest extends TestCase
     public function test_enrollment_encrypts_embedding_and_queues_add(): void
     {
         $booking = $this->booking();
-        $profile = app(FaceIdService::class)->enroll($booking, array_fill(0, 128, 1.0), 15);
+        $profile = app(FaceIdService::class)->enroll(
+            $booking,
+            $this->roomFor($booking),
+            array_fill(0, 128, 1.0),
+            15,
+            [
+                'guest_name' => 'Nguyễn Văn A',
+                'guest_cccd' => '012345678901',
+                'guest_phone' => '0901234567',
+            ],
+        );
 
         $this->assertTrue($profile->active);
+        $this->assertSame('Nguyễn Văn A', $profile->guest_name);
+        $this->assertSame('012345678901', $profile->guest_cccd);
+        $this->assertSame('0901234567', $profile->guest_phone);
         $this->assertCount(128, $profile->embedding);
         $this->assertEqualsWithDelta(1.0, $this->norm($profile->embedding), 0.0001);
         $this->assertStringNotContainsString('[', DB::table('face_profiles')->value('embedding'));
@@ -91,45 +111,49 @@ class FaceIdServiceTest extends TestCase
         ]);
     }
 
-    public function test_update_replaces_duplicate_pending_job(): void
+    public function test_room_can_have_multiple_face_ids(): void
     {
         $booking = $this->booking();
+        $room = $this->roomFor($booking);
         $service = app(FaceIdService::class);
-        $profile = $service->enroll($booking, array_fill(0, 128, 1.0));
-        $service->enroll($booking, array_fill(0, 128, 2.0));
+        $first = $service->enroll($booking, $room, $this->embedding(0));
+        $second = $service->enroll($booking, $room, $this->embedding(1));
 
-        $this->assertSame(1, FaceSyncJob::where('face_profile_id', $profile->id)->where('status', 'PENDING')->count());
-        $this->assertDatabaseHas('face_sync_queue', ['face_profile_id' => $profile->id, 'action' => 'UPDATE']);
+        $this->assertNotSame($first->id, $second->id);
+        $this->assertSame(2, FaceProfile::where('room_id', $room->id)->where('active', true)->count());
+        $this->assertSame(2, FaceSyncJob::where('action', 'ADD')->where('status', 'PENDING')->count());
     }
 
-    public function test_same_face_cannot_be_assigned_to_another_active_booking(): void
+    public function test_same_face_cannot_be_registered_twice(): void
     {
+        $firstBooking = $this->booking('501');
+        $secondBooking = $this->booking('502');
         $service = app(FaceIdService::class);
-        $service->enroll($this->booking(), array_fill(0, 128, 1.0));
+        $service->enroll($firstBooking, $this->roomFor($firstBooking), array_fill(0, 128, 1.0));
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Khuôn mặt này đã được đăng ký');
-        $service->enroll($this->booking(), array_fill(0, 128, 1.0));
+        $service->enroll($secondBooking, $this->roomFor($secondBooking), array_fill(0, 128, 1.0));
     }
 
     public function test_checkout_deactivates_profile_and_queues_delete(): void
     {
         $booking = $this->booking();
-        $profile = app(FaceIdService::class)->enroll($booking, array_fill(0, 128, 1.0));
+        $room = $this->roomFor($booking);
+        $service = app(FaceIdService::class);
+        $first = $service->enroll($booking, $room, $this->embedding(0));
+        $second = $service->enroll($booking, $room, $this->embedding(1));
         $booking->update(['status' => 'completed']);
 
-        $this->assertFalse($profile->fresh()->active);
-        $this->assertDatabaseHas('face_sync_queue', [
-            'face_profile_id' => $profile->id,
-            'action' => 'DELETE',
-            'status' => 'PENDING',
-        ]);
+        $this->assertFalse($first->fresh()->active);
+        $this->assertFalse($second->fresh()->active);
+        $this->assertSame(2, FaceSyncJob::where('action', 'DELETE')->where('status', 'PENDING')->count());
     }
 
     public function test_cash_checkout_completes_booking_and_deletes_face_id(): void
     {
         $booking = $this->booking();
-        $profile = app(FaceIdService::class)->enroll($booking, array_fill(0, 128, 1.0));
+        $profile = app(FaceIdService::class)->enroll($booking, $this->roomFor($booking), array_fill(0, 128, 1.0));
         $request = Request::create('/staff/bookings/'.$booking->id.'/checkout-payment', 'POST', [
             'payment_method' => 'cash',
             'waive_late_fee' => false,
@@ -152,7 +176,8 @@ class FaceIdServiceTest extends TestCase
     {
         config(['face_id.api_key' => 'test-secret', 'face_id.sync_retry_interval' => 5]);
         Http::fake(fn () => Http::failedConnection());
-        $profile = app(FaceIdService::class)->enroll($this->booking(), array_fill(0, 128, 1.0));
+        $booking = $this->booking();
+        $profile = app(FaceIdService::class)->enroll($booking, $this->roomFor($booking), array_fill(0, 128, 1.0));
 
         $result = app(FaceSyncService::class)->syncPending();
 
@@ -168,7 +193,7 @@ class FaceIdServiceTest extends TestCase
         config(['face_id.api_key' => 'test-secret']);
         Http::fake(fn () => Http::response(['status' => 'deleted']));
         $booking = $this->booking();
-        $profile = app(FaceIdService::class)->enroll($booking, array_fill(0, 128, 1.0));
+        $profile = app(FaceIdService::class)->enroll($booking, $this->roomFor($booking), array_fill(0, 128, 1.0));
 
         DB::table('bookings')->where('id', $booking->id)->update(['status' => 'completed']);
         $result = app(FaceSyncService::class)->syncPending();
@@ -183,13 +208,61 @@ class FaceIdServiceTest extends TestCase
         Http::assertSent(fn ($request) => $request->method() === 'DELETE');
     }
 
-    private function booking(): Booking
+    public function test_pi_sync_only_contains_room_501(): void
     {
-        return Booking::create([
+        config(['face_id.api_key' => 'test-secret', 'face_id.pi_room_number' => '501']);
+        Http::fake(fn () => Http::response([
+            'received' => 1,
+            'added' => 1,
+            'updated' => 0,
+            'deleted' => 0,
+        ]));
+
+        $booking501 = $this->booking('501');
+        $booking502 = $this->booking('502');
+        app(FaceIdService::class)->enroll($booking501, $this->roomFor($booking501), $this->embedding(0));
+        app(FaceIdService::class)->enroll($booking502, $this->roomFor($booking502), $this->embedding(1));
+
+        app(FaceSyncService::class)->fullSync();
+
+        $this->assertSame(1, FaceSyncJob::count());
+        Http::assertSent(function ($request) {
+            $faces = $request->data()['faces'] ?? [];
+
+            return str_ends_with($request->url(), '/api/faces/full-sync')
+                && count($faces) === 1
+                && $faces[0]['room'] === '501';
+        });
+    }
+
+    private function booking(string $roomNumber = '501'): Booking
+    {
+        $booking = Booking::create([
             'customer_name' => 'Khách thử nghiệm',
             'status' => 'checked_in',
             'check_out' => now()->addDay()->toDateString(),
         ]);
+
+        $roomId = DB::table('rooms')->insertGetId([
+            'room_number' => $roomNumber,
+            'status' => 'occupied',
+        ]);
+        DB::table('booking_rooms')->insert(['booking_id' => $booking->id, 'room_id' => $roomId]);
+
+        return $booking;
+    }
+
+    private function roomFor(Booking $booking): Room
+    {
+        return $booking->rooms()->firstOrFail();
+    }
+
+    private function embedding(int $position): array
+    {
+        $embedding = array_fill(0, 128, 0.0);
+        $embedding[$position] = 1.0;
+
+        return $embedding;
     }
 
     private function norm(array $embedding): float

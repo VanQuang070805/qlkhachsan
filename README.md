@@ -1,12 +1,13 @@
 # Royal Hotel — Web máy tính & IoT Raspberry Pi
 
-**Bản hiện tại: mốc 1 — camera và reconnect.** Chưa triển khai nhận diện, đồng bộ quyền hay relay. Cần test ESP32 trên Pi thật trước khi chuyển mốc theo yêu cầu dự án.
+Hệ thống dùng webcam máy lễ tân để đăng ký Face ID và Raspberry Pi Camera Module
+Rev 1.3 để nhận diện tại chỗ trên Pi.
 
 | Thiết bị | Mã nguồn | Cách chạy |
 |---|---|---|
 | Laptop lễ tân | Laravel ở thư mục gốc (`app`, `resources`, `routes`, `database`) | MySQL XAMPP + `serve82.bat` |
-| Raspberry Pi 4 | Chỉ nội dung `raspberry-pi/` | `python main.py` trong venv trên Pi |
-| ESP32-CAM | Giữ firmware Wi-Fi stream đang chạy | Stream `/stream`, không phải webcam USB |
+| Raspberry Pi 4 | `raspberry-pi/` để test camera; `face_recognition/pi/` cho dịch vụ nhận diện | `python main.py` hoặc `python run_recognition.py` |
+| Camera Module Rev 1.3 | Cắm cáp CSI trực tiếp vào Pi | Picamera2, mặc định 640x480 @ 15 FPS |
 
 - [Hướng dẫn test trên máy tính](docs/TEST-PC.md)
 - [Lệnh cài và test từng bước trên Pi](docs/TEST-PI.md)
