@@ -1,0 +1,1390 @@
+/* ==========================================================================
+   AETHERIA Sanctuary — Cupertino Luxury Hospitality Design System
+   Inspired by Apple Human Interface Guidelines & Ultra-Luxury Resorts
+   ========================================================================== */
+
+:root {
+    --apple-blue: #0071e3;
+    --apple-blue-hover: #0077ed;
+    --apple-blue-active: #0062c4;
+    --apple-emerald: #10b981;
+    --apple-emerald-dark: #059669;
+    --apple-canvas: #f8fafc;
+    --apple-surface: #ffffff;
+    --apple-border: #e2e8f0;
+    --apple-border-light: rgba(226, 232, 240, 0.8);
+    --apple-dark: #0f172a;
+    --apple-muted: #64748b;
+    --apple-amber: #f59e0b;
+    --apple-font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+}
+
+/* Base Canvas for Luxury Pages */
+.aeth-canvas {
+    background-color: var(--apple-canvas) !important;
+    min-height: 100vh;
+    font-family: var(--apple-font) !important;
+    color: var(--apple-dark);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle entrance animation */
+@keyframes aethFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.aeth-animate-in {
+    animation: aethFadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Pulsing Status Dot */
+.aeth-pulse-dot {
+    position: relative;
+    display: inline-flex;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background-color: var(--apple-emerald);
+}
+
+.aeth-pulse-dot::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background-color: var(--apple-emerald);
+    opacity: 0.75;
+    animation: aethPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes aethPulse {
+    0% { transform: scale(0.9); opacity: 0.8; }
+    50% { transform: scale(1.8); opacity: 0; }
+    100% { transform: scale(0.9); opacity: 0; }
+}
+
+/* Reset legacy-main constraints when displaying luxury canvas */
+.legacy-main:has(.aeth-canvas),
+body.client-shell:has(.aeth-canvas) .legacy-main {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+
+.legacy-main:has(#bookingForm) {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+/* Badge text color protection */
+.aeth-canvas .badge {
+    color: inherit;
+}
+.aeth-canvas .badge.bg-white {
+    color: #334155 !important;
+}
+.aeth-canvas .badge.bg-white.text-slate-700 {
+    color: #334155 !important;
+}
+.aeth-canvas .badge.bg-white.text-emerald-700 {
+    color: #047857 !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. ROOM DETAILS PAGE (.aeth-room-detail)
+   ────────────────────────────────────────────────────────────────────────── */
+.aeth-detail-container,
+.aeth-spatial-7xl {
+    width: 100% !important;
+    max-width: 1280px !important; /* max-w-7xl: 1280px / 33.87cm */
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-top: clamp(140px, 12vw, 156px) !important; /* Lùi 2cm (~76px) dưới mép đáy Header Bar */
+    padding-bottom: 64px !important; /* pb-16: 64px */
+    padding-left: 32px !important; /* px-8 desktop */
+    padding-right: 32px !important;
+}
+
+.aeth-spatial-6xl {
+    width: 100% !important;
+    max-width: 1152px !important; /* max-w-6xl: 1152px / 30.48cm */
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-top: clamp(140px, 12vw, 156px) !important; /* Lùi 2cm (~76px) dưới mép đáy Header Bar */
+    padding-bottom: 64px !important; /* pb-16: 64px */
+    padding-left: 32px !important; /* px-8 desktop */
+    padding-right: 32px !important;
+}
+
+@media (max-width: 767px) {
+    .aeth-detail-container,
+    .aeth-spatial-7xl,
+    .aeth-spatial-6xl {
+        padding-top: clamp(100px, 15vw, 120px) !important;
+        padding-bottom: 48px !important;
+        padding-left: 16px !important; /* px-4 mobile */
+        padding-right: 16px !important;
+    }
+}
+
+.aeth-top-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.aeth-breadcrumb {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aeth-breadcrumb a {
+    color: #64748b;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.aeth-breadcrumb a:hover {
+    color: var(--apple-blue);
+}
+
+.aeth-breadcrumb .highlight {
+    color: var(--apple-blue);
+    font-weight: 700;
+}
+
+.aeth-top-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.aeth-badge-urgency {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    background: #ecfdf5;
+    border: 1px solid rgba(167, 243, 208, 0.8);
+    font-size: 12px;
+    font-weight: 600;
+    color: #065f46;
+}
+
+.aeth-badge-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 1px solid var(--apple-border);
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.aeth-badge-rating i {
+    color: var(--apple-amber);
+}
+
+.aeth-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.aeth-room-title {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+    line-height: 1.15;
+    margin: 0;
+}
+
+.aeth-badge-rank {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: rgba(0, 113, 227, 0.08);
+    border: 1px solid rgba(0, 113, 227, 0.18);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--apple-blue);
+}
+
+/* Architectural Photo Grid (1:1 with photo 1) */
+.aeth-gallery-grid {
+    display: grid;
+    grid-template-columns: 7fr 5fr;
+    gap: 14px;
+    margin-bottom: 28px;
+    height: 480px;
+}
+
+@media (max-width: 991px) {
+    .aeth-gallery-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+}
+
+.aeth-gallery-hero {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 100%;
+    min-height: 340px;
+    background: #0f172a;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+
+.aeth-gallery-hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aeth-gallery-hero:hover img {
+    transform: scale(1.04);
+}
+
+.aeth-gallery-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 65%, rgba(15, 23, 42, 0.5) 100%);
+    pointer-events: none;
+}
+
+.aeth-hero-pill-left {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 9999px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.aeth-hero-pill-right {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 9999px;
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.aeth-hero-pill-right:hover {
+    background: #ffffff;
+    transform: translateY(-1px);
+}
+
+.aeth-hero-pill-right:active {
+    transform: scale(0.96);
+}
+
+.aeth-gallery-subgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 14px;
+    height: 100%;
+}
+
+@media (max-width: 991px) {
+    .aeth-gallery-subgrid {
+        height: 380px;
+    }
+}
+
+.aeth-sub-photo {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    height: 100%;
+    background: #0f172a;
+    border: 1px solid rgba(0,0,0,0.06);
+    cursor: pointer;
+}
+
+.aeth-sub-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aeth-sub-photo:hover img {
+    transform: scale(1.06);
+}
+
+.aeth-photo-tag {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 9999px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #1e293b;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* 4 Metric Spec Cards */
+.aeth-specs-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px; /* gap-3: 12px */
+    margin-bottom: 32px;
+}
+
+@media (max-width: 768px) {
+    .aeth-specs-row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.aeth-spec-card {
+    background: #ffffff;
+    border: 1px solid var(--apple-border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aeth-spec-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+}
+
+.aeth-spec-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: #eff6ff;
+    color: var(--apple-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    flex-shrink: 0;
+}
+
+.aeth-spec-text strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.aeth-spec-text span {
+    font-size: 11.5px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* Main Layout: Left 8 cols, Right 4 cols */
+.aeth-main-layout {
+    display: grid;
+    grid-template-columns: 8fr 4fr;
+    gap: 32px;
+    align-items: start;
+}
+
+@media (max-width: 991px) {
+    .aeth-main-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Summit Amenities Grid (6 sao) */
+.aeth-section-card {
+    background: #ffffff;
+    border: 1px solid var(--apple-border);
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+    margin-bottom: 28px;
+}
+
+.aeth-section-title-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.aeth-section-title {
+    font-size: 19px;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.aeth-section-title i {
+    color: var(--apple-blue);
+}
+
+.aeth-amenities-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .aeth-amenities-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.aeth-amenity-card {
+    background: #f8fafc;
+    border: 1px solid rgba(226, 232, 240, 0.7);
+    border-radius: 16px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aeth-amenity-card:hover {
+    background: #ffffff;
+    border-color: rgba(0, 113, 227, 0.3);
+    box-shadow: 0 6px 18px rgba(0, 113, 227, 0.08);
+    transform: translateY(-2px);
+}
+
+.aeth-amenity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #334155;
+    font-size: 18px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: all 0.2s ease;
+}
+
+.aeth-amenity-card:hover .aeth-amenity-icon {
+    background: #eff6ff;
+    color: var(--apple-blue);
+}
+
+.aeth-amenity-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 3px;
+}
+
+.aeth-amenity-sub {
+    font-size: 10.5px;
+    color: #94a3b8;
+    line-height: 1.3;
+}
+
+/* Blockchain Reviews */
+.aeth-reviews-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .aeth-reviews-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.aeth-review-card {
+    background: #f8fafc;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 18px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.aeth-stars {
+    display: flex;
+    gap: 3px;
+    color: var(--apple-amber);
+    font-size: 14px;
+}
+
+.aeth-review-quote {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #334155;
+    margin: 0;
+    font-style: italic;
+}
+
+.aeth-review-author {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.aeth-author-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: #eff6ff;
+    color: var(--apple-blue);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aeth-author-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Sticky Booking Module (Right Col) */
+.aeth-sticky-sidebar {
+    position: sticky;
+    top: 96px; /* sticky top-24 (96px) */
+}
+
+.aeth-sticky-sidebar--step1 {
+    position: sticky;
+    top: 80px; /* sticky top-20 (80px) */
+}
+
+.aeth-booking-box {
+    background: #ffffff;
+    border: 1px solid var(--apple-border);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.aeth-rate-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.aeth-rate-main {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.aeth-rate-price {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+}
+
+.aeth-rate-unit {
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.aeth-rate-strike {
+    font-size: 13px;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+/* Date Segmented Box */
+.aeth-date-pill-box {
+    background: #f8fafc;
+    border: 1px solid var(--apple-border);
+    border-radius: 16px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.aeth-date-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+
+.aeth-date-cell {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.aeth-date-cell:hover,
+.aeth-date-cell:focus-within {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
+}
+
+.aeth-date-native-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+    margin: 0;
+    padding: 0;
+}
+
+.aeth-date-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 2px;
+    display: block;
+}
+
+.aeth-date-val {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.aeth-date-sub {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.aeth-date-duration-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Interactive Steppers */
+.aeth-steppers-card {
+    background: #f8fafc;
+    border: 1px solid var(--apple-border);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.aeth-stepper-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.aeth-stepper-info strong {
+    display: block;
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.aeth-stepper-info small {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.aeth-stepper-ctrl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border: 1px solid var(--apple-border);
+    border-radius: 9999px;
+    padding: 3px 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.aeth-step-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 9999px;
+    border: none;
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.aeth-step-btn:hover:not(:disabled) {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.aeth-step-btn:active:not(:disabled) {
+    transform: scale(0.92);
+}
+
+.aeth-step-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.aeth-step-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    width: 20px;
+    text-align: center;
+}
+
+/* Breakdown (gap-2.5: 10px) */
+.aeth-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 13px;
+    color: #475569;
+}
+
+.aeth-breakdown-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.aeth-total-box {
+    background: #eff6ff;
+    border: 1px solid rgba(0, 113, 227, 0.15);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+.aeth-total-box span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e3a8a;
+}
+
+.aeth-total-box strong {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--apple-blue);
+}
+
+/* Primary CTA (h-12 / py-3.5 px-6 / rounded-full) */
+.aeth-btn-primary {
+    width: 100%;
+    height: 48px;
+    padding: 0 24px;
+    border-radius: 9999px;
+    background: var(--apple-blue);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 113, 227, 0.3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none;
+}
+
+.aeth-btn-primary:hover:not(:disabled) {
+    background: var(--apple-blue-hover);
+    box-shadow: 0 6px 20px rgba(0, 113, 227, 0.4);
+    transform: translateY(-1px);
+    color: #ffffff;
+}
+
+.aeth-btn-primary:active:not(:disabled) {
+    transform: scale(0.99);
+}
+
+.aeth-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Trust footer notes */
+.aeth-trust-note {
+    font-size: 11.5px;
+    color: #065f46;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.aeth-trust-sub {
+    font-size: 11px;
+    color: #94a3b8;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. BOOKING STEP 1 PAGE (.aeth-step1)
+   ────────────────────────────────────────────────────────────────────────── */
+.aeth-step-capsule {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 1px solid var(--apple-border);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    margin: 0 auto 28px auto;
+}
+
+.aeth-capsule-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.aeth-capsule-item.is-active {
+    background: #eff6ff;
+    color: var(--apple-blue);
+}
+
+.aeth-capsule-item.is-active .aeth-capsule-num {
+    background: var(--apple-blue);
+    color: #ffffff;
+}
+
+.aeth-capsule-item.is-done {
+    background: #ecfdf5;
+    color: #065f46;
+}
+
+.aeth-capsule-item.is-done .aeth-capsule-num {
+    background: var(--apple-emerald);
+    color: #ffffff;
+}
+
+.aeth-capsule-item.is-inactive {
+    color: #94a3b8;
+}
+
+.aeth-capsule-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    background: #e2e8f0;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aeth-capsule-arrow {
+    color: #cbd5e1;
+    font-size: 12px;
+    padding: 0 2px;
+}
+
+/* Form Container (p-6 md:p-7) */
+.aeth-form-card {
+    background: #ffffff;
+    border: 1px solid var(--apple-border);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+}
+
+@media (min-width: 768px) {
+    .aeth-form-card {
+        padding: 28px;
+    }
+}
+
+.aeth-field-group {
+    margin-bottom: 20px;
+}
+
+.aeth-field-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.aeth-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.aeth-label-hint {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.aeth-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.aeth-input-icon {
+    position: absolute;
+    left: 14px;
+    color: #94a3b8;
+    font-size: 16px;
+    pointer-events: none;
+}
+
+.aeth-input {
+    width: 100%;
+    height: 44px; /* h-11 */
+    padding: 0 16px 0 40px; /* pl-10 pr-4 */
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid var(--apple-border);
+    font-size: 14px;
+    color: #0f172a;
+    transition: all 0.2s ease;
+}
+
+.aeth-input:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+}
+
+/* Phone input with Vietnam Flag */
+.aeth-flag-badge {
+    position: absolute;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: #e2e8f0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    pointer-events: none;
+}
+
+.aeth-input--phone {
+    padding-left: 80px; /* pl-20 */
+    padding-right: 16px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Arrival Time Segmented Buttons */
+.aeth-segmented-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: #f1f5f9;
+    border: 1px solid var(--apple-border);
+    border-radius: 14px;
+    padding: 4px;
+}
+
+.aeth-segment-btn {
+    border: none;
+    background: transparent;
+    padding: 10px 8px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.aeth-segment-btn i {
+    font-size: 16px;
+}
+
+.aeth-segment-btn.is-active {
+    background: #ffffff;
+    color: var(--apple-blue);
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* iOS Switches */
+.aeth-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-top: 1px solid #f1f5f9;
+}
+
+.aeth-switch-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.aeth-switch-label i {
+    color: #64748b;
+    font-size: 17px;
+}
+
+.aeth-ios-switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.aeth-ios-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.aeth-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: #cbd5e1;
+    border-radius: 9999px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aeth-switch-slider::before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    border-radius: 9999px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aeth-ios-switch input:checked + .aeth-switch-slider {
+    background-color: var(--apple-blue);
+}
+
+.aeth-ios-switch input:checked + .aeth-switch-slider::before {
+    transform: translateX(20px);
+}
+
+/* Expandable content */
+.aeth-expandable-section {
+    display: none;
+    padding-top: 12px;
+    animation: aethFadeInUp 0.25s ease-out forwards;
+}
+
+.aeth-expandable-section.is-open {
+    display: block;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. PAYMENT STEP 2 (.aeth-step2)
+   ────────────────────────────────────────────────────────────────────────── */
+.aeth-payment-choice {
+    background: #ffffff;
+    border: 1px solid var(--apple-border);
+    border-radius: 18px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.aeth-payment-choice:hover {
+    border-color: rgba(0, 113, 227, 0.4);
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.06);
+}
+
+.aeth-payment-choice.is-selected {
+    border-color: var(--apple-blue) !important;
+    background: #f8fbff !important;
+    box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2) !important;
+}
+
+.aeth-radio-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    border: 2px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.aeth-payment-choice.is-selected .aeth-radio-indicator {
+    border-color: var(--apple-blue);
+}
+
+.aeth-radio-indicator::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: var(--apple-blue);
+    transform: scale(0);
+    transition: transform 0.2s ease;
+}
+
+.aeth-payment-choice.is-selected .aeth-radio-indicator::after {
+    transform: scale(1);
+}
+
+.aeth-payment-info {
+    flex-grow: 1;
+}
+
+.aeth-payment-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aeth-payment-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.aeth-payment-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: var(--apple-blue);
+}
+
+.aeth-payment-desc {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.aeth-payment-logo-box {
+    width: 50px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.aeth-payment-logo-box img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. MODALS & DRAWERS (.aeth-modal)
+   ────────────────────────────────────────────────────────────────────────── */
+body:has(.aeth-modal-backdrop.is-open),
+body:has(.booking-success-backdrop),
+body.has-modal-open {
+    overflow: hidden !important;
+}
+
+.aeth-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 1050;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.aeth-modal-backdrop.is-open {
+    display: flex;
+    animation: aethFadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.aeth-modal-box {
+    background: #ffffff;
+    border: 1px solid var(--apple-border);
+    border-radius: 28px;
+    box-shadow: 0 25px 60px -15px rgba(0,0,0,0.3);
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.aeth-modal-close-btn {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: #f1f5f9;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    z-index: 10;
+}
+
+.aeth-modal-close-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   5. HORIZONTAL ROOM CARDS (Page 4 - My Bookings)
+   p-5 md:p-6 (20px - 24px), rounded-2xl (16px), gap-5 (20px) between thumb & text
+   ────────────────────────────────────────────────────────────────────────── */
+.booking-card-horizontal {
+    padding: 20px !important;
+    border-radius: 16px !important;
+}
+
+@media (min-width: 768px) {
+    .booking-card-horizontal {
+        padding: 24px !important;
+    }
+}
+
+.booking-card-horizontal .row {
+    --bs-gutter-x: 20px !important;
+}

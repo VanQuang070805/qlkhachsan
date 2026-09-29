@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="100%" height="100%">
+  <defs>
+    <linearGradient id="zaloBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0080ff"/>
+      <stop offset="50%" stop-color="#0068ff"/>
+      <stop offset="100%" stop-color="#0052cc"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="url(#zaloBg)"/>
+  <!-- Stylized Z letter with Pay dot/ribbon -->
+  <path d="M12 15c0-1.1.9-2 2-2h20c1.1 0 2 .9 2 2 0 .6-.2 1.1-.6 1.5L20.8 31H34c1.1 0 2 .9 2 2s-.9 2-2 2H14c-1.1 0-2-.9-2-2 0-.6.3-1.2.7-1.6L27.2 17H14c-1.1 0-2-.9-2-2z" fill="#ffffff"/>
+  <!-- ZaloPay vibrant green indicator dot in top right -->
+  <circle cx="35" cy="13" r="4.5" fill="#00e676" stroke="#0068ff" stroke-width="1.5"/>
+</svg>

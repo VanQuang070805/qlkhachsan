@@ -1,0 +1,958 @@
+/* ==========================================================================
+   Sana AI Auth Theme for Royal Hotel
+   1:1 Faithful Clone of https://sana.ai/sign-in-to-sana
+   ========================================================================== */
+
+:root {
+    --sana-bg: #fcfcfd;
+    --sana-ink: #09090b;
+    --sana-muted: #71717a;
+    --sana-border: #e4e4e7;
+    --sana-pill-bg: #f4f4f5;
+    --sana-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body.auth-shell {
+    margin: 0 !important;
+    min-height: 100vh !important;
+    background: var(--sana-bg) !important;
+    color: var(--sana-ink) !important;
+    font-family: var(--sana-font) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+}
+
+/* ----------------------------------------------------
+   TOP NAVIGATION BAR (WHITE HEADER + CENTERED BLACK PILL)
+   ---------------------------------------------------- */
+.sana-header {
+    width: 100% !important;
+    padding: 18px 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    z-index: 10 !important;
+    background: #ffffff !important;
+    color: #09090b !important;
+    border-bottom: 1px solid #f4f4f5 !important;
+}
+
+.sana-logo {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    text-decoration: none !important;
+    color: #09090b !important;
+}
+
+/* Sana Diamond 4-Dot Motif */
+.sana-logo__mark {
+    display: grid !important;
+    grid-template-columns: repeat(2, 6px) !important;
+    gap: 3px !important;
+    transform: rotate(45deg) !important;
+    width: 15px !important;
+    height: 15px !important;
+    place-items: center !important;
+}
+
+.sana-logo__mark span {
+    width: 5px !important;
+    height: 5px !important;
+    border-radius: 50% !important;
+    background: #000000 !important;
+    display: block !important;
+}
+
+.sana-logo__text {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    margin-left: 6px !important;
+    color: #09090b !important;
+}
+
+/* Centered Floating Black Pill Nav ("Khung 4 chữ màu đen") */
+.sana-nav-pill {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: #000000 !important;
+    border-radius: 999px !important;
+    padding: 8px 24px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 24px !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12) !important;
+}
+
+.sana-nav-pill a {
+    color: rgba(255, 255, 255, 0.82) !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    transition: color 0.18s ease, transform 0.18s ease !important;
+}
+
+.sana-nav-pill a:hover {
+    color: #ffffff !important;
+}
+
+/* ----------------------------------------------------
+   MAIN CONTAINER (SPLIT 2-COLUMN LAYOUT)
+   ---------------------------------------------------- */
+.sana-auth-main {
+    flex: 1 0 auto !important;
+    width: 100% !important;
+    max-width: 1360px !important;
+    margin: 0 auto !important;
+    padding: clamp(80px, 9vh, 108px) clamp(24px, 4vw, 56px) 60px !important;
+    display: grid !important;
+    grid-template-columns: 460px 1fr !important;
+    gap: clamp(40px, 6vw, 90px) !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+}
+
+/* ----------------------------------------------------
+   LEFT COLUMN: AUTH FORM
+   ---------------------------------------------------- */
+.sana-form-col {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 480px !important;
+}
+
+/* Two-line Heading */
+.sana-heading {
+    margin: 0 0 28px 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+}
+
+.sana-heading__title {
+    font-size: clamp(28px, 3vw, 36px) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.035em !important;
+    color: #09090b !important;
+    line-height: 1.15 !important;
+    margin: 0 !important;
+}
+
+.sana-heading__sub {
+    font-size: clamp(20px, 2.2vw, 26px) !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.025em !important;
+    color: #a1a1aa !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+}
+
+/* Social Login Button */
+.sana-social-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    height: 48px !important;
+    background: #ffffff !important;
+    border: 1px solid #e4e4e7 !important;
+    border-radius: 999px !important;
+    color: #18181b !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+.sana-social-btn:hover {
+    background: #f9fafb !important;
+    border-color: #d4d4d8 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    color: #18181b !important;
+}
+
+.sana-social-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+/* Divider "or" */
+.sana-divider {
+    text-align: center !important;
+    color: #a1a1aa !important;
+    font-size: 13px !important;
+    margin: 18px 0 !important;
+    position: relative !important;
+}
+
+/* Full Pill Inputs */
+.sana-form-group {
+    margin-bottom: 14px !important;
+    position: relative !important;
+}
+
+.sana-input {
+    width: 100% !important;
+    height: 48px !important;
+    border-radius: 999px !important;
+    border: 1.5px solid #000000 !important;
+    background: #ffffff !important;
+    padding: 0 22px !important;
+    font-size: 14px !important;
+    color: #09090b !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+    font-family: inherit !important;
+}
+
+.sana-input::placeholder {
+    color: #a1a1aa !important;
+}
+
+.sana-input:focus {
+    border-color: #000000 !important;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.sana-input.is-invalid {
+    border-color: #ef4444 !important;
+}
+
+/* Password wrapper with eye toggle */
+.sana-password-wrap {
+    position: relative !important;
+    width: 100% !important;
+}
+
+.sana-password-wrap .sana-input {
+    padding-right: 48px !important;
+}
+
+.sana-password-toggle {
+    position: absolute !important;
+    right: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    border: none !important;
+    color: #71717a !important;
+    cursor: pointer !important;
+    padding: 6px !important;
+    font-size: 16px !important;
+}
+
+.sana-password-toggle:hover {
+    color: #09090b !important;
+}
+
+/* Submit Button: Solid Black Pill */
+.sana-submit-btn {
+    width: 100% !important;
+    height: 48px !important;
+    border-radius: 999px !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+}
+
+.sana-submit-btn:hover {
+    background: #18181b !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Fine Print / Terms */
+.sana-terms {
+    color: #71717a !important;
+    font-size: 12px !important;
+    line-height: 1.55 !important;
+    margin-top: 18px !important;
+}
+
+.sana-terms a {
+    color: #71717a !important;
+    text-decoration: underline !important;
+}
+
+.sana-terms a:hover {
+    color: #09090b !important;
+}
+
+.sana-switch-link {
+    margin-top: 16px !important;
+    font-size: 13px !important;
+    color: #52525b !important;
+}
+
+.sana-switch-link a {
+    color: #09090b !important;
+    font-weight: 600 !important;
+    text-decoration: underline !important;
+}
+
+.field-error {
+    color: #ef4444 !important;
+    font-size: 12px !important;
+    margin: 6px 0 0 16px !important;
+    line-height: 1.4 !important;
+    display: block !important;
+    position: static !important;
+    clear: both !important;
+}
+
+.field-error:empty {
+    display: none !important;
+    margin: 0 !important;
+}
+
+/* ----------------------------------------------------
+   RIGHT COLUMN: LUXURY DARK SHOWCASE COMPONENT
+   ---------------------------------------------------- */
+.sana-showcase-col {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+}
+
+/* Laptop Device Frame */
+.sana-laptop {
+    width: 100% !important;
+    max-width: 720px !important;
+    background: #0d0d11 !important;
+    border-radius: 36px !important;
+    overflow: hidden !important;
+    box-shadow: 0 32px 84px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    transform: perspective(1200px) rotateY(-3deg) rotateX(1.5deg) !important;
+    transition: transform 0.4s ease !important;
+}
+
+.sana-laptop:hover {
+    transform: perspective(1200px) rotateY(-1deg) rotateX(0.5deg) scale(1.01) !important;
+}
+
+/* macOS Card Header for Showcase */
+.sana-laptop .macos-card-bar {
+    background: #0f1015 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09) !important;
+    padding: 13px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    border-radius: 36px 36px 0 0 !important;
+}
+
+.sana-laptop .macos-card-bar .window-controls {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+}
+
+.sana-laptop .macos-card-bar .ctrl-dot {
+    width: 12px !important;
+    height: 12px !important;
+    border-radius: 50% !important;
+    display: inline-block !important;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) !important;
+}
+
+.sana-laptop .macos-card-bar .ctrl-red {
+    background: #ff5f57 !important;
+}
+
+.sana-laptop .macos-card-bar .ctrl-yellow {
+    background: #febc2e !important;
+}
+
+.sana-laptop .macos-card-bar .ctrl-green {
+    background: #28c840 !important;
+}
+
+.sana-laptop .macos-card-title {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.01em !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif !important;
+}
+
+.sana-laptop .macos-card-spacer {
+    width: 52px !important;
+}
+
+/* Laptop Screen Top Notch */
+.sana-laptop__screen-top {
+    height: 36px !important;
+    background: #111116 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.sana-laptop__notch {
+    width: 130px !important;
+    height: 14px !important;
+    background: #000000 !important;
+    border-radius: 0 0 8px 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.sana-laptop__camera {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: #1e1e24 !important;
+}
+
+/* Laptop Body Inside Screen */
+.sana-laptop__body {
+    display: grid !important;
+    grid-template-columns: 180px 1fr !important;
+    min-height: 440px !important;
+    background: #09090d !important;
+}
+
+/* Sidebar */
+.sana-laptop__sidebar {
+    background: #0f0f14 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding: 20px 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+}
+
+.sana-laptop__workspace {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    color: #ffffff !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+
+.sana-laptop__workspace-dot {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    background: #3b82f6 !important;
+}
+
+.sana-laptop__nav-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.sana-laptop__nav-item {
+    font-size: 11px !important;
+    color: #71717a !important;
+    padding: 6px 8px !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.sana-laptop__nav-item.is-active {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #ffffff !important;
+}
+
+/* Main Dashboard Area */
+.sana-laptop__content {
+    padding: 28px 24px 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    background: radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.12), transparent 50%), #09090d !important;
+}
+
+.sana-laptop__greeting {
+    margin-bottom: 24px !important;
+}
+
+.sana-laptop__greeting h3 {
+    color: #ffffff !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+    margin: 0 0 4px 0 !important;
+}
+
+.sana-laptop__greeting p {
+    color: #71717a !important;
+    font-size: 13px !important;
+    margin: 0 !important;
+}
+
+/* Cards Showcase in device */
+.sana-laptop__cards {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+    margin-bottom: 24px !important;
+}
+
+.sana-laptop__card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 14px !important;
+    padding: 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease !important;
+    cursor: pointer !important;
+}
+
+.sana-laptop__card:hover {
+    transform: translateY(-4px) scale(1.02) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+.sana-laptop__card-img {
+    width: 100% !important;
+    height: 78px !important;
+    border-radius: 10px !important;
+    object-fit: cover !important;
+    transition: transform 0.35s ease !important;
+}
+
+.sana-laptop__card:hover .sana-laptop__card-img {
+    transform: scale(1.03) !important;
+}
+
+.sana-laptop__card-title {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    line-height: 1.3 !important;
+}
+
+.sana-laptop__card-sub {
+    font-size: 9.5px !important;
+    color: #9ca3af !important;
+    margin: 0 !important;
+}
+
+/* Bottom search prompt input inside laptop */
+.sana-laptop__prompt-bar {
+    width: 100% !important;
+    height: 38px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 10px !important;
+    padding: 0 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    color: #71717a !important;
+    font-size: 11.5px !important;
+}
+
+/* Laptop Keyboard Deck at Bottom */
+.sana-laptop__keyboard-deck {
+    height: 28px !important;
+    background: #14141a !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.sana-laptop__notch-lip {
+    width: 60px !important;
+    height: 4px !important;
+    background: #272732 !important;
+    border-radius: 2px !important;
+}
+
+/* ----------------------------------------------------
+   BOTTOM BAR (DARK CHARCOAL FOOTER STRIP)
+   ---------------------------------------------------- */
+.sana-bottom-bar {
+    width: 100% !important;
+    background: #18181b !important;
+    color: #ffffff !important;
+    padding: 14px 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    font-size: 12.5px !important;
+}
+
+.sana-bottom-bar__left {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+}
+
+.sana-bottom-bar__left .dot-mark {
+    display: grid !important;
+    grid-template-columns: repeat(2, 4px) !important;
+    gap: 2px !important;
+    transform: rotate(45deg) !important;
+}
+
+.sana-bottom-bar__left .dot-mark span {
+    width: 3.5px !important;
+    height: 3.5px !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+}
+
+.sana-bottom-bar__right {
+    color: #a1a1aa !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.sana-bottom-bar__right strong {
+    color: #ffffff !important;
+}
+
+/* ----------------------------------------------------
+   RESPONSIVE DESIGN (TABLETS & MOBILE)
+   ---------------------------------------------------- */
+@media (max-width: 1080px) {
+    .sana-auth-main {
+        grid-template-columns: 1fr !important;
+        max-width: 540px !important;
+    }
+    .sana-showcase-col {
+        display: none !important;
+    }
+    .sana-form-col {
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 680px) {
+    .sana-header {
+        padding: 16px 20px !important;
+    }
+    .sana-nav-pill {
+        display: none !important;
+    }
+    .sana-auth-main {
+        padding: 88px 16px 40px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .sana-form-col {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .sana-bottom-bar {
+        padding: 12px 16px !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        text-align: center !important;
+    }
+    .sana-bottom-bar__right {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        font-size: 11.5px !important;
+        text-align: center !important;
+    }
+}
+
+/* ----------------------------------------------------
+   OTP VERIFICATION COMPONENT
+   ---------------------------------------------------- */
+.otp-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 13.5px !important;
+    font-weight: 400 !important;
+    color: #71717a !important;
+    margin-bottom: 22px !important;
+    max-width: 100% !important;
+    word-break: break-all !important;
+}
+
+.otp-badge i {
+    color: #71717a !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+}
+
+.otp-badge strong {
+    color: #09090b !important;
+    font-weight: 600 !important;
+}
+
+.otp-box-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto repeat(3, minmax(0, 1fr)) !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    max-width: 360px !important;
+    margin: 4px auto 0 !important;
+    box-sizing: border-box !important;
+}
+
+.otp-cell {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 52px !important;
+    border-radius: 12px !important;
+    border: 1.5px solid #d4d4d8 !important;
+    background: #ffffff !important;
+    color: #09090b !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, monospace !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    outline: none !important;
+    padding: 0 !important;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background 0.16s ease !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    -webkit-appearance: none !important;
+    box-sizing: border-box !important;
+}
+
+.otp-cell:focus {
+    border-color: #09090b !important;
+    box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.12) !important;
+    transform: translateY(-1px) !important;
+}
+
+.otp-cell.is-filled {
+    border-color: #71717a !important;
+    background: #fafafa !important;
+}
+
+.otp-cell.is-invalid {
+    border-color: #ef4444 !important;
+    background: #fef2f2 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+.otp-cell-separator {
+    font-size: 18px !important;
+    font-weight: 500 !important;
+    color: #a1a1aa !important;
+    user-select: none !important;
+    padding: 0 2px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+}
+
+@keyframes otpShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.otp-box-grid.has-error {
+    animation: otpShake 0.4s ease-in-out !important;
+}
+
+.otp-error-text {
+    margin-top: 16px !important;
+    margin-bottom: 2px !important;
+    color: #ef4444 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.otp-error-text span {
+    white-space: nowrap !important;
+}
+
+.otp-error-text i {
+    font-size: 13.5px !important;
+    color: #ef4444 !important;
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+}
+
+.otp-error-text:empty,
+.otp-error-text[data-empty="true"] {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.sana-submit-btn.otp-submit-btn {
+    width: 100% !important;
+    max-width: 360px !important;
+    margin-top: 18px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: flex !important;
+}
+
+.otp-action-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    margin-top: 16px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 360px !important;
+    width: 100% !important;
+    font-size: 13.5px !important;
+    color: #71717a !important;
+    text-align: center !important;
+}
+
+.otp-switch-link {
+    margin-top: 16px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 360px !important;
+    width: 100% !important;
+    text-align: center !important;
+}
+
+.otp-resend-btn {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #09090b !important;
+    text-decoration: underline !important;
+    cursor: pointer !important;
+    transition: color 0.15s ease !important;
+    font-family: inherit !important;
+}
+
+.otp-resend-btn:hover:not(:disabled) {
+    color: #52525b !important;
+}
+
+.otp-resend-btn:disabled {
+    color: #a1a1aa !important;
+    text-decoration: none !important;
+    cursor: not-allowed !important;
+}
+
+.otp-countdown-text {
+    color: #71717a !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+
+.otp-status-toast {
+    margin-top: 14px !important;
+    padding: 10px 16px !important;
+    border-radius: 999px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+.otp-status-toast.is-success {
+    background: rgba(34, 197, 94, 0.1) !important;
+    color: #166534 !important;
+    border: 1px solid rgba(34, 197, 94, 0.2) !important;
+}
+
+.otp-status-toast.is-error {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #991b1b !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+}
+
+@media (max-width: 480px) {
+    .otp-error-text {
+        font-size: 11.5px !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+    .otp-error-text span {
+        white-space: normal !important;
+        text-align: left !important;
+    }
+    .otp-error-text i {
+        margin-top: 2px !important;
+    }
+    .otp-box-grid {
+        gap: 5px !important;
+    }
+    .otp-cell {
+        height: 50px !important;
+        max-width: 46px !important;
+        font-size: 20px !important;
+        border-radius: 10px !important;
+        padding: 0 !important;
+    }
+    .otp-cell-separator {
+        padding: 0 1px !important;
+        font-size: 15px !important;
+    }
+}
+
