@@ -70,6 +70,8 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
     Route::post('/booking',             [BookingController::class, 'store'])->name('booking.store');
     Route::get('/booking/success/{id}', [BookingController::class, 'success'])->name('booking.success');
     Route::get('/my-bookings',          [BookingController::class, 'myBookings'])->name('booking.mine');
+    Route::patch('/booking/{booking}/rooms/{room}/cleaning-request', [BookingController::class, 'toggleCleaningRequest'])
+        ->name('booking.cleaning-request');
 
     // Thanh toán
     Route::get('/payment/{bookingId}/form',    [PaymentController::class, 'form'])->name('payment.form');
@@ -139,6 +141,7 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
     Route::post('/reception/extend',                  [ReceptionController::class, 'extendStay'])->name('reception.extend');
     Route::post('/reception/update-status',           [ReceptionController::class, 'updateStatus'])->name('reception.update-status');
     Route::post('/reception/quick-checkin',           [ReceptionController::class, 'quickCheckinMultipleRooms'])->name('reception.quick-checkin');
+    Route::get('/cleaning-notifications',              [ReceptionController::class, 'cleaningNotifications'])->name('cleaning-notifications');
 });
 
 // ============================================================

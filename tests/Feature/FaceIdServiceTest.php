@@ -46,6 +46,8 @@ class FaceIdServiceTest extends TestCase
             $table->id();
             $table->string('room_number');
             $table->string('status')->default('occupied');
+            $table->boolean('needs_cleaning')->default(false);
+            $table->timestamp('cleaning_requested_at')->nullable();
         });
         Schema::create('booking_rooms', function (Blueprint $table) {
             $table->unsignedBigInteger('booking_id');

@@ -134,6 +134,7 @@
         
         
         <div class="d-flex align-items-center gap-3">
+            @include('components.cleaning-notifications')
             <a href="{{ route('staff.iot') }}" class="btn btn-outline-primary">
                 <i class="fa-solid fa-user-check me-1"></i> Test khuôn mặt đã đăng ký
             </a>

@@ -23,7 +23,7 @@
                     <div class="fw-bold">Thanh toán đã được ghi nhận</div>
                     <div class="text-muted" style="font-size:0.875rem;">
                         Tổng tiền <strong>{{ number_format($booking->total_price, 0, ',', '.') }} ₫</strong> đã thanh toán đầy đủ.
-                        Phòng đang chuyển sang trạng thái dọn dẹp.
+                        Phòng đã chuyển sang trạng thái cần dọn dẹp.
                     </div>
                 </div>
             </div>
@@ -77,7 +77,7 @@
             {{-- Trạng thái phòng --}}
             <div class="alert alert-info d-flex align-items-center gap-2 mb-4" style="border-radius:10px;font-size:.875rem;">
                 <i class="fa-solid fa-broom text-info"></i>
-                <span>Phòng {{ $booking->rooms->map(fn($r) => $r->room_number)->join(', ') }} đã chuyển sang trạng thái <strong>đang dọn dẹp</strong>.</span>
+                <span>Phòng {{ $booking->rooms->map(fn($r) => $r->room_number)->join(', ') }} đã chuyển sang trạng thái <strong>cần dọn dẹp</strong>.</span>
             </div>
 
             <a href="{{ route('staff.bookings') }}" class="btn btn-primary w-100" style="border-radius:10px;padding:12px;font-weight:700;font-size:1rem;">

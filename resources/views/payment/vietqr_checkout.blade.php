@@ -137,7 +137,7 @@
 
     <div class="alert alert-warning text-center">
         <i class="fa-solid fa-triangle-exclamation me-2"></i>
-        Booking sẽ được hoàn tất và phòng chuyển sang dọn dẹp sau khi nhận được thanh toán. Quá trình xác nhận có thể mất 1–2 phút.
+        Booking sẽ được hoàn tất và phòng chuyển sang trạng thái cần dọn dẹp sau khi nhận được thanh toán. Quá trình xác nhận có thể mất 1–2 phút.
     </div>
 </div>
 </main>
