@@ -21,7 +21,7 @@
             $uniqueTypes[$room['room_type_id']] = $room['type_name'];
             $uniqueCapacities[] = $room['max_guests'];
             
-            $uiStatus = $room['status'];
+            $uiStatus = $room['ui_status'] ?? $room['status'];
             if (isset($counts[$uiStatus])) {
                 $counts[$uiStatus]++;
             }
@@ -296,7 +296,7 @@
             <span class="dot" style="background: #2b6ff2;"></span> Đang sử dụng (<span id="count-occupied">{{ $counts['occupied'] }}</span>)
         </div>
         <div class="legend-badge status-cleaning" data-status-val="cleaning" onclick="toggleLegendFilter(this)">
-            <span class="dot" style="background: #f59e0b;"></span> Đang dọn dẹp (<span id="count-cleaning">{{ $counts['cleaning'] }}</span>)
+            <span class="dot" style="background: #f59e0b;"></span> Cần dọn dẹp (<span id="count-cleaning">{{ $counts['cleaning'] }}</span>)
         </div>
         <div class="legend-badge border-danger text-danger bg-white" data-status-val="has_booking" onclick="toggleLegendFilter(this)">
             <span class="dot bg-danger"></span> Có lịch đặt hôm nay (<span id="count-has_booking">{{ $counts['has_booking'] }}</span>)
@@ -343,7 +343,7 @@
                     <option value="Tất cả">Tất cả trạng thái</option>
                     <option value="available">Đang trống</option>
                     <option value="occupied">Đang sử dụng</option>
-                    <option value="cleaning">Đang dọn dẹp</option>
+                    <option value="cleaning">Cần dọn dẹp</option>
                     <option value="has_booking">Có lịch đặt hôm nay</option>
                     <option value="no_booking">Chưa có lịch đặt</option>
                 </select>
@@ -363,26 +363,27 @@
                 <div class="row g-3">
                     @foreach ($rooms as $room)
                         @php
-                            if ($room['status'] === 'occupied') {
+                            $uiStatus = $room['ui_status'] ?? $room['status'];
+                            if ($uiStatus === 'occupied') {
                                 $statusText = 'Đang sử dụng';
                                 $icon = 'fa-user-check';
-                            } elseif ($room['status'] === 'cleaning') {
-                                $statusText = 'Đang dọn dẹp';
+                            } elseif ($uiStatus === 'cleaning') {
+                                $statusText = 'Cần dọn dẹp';
                                 $icon = 'fa-broom';
                             } else {
                                 $statusText = 'Đang trống';
                                 $icon = 'fa-door-open';
                             }
                             
-                            $room['ui_status'] = $room['status'];
+                            $room['ui_status'] = $uiStatus;
                             $room['status_text'] = $statusText;
                         @endphp
                         <div class="col-md-4 col-sm-6 col-xl-2 col-xxl-2 room-card-wrapper">
-                            <div class="room-card status-{{ $room['status'] }}" 
+                            <div class="room-card status-{{ $room['ui_status'] }}"
                                  data-floor="{{ $room['floor'] }}"
                                  data-type="{{ $room['room_type_id'] }}"
                                  data-guests="{{ $room['max_guests'] }}"
-                                 data-status="{{ $room['status'] }}"
+                                 data-status="{{ $room['ui_status'] }}"
                                  data-has-booking="{{ $room['has_today_booking'] ? '1' : '0' }}"
                                  data-search="{{ htmlspecialchars(strtolower($room['room_number'] . ' ' . $room['type_name'] . ' ' . ($room['customer_name'] ?? '') . ' ' . ($room['customer_phone'] ?? ''))) }}"
                                  id="room-card-{{ $room['id'] }}"
@@ -540,7 +541,7 @@
                     <i class="fa-solid fa-user-plus"></i> Đăng ký khách
                 </button>
                 <button class="btn btn-outline-success btn-action" id="btn-action-cleaning-done" onclick="triggerStatusUpdate('available')">
-                    <i class="fa-solid fa-check"></i> Đã dọn dẹp xong
+                    <i class="fa-solid fa-check"></i> Dọn dẹp xong / Tắt yêu cầu
                 </button>
                 <button class="btn btn-outline-warning btn-action text-dark" id="btn-action-hold" onclick="handleSingleHold()">
                     <i class="fa-solid fa-clock"></i> Giữ chỗ phòng
@@ -1200,11 +1201,11 @@
             switch(roomData.ui_status || roomData.status) {
                 case 'available': badgeClass = 'bg-success'; statusText = 'Đang trống'; break;
                 case 'occupied': badgeClass = 'bg-primary'; statusText = 'Đang sử dụng'; break;
-                case 'cleaning': badgeClass = 'bg-warning text-dark'; statusText = 'Đang dọn dẹp'; break;
+                case 'cleaning': badgeClass = 'bg-warning text-dark'; statusText = 'Cần dọn dẹp'; break;
             }
             document.getElementById('detail-status-badge').innerHTML = `<span class="badge ${badgeClass} rounded-pill px-3">${statusText}</span>`;
 
-            const isOccupiedLike = (roomData.ui_status || roomData.status) === 'occupied';
+            const isOccupiedLike = roomData.status === 'occupied';
             ['detail-type', 'detail-capacity', 'detail-price', 'detail-amenities'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el.parentElement) {
@@ -1602,7 +1603,7 @@
     function openCheckoutPaymentModal() {
         if (!selectedRoomData) return;
         if (parseInt(selectedRoomData.has_active_booking) <= 0) {
-            // Không có booking hoạt động, chuyển thẳng sang dọn dẹp
+            // Không có booking hoạt động, chuyển thẳng sang trạng thái cần dọn dẹp.
             triggerStatusUpdate('cleaning', 'room');
             return;
         }
@@ -1688,6 +1689,7 @@
                     return;
                 }
                 showToast(data.message, 'bg-success');
+                if (window.refreshCleaningNotifications) window.refreshCleaningNotifications();
                 refreshReceptionBoard();
             } else {
                 showToast('Lỗi: ' + data.message, 'bg-danger');
@@ -1736,6 +1738,7 @@
                 }
 
                 showToast(data.message, 'bg-success');
+                if (window.refreshCleaningNotifications) window.refreshCleaningNotifications();
                 if (newStatus === 'occupied' && data.booking_id && data.room_id) {
                     window.openFaceGuestManager({
                         bookingId: data.booking_id,
@@ -2052,7 +2055,7 @@
             } else if (r.room_status === 'occupied') {
                 statusBadge = '<span class="badge bg-primary ms-1" style="font-size:0.7rem;">Đang ở</span>';
             } else if (r.room_status === 'cleaning') {
-                statusBadge = '<span class="badge bg-warning text-dark ms-1" style="font-size:0.7rem;">Đang dọn</span>';
+                statusBadge = '<span class="badge bg-warning text-dark ms-1" style="font-size:0.7rem;">Cần dọn</span>';
             }
             
             span.className = 'badge bg-light text-dark border p-2 d-flex align-items-center';

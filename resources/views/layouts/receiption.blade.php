@@ -95,6 +95,7 @@
        
         
         <div class="d-flex align-items-center gap-3">
+            @include('components.cleaning-notifications')
             <div class="dropdown">
                 <button class="btn d-flex align-items-center gap-2 p-0 border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <img src="https://ui-avatars.com/api/?name=Reception&background=0D8ABC&color=fff" class="rounded-circle border" width="38" height="38" alt="Avatar">

@@ -73,7 +73,11 @@ class CancellationController extends Controller
 
         // Trả phòng về trạng thái available
         foreach ($booking->rooms as $room) {
-            $room->update(['status' => Room::STATUS_AVAILABLE]);
+            $room->update([
+                'status' => Room::STATUS_AVAILABLE,
+                'needs_cleaning' => false,
+                'cleaning_requested_at' => null,
+            ]);
         }
 
         $message = $isEligible

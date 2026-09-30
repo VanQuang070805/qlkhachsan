@@ -1,5 +1,22 @@
 @extends('layouts.main')
 
+@push('styles')
+<style>
+    .cleaning-switch-card {
+        min-width: 210px;
+        padding: .65rem .8rem;
+        border: 1px solid #f3d38a;
+        border-radius: .75rem;
+        background: #fffaf0;
+    }
+    .cleaning-switch-card.requested {
+        border-color: #f59e0b;
+        background: #fff4d6;
+    }
+    .cleaning-switch-card .form-check-input { cursor: pointer; }
+</style>
+@endpush
+
 @section('content')
 <?php $pageTitle = 'Đặt Phòng Của Tôi'; ?>
 
@@ -26,7 +43,7 @@
                 <th>Tổng tiền</th>
                 <th>Thanh toán</th>
                 <th>Trạng thái</th>
-                <th></th>
+                <th>Yêu cầu phòng</th>
             </tr>
         </thead>
         <tbody>
@@ -65,6 +82,30 @@
                     @if(in_array($b->status, ['pending', 'confirmed']))
                         <a href="{{ route('booking.cancel.show', $b->id) }}"
                             class="btn btn-sm btn-outline-danger">Huỷ</a>
+                    @elseif($b->status === 'checked_in')
+                        <div class="d-flex flex-column gap-2">
+                            @foreach($b->rooms as $room)
+                                <div class="cleaning-switch-card {{ $room->needs_cleaning ? 'requested' : '' }} text-start"
+                                     id="cleaning-card-{{ $b->id }}-{{ $room->id }}">
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input cleaning-request-toggle"
+                                               type="checkbox"
+                                               role="switch"
+                                               id="cleaning-toggle-{{ $b->id }}-{{ $room->id }}"
+                                               data-url="{{ route('booking.cleaning-request', [$b->id, $room->id]) }}"
+                                               {{ $room->needs_cleaning ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-semibold" for="cleaning-toggle-{{ $b->id }}-{{ $room->id }}">
+                                            Phòng {{ $room->room_number }} cần dọn dẹp
+                                        </label>
+                                    </div>
+                                    <div class="small mt-1 cleaning-request-status {{ $room->needs_cleaning ? 'text-warning-emphasis' : 'text-muted' }}">
+                                        {{ $room->needs_cleaning ? 'Đã báo lễ tân' : 'Chưa yêu cầu' }}
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <span class="text-muted small">—</span>
                     @endif
                 </td>
             </tr>
@@ -74,3 +115,44 @@
 </div>
 <?php endif; ?>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelectorAll('.cleaning-request-toggle').forEach(toggle => {
+    toggle.addEventListener('change', async function () {
+        const previousValue = !this.checked;
+        const card = this.closest('.cleaning-switch-card');
+        const status = card.querySelector('.cleaning-request-status');
+        this.disabled = true;
+        status.textContent = 'Đang cập nhật...';
+        status.className = 'small mt-1 cleaning-request-status text-muted';
+
+        try {
+            const response = await fetch(this.dataset.url, {
+                method: 'PATCH',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ needs_cleaning: this.checked })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Không thể cập nhật yêu cầu.');
+
+            card.classList.toggle('requested', data.needs_cleaning);
+            status.textContent = data.needs_cleaning ? 'Đã báo lễ tân' : 'Chưa yêu cầu';
+            status.className = 'small mt-1 cleaning-request-status ' + (data.needs_cleaning ? 'text-warning-emphasis' : 'text-muted');
+        } catch (error) {
+            this.checked = previousValue;
+            card.classList.toggle('requested', previousValue);
+            status.textContent = error.message;
+            status.className = 'small mt-1 cleaning-request-status text-danger';
+        } finally {
+            this.disabled = false;
+        }
+    });
+});
+</script>
+@endpush

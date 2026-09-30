@@ -8,7 +8,15 @@ class Room extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['room_number', 'room_type_id', 'floor', 'status'];
+    protected $fillable = [
+        'room_number', 'room_type_id', 'floor', 'status',
+        'needs_cleaning', 'cleaning_requested_at',
+    ];
+
+    protected $casts = [
+        'needs_cleaning' => 'boolean',
+        'cleaning_requested_at' => 'datetime',
+    ];
 
     const STATUS_AVAILABLE   = 'available';
     const STATUS_BOOKED      = 'soon_to_checkin';
