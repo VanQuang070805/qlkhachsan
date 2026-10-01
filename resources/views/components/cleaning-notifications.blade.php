@@ -50,6 +50,7 @@
     const badge = document.getElementById('cleaning-notification-count');
     const summary = document.getElementById('cleaning-notification-summary');
     const list = document.getElementById('cleaning-notification-list');
+    let previousRoomSignature = null;
 
     const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;'
@@ -57,12 +58,16 @@
 
     function render(data) {
         const count = Number(data.count || 0);
+        const roomSignature = (data.rooms || []).map(room => `${room.id}:${room.requested_at || ''}`).join('|');
+        const cleaningStateChanged = previousRoomSignature !== null && previousRoomSignature !== roomSignature;
+        previousRoomSignature = roomSignature;
         badge.textContent = count > 99 ? '99+' : count;
         badge.classList.toggle('d-none', count === 0);
         summary.textContent = `${count} phòng`;
 
         if (!count) {
             list.innerHTML = '<div class="text-center text-muted small py-4"><i class="fa-solid fa-circle-check text-success me-1"></i> Không có phòng chờ dọn</div>';
+            if (cleaningStateChanged) window.dispatchEvent(new CustomEvent('cleaning-notifications-updated'));
             return;
         }
 
@@ -90,6 +95,8 @@
                 card.click();
             });
         });
+
+        if (cleaningStateChanged) window.dispatchEvent(new CustomEvent('cleaning-notifications-updated'));
     }
 
     async function refreshCleaningNotifications() {
@@ -107,6 +114,6 @@
 
     refreshCleaningNotifications();
     window.refreshCleaningNotifications = refreshCleaningNotifications;
-    window.setInterval(refreshCleaningNotifications, 10000);
+    window.setInterval(refreshCleaningNotifications, 3000);
 })();
 </script>

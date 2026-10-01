@@ -1,7 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\IotRoomController;
 use App\Http\Controllers\PaymentController;
+
+Route::post('/iot/rooms/{roomNumber}/cleaning-request', [IotRoomController::class, 'updateCleaningRequest'])
+    ->name('iot.rooms.cleaning-request');
 
 // ============================================================
 // WEBHOOK — Nhận callback từ cổng thanh toán
