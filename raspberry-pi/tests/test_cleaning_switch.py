@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from cleaning_switch import CleaningApiClient, CleaningSwitchConfig
+from cleaning_switch import CleaningApiClient, CleaningSwitchConfig, load_env_file
 
 
 class FakeResponse:
@@ -67,6 +67,18 @@ class CleaningSwitchTests(unittest.TestCase):
         }, clear=True):
             with self.assertRaisesRegex(ValueError, "IOT_DEVICE_API_KEY"):
                 CleaningSwitchConfig.from_env()
+
+    def test_env_file_is_loaded_without_overwriting_existing_values(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, ".env")
+            with open(path, "w", encoding="utf-8") as env_file:
+                env_file.write("HOTEL_API_BASE_URL=http://laptop:8000\nIOT_DEVICE_API_KEY=file-key\n")
+            with patch.dict(os.environ, {"IOT_DEVICE_API_KEY": "existing-key"}, clear=True):
+                load_env_file(path)
+                self.assertEqual(os.environ["HOTEL_API_BASE_URL"], "http://laptop:8000")
+                self.assertEqual(os.environ["IOT_DEVICE_API_KEY"], "existing-key")
 
 
 if __name__ == "__main__":

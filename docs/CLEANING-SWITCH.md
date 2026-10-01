@@ -49,11 +49,11 @@ Cài GPIO Zero và chạy:
 ```bash
 sudo apt update
 sudo apt install -y python3-gpiozero
-set -a
-. ./.env
-set +a
+python3 cleaning_switch.py --check-api
 python3 cleaning_switch.py
 ```
+
+Chương trình tự đọc file `.env`. Lệnh `--check-api` chỉ kiểm tra địa chỉ và khóa API, không cần GPIO và không thay đổi trạng thái phòng.
 
 Chương trình gửi trạng thái hiện tại ngay khi khởi động. Nếu máy tính hoặc Wi-Fi tạm thời mất kết nối, chương trình tiếp tục thử gửi trạng thái mới nhất.
 
