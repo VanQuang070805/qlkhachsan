@@ -94,7 +94,6 @@ async function send(prompt) {
     const content = draft.value.trim();
     if (!content || pending.value) return;
 
-    const history = messages.value.slice(-8).map(({ role, content }) => ({ role, content }));
     messages.value.push(message('user', content));
     persist();
     draft.value = '';
@@ -112,10 +111,10 @@ async function send(prompt) {
                 Accept: 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
             },
-            body: JSON.stringify({ message: content, history }),
+            body: JSON.stringify({ message: content }),
         });
         if (!response.ok || !response.body) throw new Error('Request failed');
-        const assistant = message('assistant', '', { sources: [] });
+        const assistant = message('assistant', '');
         messages.value.push(assistant);
         const assistantIndex = messages.value.length - 1;
         const userIndex = latestUserIndex.value;
@@ -134,7 +133,6 @@ async function send(prompt) {
                 if (!line) continue;
                 const data = JSON.parse(line.slice(6));
                 if (data.delta) messages.value[assistantIndex].content += data.delta;
-                if (data.done) messages.value[assistantIndex].sources = Array.isArray(data.sources) ? data.sources : [];
             }
             await scrollToLatest();
             if (done) break;
@@ -163,8 +161,10 @@ onMounted(() => {
             ? saved.slice(-10).map(item => message(item.role, item.content, { sentAt: item.sentAt || new Date().toISOString(), status: item.status || (item.role === 'user' ? 'Đã gửi' : null) }))
             : [message('assistant', 'Xin chào, tôi có thể giúp bạn chọn phòng, xem giá hoặc hướng dẫn đặt kỳ nghỉ.')];
     } catch {
-        messages.value = [message('assistant', 'Xin chào, tôi có thể giúp bạn chuẩn bị kỳ nghỉ tại Royal Hotel.')];
+        messages.value = [message('assistant', 'Xin chào, tôi có thể giúp bạn chuẩn bị kỳ nghỉ tại Posh Boutique.')];
     }
+    window.openRoyalChat = () => toggle(true);
+    window.toggleRoyalChat = (val) => toggle(val);
     document.addEventListener('keydown', escapeClose);
 });
 
@@ -196,7 +196,6 @@ onBeforeUnmount(() => {
             <div v-for="(item, index) in messages" :key="`${index}-${item.role}`" :class="['royal-chat__row', `royal-chat__row--${item.role}`, { 'has-tail': isLastInRun(index) }]" role="group" :aria-label="item.role === 'user' ? 'Tin nhắn của bạn' : 'Tin nhắn từ Royal Concierge'">
                 <div :class="['royal-chat__message', `royal-chat__message--${item.role}`]">
                     {{ item.content }}
-                    <small v-if="item.sources?.length" class="royal-chat__sources">Nguồn: {{ item.sources.join(' · ') }}</small>
                 </div>
                 <small v-if="item.role === 'user' && index === latestUserIndex" class="royal-chat__meta"><time :datetime="item.sentAt">{{ timeLabel(item.sentAt) }}</time><span aria-hidden="true">·</span><span>{{ item.status }}</span></small>
             </div>
@@ -212,6 +211,6 @@ onBeforeUnmount(() => {
             <textarea id="royal-chat-input" ref="input" v-model="draft" rows="1" maxlength="1000" placeholder="Hỏi về kỳ nghỉ của bạn…" required @input="resizeInput" @keydown="keydown"></textarea>
             <button type="submit" aria-label="Gửi câu hỏi" :disabled="pending"><span aria-hidden="true">↑</span></button>
         </form>
-        <p class="royal-chat__note">Câu trả lời dùng dữ liệu hiện tại và tài liệu Royal Hotel.</p>
+        <p class="royal-chat__note">Câu trả lời dùng dữ liệu hiện tại và tài liệu Posh Boutique.</p>
     </div>
 </template>

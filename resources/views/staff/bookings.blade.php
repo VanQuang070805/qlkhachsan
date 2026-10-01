@@ -1,4 +1,6 @@
 @extends('layouts.dashboard')
+@section('title', 'Sơ đồ phòng · Posh Boutique')
+@section('page-title', 'Sơ đồ phòng')
 
 @section('content')
 @php
@@ -1077,14 +1079,14 @@
                 <div class="mb-3">
                     <label for="extend-mode" class="form-label fw-semibold" style="color: #334155; font-size: 0.85rem;">Hình thức gia hạn</label>
                     <select id="extend-mode" class="form-select" onchange="syncExtendMode()" style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
-                        <option value="hours">Theo giờ · 200.000đ/giờ</option>
+                        <option value="hours">Theo giờ · 10% giá phòng/giờ</option>
                         <option value="days">Theo ngày · giá phòng hiện tại</option>
                     </select>
                 </div>
                 <div class="mb-3">
                     <label for="extend-amount" class="form-label fw-semibold" id="extend-amount-label" style="color: #334155; font-size: 0.85rem;">Số giờ gia hạn</label>
                     <input type="number" id="extend-amount" class="form-control" min="1" max="12" value="1" required style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
-                    <div class="form-text" id="extend-help" style="color: #64748b; font-size: 0.8rem;">Tối đa 12 giờ. Phí 200.000đ cho mỗi giờ.</div>
+                    <div class="form-text" id="extend-help" style="color: #64748b; font-size: 0.8rem;">Tối đa 12 giờ. Mỗi giờ tính 10% giá một đêm.</div>
                 </div>
                 <div class="p-3 rounded d-flex align-items-center gap-2" style="background: #f0f9ff; border: 1px solid #e0f2fe; color: #0369a1; font-size: 0.84rem; border-radius: 10px;">
                     <i class="fa-solid fa-circle-info flex-shrink-0"></i>
@@ -1342,12 +1344,21 @@
     </div>
 </div>
 
-<!-- Toast Status Notification -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
-    <div id="statusToast" class="toast align-items-center text-white border-0" role="alert" data-bs-delay="4000">
-        <div class="d-flex">
-            <div class="toast-body fw-500" id="toastMessage">Cập nhật thành công!</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-delay="4000" data-bs-dismiss="toast"></button>
+<!-- Luxury Floating Flash Toast Notification (macOS / Quiet Luxury) -->
+<div id="staffFlashToastWrap" class="staff-flash-wrap" aria-live="polite" role="status" style="position: fixed; z-index: 99999; top: 88px; left: 50%; transform: translateX(-50%) translateY(-12px); width: min(540px, calc(100% - 32px)); pointer-events: none; opacity: 0; transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1), transform 0.38s cubic-bezier(0.16, 1, 0.3, 1); display: none;">
+    <div id="staffFlashToastCard" class="staff-flash-card" style="pointer-events: auto; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px 16px 18px; border-radius: 18px; background: rgba(240, 253, 244, 0.97); border: 1.5px solid rgba(34, 197, 94, 0.32); color: #14532d; box-shadow: 0 20px 48px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.06); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 600; line-height: 1.45;">
+            <div id="staffFlashIconWrap" style="width: 32px; height: 32px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px;">
+                <i id="staffFlashIcon" class="bi bi-check-circle-fill"></i>
+            </div>
+            <span id="staffFlashMessage">Cập nhật thành công!</span>
+        </div>
+        <button type="button" onclick="dismissStaffFlashToast()" aria-label="Đóng thông báo" style="background: none; border: none; padding: 4px 6px; color: currentColor; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; opacity: 0.65; transition: opacity 0.2s ease;">
+            <i class="bi bi-x-lg" style="font-size: 13px;"></i>
+        </button>
+        <!-- 5s animated countdown progress indicator line at the bottom -->
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(0,0,0,0.06);">
+            <div id="staffFlashProgressBar" style="height: 100%; width: 100%; background: #22c55e; transform-origin: left; transform: scaleX(1);"></div>
         </div>
     </div>
 </div>
@@ -1715,7 +1726,7 @@
         const mode = document.getElementById('extend-mode').value;
         const amount = document.getElementById('extend-amount');
         document.getElementById('extend-amount-label').textContent = mode === 'hours' ? 'Số giờ gia hạn' : 'Số ngày gia hạn';
-        document.getElementById('extend-help').textContent = mode === 'hours' ? 'Tối đa 12 giờ. Phí 200.000đ cho mỗi giờ.' : 'Từ 1 đến 30 ngày, tính theo giá phòng hiện tại.';
+        document.getElementById('extend-help').textContent = mode === 'hours' ? 'Tối đa 12 giờ. Mỗi giờ tính 10% giá một đêm.' : 'Từ 1 đến 30 ngày, tính theo giá phòng hiện tại.';
         amount.max = mode === 'hours' ? 12 : 30;
     }
 
@@ -2149,16 +2160,80 @@
     });
     @endif
 
-    function showToast(message, bgClass) {
-        const toastEl = document.getElementById('statusToast');
-        const messageEl = document.getElementById('toastMessage');
-        
-        toastEl.classList.remove('bg-success', 'bg-danger', 'bg-warning');
-        toastEl.classList.add(bgClass);
-        messageEl.innerText = message;
-        
-        const toast = new bootstrap.Toast(toastEl);
-        toast.show();
+    let staffFlashTimer = null;
+
+    function showToast(message, typeOrClass = 'bg-success') {
+        const wrap = document.getElementById('staffFlashToastWrap');
+        const card = document.getElementById('staffFlashToastCard');
+        const msgEl = document.getElementById('staffFlashMessage');
+        const iconWrap = document.getElementById('staffFlashIconWrap');
+        const icon = document.getElementById('staffFlashIcon');
+        const bar = document.getElementById('staffFlashProgressBar');
+        if (!wrap || !card || !msgEl) return;
+
+        if (staffFlashTimer) {
+            clearTimeout(staffFlashTimer);
+            staffFlashTimer = null;
+        }
+
+        const isError = String(typeOrClass).includes('danger') || String(typeOrClass).includes('error');
+        const isWarning = String(typeOrClass).includes('warning');
+
+        if (isError) {
+            card.style.background = 'rgba(255, 245, 245, 0.97)';
+            card.style.borderColor = 'rgba(239, 68, 68, 0.32)';
+            card.style.color = '#991b1b';
+            if (iconWrap) { iconWrap.style.background = '#fee2e2'; iconWrap.style.color = '#dc2626'; }
+            if (icon) { icon.className = 'bi bi-exclamation-triangle-fill'; }
+            if (bar) { bar.style.background = '#ef4444'; }
+        } else if (isWarning) {
+            card.style.background = 'rgba(255, 251, 235, 0.97)';
+            card.style.borderColor = 'rgba(245, 158, 11, 0.32)';
+            card.style.color = '#92400e';
+            if (iconWrap) { iconWrap.style.background = '#fef3c7'; iconWrap.style.color = '#d97706'; }
+            if (icon) { icon.className = 'bi bi-exclamation-circle-fill'; }
+            if (bar) { bar.style.background = '#f59e0b'; }
+        } else {
+            card.style.background = 'rgba(240, 253, 244, 0.97)';
+            card.style.borderColor = 'rgba(34, 197, 94, 0.32)';
+            card.style.color = '#14532d';
+            if (iconWrap) { iconWrap.style.background = '#dcfce7'; iconWrap.style.color = '#16a34a'; }
+            if (icon) { icon.className = 'bi bi-check-circle-fill'; }
+            if (bar) { bar.style.background = '#22c55e'; }
+        }
+
+        msgEl.innerText = message;
+        wrap.style.display = 'block';
+
+        if (bar) {
+            bar.style.transition = 'none';
+            bar.style.transform = 'scaleX(1)';
+        }
+
+        requestAnimationFrame(() => {
+            wrap.style.opacity = '1';
+            wrap.style.transform = 'translateX(-50%) translateY(0)';
+            if (bar) {
+                requestAnimationFrame(() => {
+                    bar.style.transition = 'transform 5s linear';
+                    bar.style.transform = 'scaleX(0)';
+                });
+            }
+        });
+
+        staffFlashTimer = setTimeout(() => {
+            dismissStaffFlashToast();
+        }, 5000);
+    }
+
+    function dismissStaffFlashToast() {
+        const wrap = document.getElementById('staffFlashToastWrap');
+        if (!wrap) return;
+        wrap.style.opacity = '0';
+        wrap.style.transform = 'translateX(-50%) translateY(-14px)';
+        setTimeout(() => {
+            wrap.style.display = 'none';
+        }, 400);
     }
 
     function filterRooms() {
@@ -2387,7 +2462,7 @@
 
     function processScannedText(text) {
         const normalizedText = String(text || '').trim();
-        const token = normalizedText.startsWith('ROYAL-CHECKIN:') ? normalizedText.slice(14) : '';
+        const token = normalizedText.startsWith('POSH-CHECKIN:') ? normalizedText.slice(13) : (normalizedText.startsWith('ROYAL-CHECKIN:') ? normalizedText.slice(14) : '');
         
         if (!token) {
             showToast('Mã QR không đúng định dạng hóa đơn đặt phòng.', 'bg-danger');

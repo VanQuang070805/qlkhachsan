@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\PriceSetting;
+use App\Models\Booking;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 
 class RoomController extends Controller
@@ -13,15 +15,93 @@ class RoomController extends Controller
     /**
      * Danh sách loại phòng + form tìm kiếm
      */
-    public function index()
+    public function index(Request $request)
     {
-        $roomTypes = RoomType::with(['amenities', 'rooms'])
-            ->withCount(['rooms as available_count' => function ($q) {
-                $q->where('status', 'available');
-            }])
-            ->get();
+        $now = now('Asia/Ho_Chi_Minh');
+        $earliestCheckIn = $now->copy()->startOfDay();
+        if ($now->hour >= 17) {
+            $earliestCheckIn->addDay();
+        }
 
-        return view('room.index', ['rooms' => $roomTypes]);
+        $searchSubmitted = $request->boolean('search');
+        $filters = $searchSubmitted ? $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'check_in' => ['required', 'date_format:Y-m-d'],
+            'check_out' => ['required', 'date_format:Y-m-d', 'after:check_in'],
+            'adults' => ['required', 'integer', 'min:0', 'max:20'],
+            'children' => ['required', 'integer', 'min:0', 'max:20'],
+        ]) : [];
+
+        $checkIn = $filters['check_in'] ?? $earliestCheckIn->toDateString();
+        $checkOut = $filters['check_out'] ?? $earliestCheckIn->copy()->addDay()->toDateString();
+        if ($searchSubmitted && $checkIn < $earliestCheckIn->toDateString()) {
+            throw ValidationException::withMessages([
+                'check_in' => $now->hour >= 17
+                    ? 'Sau 17:00, vui lòng chọn ngày nhận phòng từ ngày mai.'
+                    : 'Ngày nhận phòng không thể ở trong quá khứ.',
+            ]);
+        }
+
+        $adults = (int) ($filters['adults'] ?? 1);
+        $children = (int) ($filters['children'] ?? 0);
+        $nights = Carbon::parse($checkIn)->diffInDays(Carbon::parse($checkOut));
+        $reservedRoomIds = Booking::reservedRoomIds($checkIn, $checkOut)
+            ->map(fn ($id) => (int) $id)
+            ->flip();
+
+        $roomTypes = RoomType::with(['amenities', 'rooms'])
+            ->when(filled($filters['q'] ?? null), function ($query) use ($filters) {
+                $term = trim($filters['q']);
+                $query->where(function ($match) use ($term) {
+                    $match->where('type_name', 'like', "%{$term}%")
+                        ->orWhere('description', 'like', "%{$term}%")
+                        ->orWhereHas('amenities', fn ($amenities) => $amenities->where('amenity_name', 'like', "%{$term}%"));
+                });
+            })
+            ->get()
+            ->map(function (RoomType $type) use ($reservedRoomIds, $checkIn, $checkOut, $nights) {
+                $type->available_count = $type->rooms->filter(fn (Room $room) =>
+                    $room->status === Room::STATUS_AVAILABLE && !$reservedRoomIds->has((int) $room->id)
+                )->count();
+                $type->price = PriceSetting::calculateTotalPrice((float) $type->price, $checkIn, $checkOut) / max($nights, 1);
+                return $type;
+            });
+
+        if ($searchSubmitted) {
+            $guestCount = $adults + $children;
+            $roomTypes = $roomTypes->filter(function (RoomType $type) use ($adults, $children, $guestCount) {
+                $adultCapacity = (int) $type->max_adults;
+                $childCapacity = (int) $type->max_children;
+                $guestCapacity = (int) $type->max_guests;
+
+                if ($adultCapacity < 1 || $guestCapacity < 1 || ($children > 0 && $childCapacity < 1)) {
+                    return false;
+                }
+
+                $roomsNeeded = max(
+                    (int) ceil($adults / $adultCapacity),
+                    $children > 0 ? (int) ceil($children / $childCapacity) : 0,
+                    (int) ceil($guestCount / $guestCapacity),
+                );
+
+                return $type->available_count >= $roomsNeeded;
+            })->values();
+        }
+
+        $filters = [
+            'q' => $filters['q'] ?? '',
+            'check_in' => $checkIn,
+            'check_out' => $checkOut,
+            'adults' => $adults,
+            'children' => $children,
+        ];
+
+        return view('room.index', [
+            'rooms' => $roomTypes,
+            'filters' => $filters,
+            'earliestCheckIn' => $earliestCheckIn->toDateString(),
+            'searchSubmitted' => $searchSubmitted,
+        ]);
     }
 
     /**

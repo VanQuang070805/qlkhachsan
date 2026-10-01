@@ -46,7 +46,7 @@ class VietQRService
             ->where('status', 'pending')
             ->whereNull('transaction_id')
             ->where('reference_code', 'like', 'KS%')
-            ->where('created_at', '>=', now()->subMinutes(30))
+            ->where('created_at', '>', now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))
             ->latest()
             ->first();
         
@@ -172,7 +172,7 @@ class VietQRService
         // Lấy reference_code từ payment_log pending gần nhất
         $log = \App\Models\PaymentLog::where('booking_id', $booking->id)
             ->where('gateway', 'vietqr')
-            ->whereNull('transaction_id')->where('reference_code', 'like', 'KS%')->where('status', 'pending')->where('created_at', '>=', now()->subMinutes(30))
+            ->whereNull('transaction_id')->where('reference_code', 'like', 'KS%')->where('status', 'pending')->where('created_at', '>', now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))
             ->latest()
             ->first();
 

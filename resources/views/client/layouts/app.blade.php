@@ -2,11 +2,15 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Royal Hotel - Không gian nghỉ dưỡng riêng tư và thư thái.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Posh Boutique - Không gian nghỉ dưỡng riêng tư và thư thái.">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Royal Hotel')</title>
-    <link rel="icon" href="{{ asset('royal-hotel-logo.png') }}" type="image/png">
+    <title>@yield('title', 'Posh Boutique')</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -23,6 +27,7 @@
     </main>
     @include('client.partials.footer')
     @include('client.partials.chatbot')
+    @include('client.partials.ios-tab-bar')
     @stack('scripts')
 </body>
 </html>

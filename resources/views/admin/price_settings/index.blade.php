@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title','Điều chỉnh giá · Royal Hotel')
+@section('title','Điều chỉnh giá · Posh Boutique')
 @section('page-title','Chiến lược giá')
 @section('content')
 <div class="d-flex align-items-center justify-content-between mb-4">

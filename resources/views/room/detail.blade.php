@@ -127,7 +127,7 @@
                         <h2 class="aeth-section-title">
                             <span>Tiện nghi</span>
                         </h2>
-                        <span class="badge rounded-pill bg-slate-100 text-slate-700 px-3 py-1 fw-semibold" style="font-size:11.5px; border:1px solid #e2e8f0;">
+                        <span class="badge rounded-pill bg-slate-100 text-slate-700 px-3 py-1 fw-semibold" style="font-size:11.5px; border:none; background:#f1f5f9;">
                             Chuẩn 6 Sao
                         </span>
                     </div>
@@ -171,9 +171,9 @@
                     <div class="aeth-section-title-wrap">
                         <h2 class="aeth-section-title">
                             <i class="bi bi-chat-heart"></i>
-                            <span>Đánh Giá Thực Tế</span>
+                            <span>Đánh Giá</span>
                         </h2>
-                        <span class="badge rounded-pill bg-emerald-50 text-emerald-700 px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" style="font-size:11.5px; border:1px solid rgba(167, 243, 208, 0.8);">
+                        <span class="badge rounded-pill bg-emerald-50 text-emerald-700 px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" style="font-size:11.5px; border:none; background:#ecfdf5;">
                             <i class="bi bi-shield-check"></i> Xác minh trải nghiệm
                         </span>
                     </div>
@@ -220,7 +220,6 @@
                             <span class="aeth-rate-price" id="displayRate">{{ number_format($room->price, 0, ',', '.') }}đ</span>
                             <span class="aeth-rate-unit">/ đêm</span>
                         </div>
-                        <span class="aeth-rate-strike">{{ number_format($room->price * 1.18, 0, ',', '.') }}đ</span>
                     </div>
 
                     {{-- Khay Phân Đoạn Chọn Ngày (Native Overlay Date Picker) --}}
@@ -289,19 +288,19 @@
                         @if($byFloor->isEmpty())
                             <p class="text-muted text-center py-2 mb-0" style="font-size:12px;">Hiện không có phòng nào sẵn sàng.</p>
                         @else
-                            <div id="floorRoomsScrollList" data-lenis-prevent class="floor-rooms-scroll-list" style="max-height: 200px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px;">
+                            <div id="floorRoomsScrollList" data-lenis-prevent class="floor-rooms-scroll-list" style="max-height: 220px; overflow-y: auto; overscroll-behavior: contain; padding: 2px 4px 2px 0;">
                                 @foreach($byFloor as $floor => $fRooms)
-                                <div class="mb-2" data-floor-group="{{ $floor }}">
-                                    <div class="d-flex align-items-center justify-content-between mb-1" style="font-size: 11px; font-weight: 600; color: #64748b;">
+                                <div class="mb-3" data-floor-group="{{ $floor }}">
+                                    <div class="d-flex align-items-center justify-content-between mb-1.5" style="font-size: 12px; font-weight: 700; color: #475569;">
                                         <span>Tầng {{ $floor }}</span>
                                     </div>
-                                    <div class="d-flex flex-wrap gap-1.5">
+                                    <div class="floor-rooms-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px;">
                                         @foreach($fRooms as $r)
                                         @php
                                             $taken = $r->is_booked || $r->status !== 'available';
                                         @endphp
                                         <button type="button"
-                                            class="aeth-room-pill btn btn-sm {{ $taken ? 'btn-light disabled' : 'btn-outline-primary' }}"
+                                            class="aeth-room-pill btn {{ $taken ? 'btn-light disabled' : 'btn-outline-primary' }}"
                                             data-room-id="{{ $r->id }}"
                                             data-room-number="{{ $r->room_number }}"
                                             data-floor="{{ $r->floor }}"
@@ -309,7 +308,7 @@
                                             data-is-booked="{{ $taken ? 'true' : 'false' }}"
                                             aria-pressed="false"
                                             @if($taken) disabled aria-disabled="true" @else aria-disabled="false" onclick="toggleRoom(this)" @endif
-                                            style="border-radius: 8px; padding: 4px 8px; font-weight: 600; font-size: 11.5px;">
+                                            style="border-radius: 10px; padding: 7px 8px; font-weight: 600; font-size: 13px; min-height: 38px; display: flex; align-items: center; justify-content: center; width: 100%;">
                                             <span>P.{{ $r->room_number }}</span>
                                         </button>
                                         @endforeach
@@ -321,12 +320,12 @@
                     </div>
 
                     {{-- Bảng Phân Tích Chi Phí Minh Bạch (Đã xóa phí dịch vụ) --}}
-                    <div class="aeth-breakdown border-top pt-3">
+                    <div class="aeth-breakdown pt-3" style="border-top: none !important;">
                         <div class="aeth-breakdown-row">
                             <span id="breakdownNightsLabel">1 đêm × 1 phòng</span>
                             <strong id="breakdownBase">{{ number_format($room->price, 0, ',', '.') }}đ</strong>
                         </div>
-                        <div class="aeth-total-box">
+                        <div class="aeth-total-box" style="border: none !important; box-shadow: none !important; outline: none !important;">
                             <span>Tổng thanh toán</span>
                             <strong id="breakdownTotal">{{ number_format($room->price * 1.08, 0, ',', '.') }}đ</strong>
                         </div>

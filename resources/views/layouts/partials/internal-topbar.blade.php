@@ -1,7 +1,7 @@
 <header class="internal-topbar">
     <div class="topbar-left">
         <div class="topbar-breadcrumb">
-            <span class="topbar-brand-label"><i class="bi bi-building me-1 text-primary"></i>Royal Hotel</span>
+            <span class="topbar-brand-label"><i class="bi bi-building me-1 text-primary"></i>Posh Boutique</span>
             <span class="topbar-sep">/</span>
             <span class="topbar-current-page">@hasSection('page-title')@yield('page-title')@else @yield('title', 'Vận hành')@endif</span>
         </div>

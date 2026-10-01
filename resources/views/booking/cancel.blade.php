@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Hủy phòng · Royal Hotel')
+@section('title', 'Hủy phòng · POSH BOUTIQUE')
 
 @section('content')
 <section class="commerce-page booking-cancel-container" aria-labelledby="cancel-title" style="padding-top: 20px; padding-bottom: 80px;">
@@ -88,16 +88,16 @@
                     </div>
                 @endif
 
-                {{-- Form lý do hủy --}}
+                {{-- Form hủy đặt phòng --}}
                 <form action="{{ route('booking.cancel', $booking->id) }}" method="POST" id="cancelForm">
                     @csrf
                     <div class="mb-4">
                         <label for="cancelReason" class="form-label fw-bold text-slate-800" style="font-size: 13px;">
-                            Lý do hủy đặt phòng <span class="text-danger">*</span>
+                            Lý do hủy đặt phòng <span class="text-muted fw-normal">(không bắt buộc)</span>
                         </label>
                         <textarea id="cancelReason" name="reason" class="form-control @error('reason') is-invalid @enderror"
-                            rows="4" placeholder="Vui lòng cho biết lý do để Royal Hotel nâng cao chất lượng dịch vụ..."
-                            required maxlength="500" style="border-radius: 16px; border: 1px solid #cbd5e1; padding: 14px 16px; font-size: 13.5px; line-height: 1.5; resize: none; background: #fafafa;">{{ old('reason') }}</textarea>
+                            rows="4" placeholder="Bạn có thể chia sẻ lý do nếu muốn..."
+                            maxlength="500" style="border-radius: 16px; border: 1px solid #cbd5e1; padding: 14px 16px; font-size: 13.5px; line-height: 1.5; resize: none; background: #fafafa;">{{ old('reason') }}</textarea>
                         @error('reason')
                             <div class="invalid-feedback mt-1">{{ $message }}</div>
                         @enderror

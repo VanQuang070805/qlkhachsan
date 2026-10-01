@@ -181,6 +181,20 @@ class SecurityFlowsTest extends TestCase
         $this->assertSame('checked_in', $booking->fresh()->status);
     }
 
+    public function test_customer_can_cancel_without_providing_a_reason(): void
+    {
+        $customer = $this->customer('cancel-without-reason@example.com');
+        $booking = $this->bookingFor($customer);
+
+        $this->asCustomer($customer)
+            ->post(route('booking.cancel', $booking->id))
+            ->assertRedirect(route('booking.mine'))
+            ->assertSessionHas('success');
+
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertNull($booking->fresh()->cancellation_reason);
+    }
+
     public function test_refund_can_only_be_confirmed_once_and_for_cancelled_bookings(): void
     {
         $customer = $this->customer('refund-owner@example.com');
@@ -360,6 +374,27 @@ class SecurityFlowsTest extends TestCase
         $this->assertSame('pending', $booking->fresh()->status);
     }
 
+    public function test_expired_pending_hold_cannot_enter_direct_payment_route(): void
+    {
+        $customer = $this->customer('expired-payment@example.com');
+        $booking = $this->bookingFor($customer);
+        $booking->update(['payment_method' => 'cash']);
+
+        $this->travel(11)->minutes();
+
+        $this->asCustomer($customer)
+            ->get(route('payment.show', $booking->id))
+            ->assertConflict();
+
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertSame('failed', $booking->fresh()->payment_status);
+        $this->assertDatabaseMissing('payment_logs', [
+            'booking_id' => $booking->id,
+            'status' => 'success',
+        ]);
+        $this->travelBack();
+    }
+
     public function test_password_reset_authorization_cannot_be_reused_for_another_email(): void
     {
         $first = $this->customer('first-reset@example.com');
@@ -436,7 +471,7 @@ class SecurityFlowsTest extends TestCase
         $this->assertSame('occupied', $room->fresh()->status);
     }
 
-    public function test_unpaid_room_hold_expires_after_thirty_minutes(): void
+    public function test_unpaid_room_hold_expires_and_booking_is_cancelled_after_ten_minutes(): void
     {
         $type = \App\Models\RoomType::create(['type_name'=>'Hold test', 'price'=>20000, 'max_adults'=>2, 'max_children'=>0, 'max_guests'=>2]);
         $room = \App\Models\Room::create(['room_number'=>'QA104', 'room_type_id'=>$type->id, 'floor'=>1, 'status'=>'available']);
@@ -445,8 +480,11 @@ class SecurityFlowsTest extends TestCase
         $start = $booking->check_in->toDateString();
         $end = $booking->check_out->toDateString();
         $this->assertTrue(Booking::reservedRoomIds($start, $end)->contains($room->id));
-        $this->travel(31)->minutes();
+        $this->travel(10)->minutes();
         $this->assertFalse(Booking::reservedRoomIds($start, $end)->contains($room->id));
+        $this->artisan('bookings:expire-pending')->assertExitCode(0);
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertSame('failed', $booking->fresh()->payment_status);
         $booking->update(['status'=>'confirmed']);
         $this->assertTrue(Booking::reservedRoomIds($start, $end)->contains($room->id));
         $this->assertFalse(Booking::reservedRoomIds($start, $end, $booking->id)->contains($room->id));
@@ -737,7 +775,7 @@ class SecurityFlowsTest extends TestCase
         $this->postJson(route('chatbot.api'), ['message' => 'Giá phòng hiện tại?'])
             ->assertOk()
             ->assertJsonPath('source', 'hotel')
-            ->assertJsonFragment(['reply' => "Bảng giá phòng hiện tại của Royal Hotel:\n- Phòng Kiểm Thử: 765.000 VNĐ/đêm (Tối đa 3 người)\n\nBạn có thể nhấn vào mục 'Tìm phòng trống' trên thanh menu để chọn ngày và đặt phòng nhé."]);
+            ->assertJsonFragment(['reply' => "Bảng giá phòng hiện tại của Posh Boutique:\n- Phòng Kiểm Thử: 765.000 VNĐ/đêm (Tối đa 3 người)\n\nBạn có thể nhấn vào mục 'Tìm phòng trống' trên thanh menu để chọn ngày và đặt phòng nhé."]);
     }
 
     public function test_chatbot_has_a_dedicated_per_ip_rate_limit(): void
@@ -830,7 +868,7 @@ class SecurityFlowsTest extends TestCase
             'services.royal_ai.embedding_model' => 'text-embedding-test',
         ]);
         KnowledgeChunk::create([
-            'source' => 'Royal Hotel · Arrival',
+            'source' => 'Posh Boutique · Arrival',
             'title' => 'Arrival',
             'content' => 'Nội dung không trùng từ khóa truy vấn.',
             'content_hash' => hash('sha256', 'semantic-arrival'),
@@ -838,7 +876,7 @@ class SecurityFlowsTest extends TestCase
             'embedding_model' => 'text-embedding-test',
         ]);
         KnowledgeChunk::create([
-            'source' => 'Royal Hotel · Other',
+            'source' => 'Posh Boutique · Other',
             'title' => 'Other',
             'content' => 'Một đoạn nội dung khác.',
             'content_hash' => hash('sha256', 'semantic-other'),
@@ -852,7 +890,7 @@ class SecurityFlowsTest extends TestCase
 
         $results = app(\App\Services\RoyalKnowledgeService::class)->search('semantic only request');
 
-        $this->assertSame('Royal Hotel · Arrival', $results[0]['source']);
+        $this->assertSame('Posh Boutique · Arrival', $results[0]['source']);
         $this->assertSame(1.0, $results[0]['semantic_score']);
     }
 

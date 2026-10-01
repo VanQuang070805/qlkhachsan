@@ -231,8 +231,11 @@ body.sidebar-collapsed .sidebar-account{border-color:transparent!important;backg
 .staff-action-primary {
     background: #0f172a !important;
     color: #ffffff !important;
-    border-color: #0f172a !important;
+    border: 1.5px solid #0f172a !important;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18) !important;
+}
+.staff-action-primary i, .staff-action-primary span {
+    color: #ffffff !important;
 }
 .staff-action-primary:hover:not(:disabled) {
     background: #1e293b !important;
@@ -243,8 +246,11 @@ body.sidebar-collapsed .sidebar-account{border-color:transparent!important;backg
 .staff-action-success {
     background: #0071e3 !important;
     color: #ffffff !important;
-    border-color: #0071e3 !important;
+    border: 1.5px solid #0071e3 !important;
     box-shadow: 0 2px 8px rgba(0, 113, 227, 0.22) !important;
+}
+.staff-action-success i, .staff-action-success span {
+    color: #ffffff !important;
 }
 .staff-action-success:hover:not(:disabled) {
     background: #0077ed !important;
@@ -255,8 +261,11 @@ body.sidebar-collapsed .sidebar-account{border-color:transparent!important;backg
 .staff-action-done {
     background: #10b981 !important;
     color: #ffffff !important;
-    border-color: #10b981 !important;
+    border: 1.5px solid #10b981 !important;
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2) !important;
+}
+.staff-action-done i, .staff-action-done span {
+    color: #ffffff !important;
 }
 .staff-action-done:hover:not(:disabled) {
     background: #059669 !important;
@@ -265,24 +274,41 @@ body.sidebar-collapsed .sidebar-account{border-color:transparent!important;backg
 }
 
 .staff-action-secondary {
-    background: #ffffff !important;
-    color: #1e293b !important;
-    border-color: rgba(0, 0, 0, 0.12) !important;
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1.5px solid #cbd5e1 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+}
+.staff-action-secondary i {
+    color: #475569 !important;
+}
+.staff-action-secondary span {
+    color: #0f172a !important;
+    font-weight: 600 !important;
 }
 .staff-action-secondary:hover:not(:disabled) {
-    background: #f8fafc !important;
-    border-color: rgba(0, 0, 0, 0.2) !important;
+    background: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
     color: #0f172a !important;
+}
+.staff-action-secondary:disabled {
+    background: #f8fafc !important;
+    color: #94a3b8 !important;
+    border-color: #e2e8f0 !important;
+    opacity: 0.6 !important;
+}
+.staff-action-secondary:disabled i, .staff-action-secondary:disabled span {
+    color: #94a3b8 !important;
 }
 
 .staff-action-warning {
     background: #fffbeb !important;
     color: #92400e !important;
-    border-color: rgba(245, 158, 11, 0.25) !important;
+    border: 1.5px solid rgba(245, 158, 11, 0.3) !important;
 }
 .staff-action-warning:hover:not(:disabled) {
     background: #fef3c7 !important;
-    border-color: rgba(245, 158, 11, 0.4) !important;
+    border-color: rgba(245, 158, 11, 0.5) !important;
     color: #78350f !important;
 }
 .internal-shell nav[role="navigation"] :is(p.small.text-muted,div.d-flex.justify-content-between.flex-fill){display:none!important}
@@ -475,6 +501,57 @@ body.has-active-modal {
 .internal-shell .primary-action:hover {
     background: #1e1e24 !important;
     border-color: #1e1e24 !important;
+    transform: translateY(-1px) !important;
+}
+
+/* High-contrast accessible action buttons inside all internal modals */
+.internal-shell .modal-footer .btn-light,
+.internal-shell .modal-footer button.btn-light {
+    background: #f8fafc !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    transition: all 0.15s ease !important;
+}
+.internal-shell .modal-footer .btn-light:hover,
+.internal-shell .modal-footer button.btn-light:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+.internal-shell .modal-footer .btn-primary,
+.internal-shell .modal-footer button.btn-primary {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border: 1.5px solid #0f172a !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2) !important;
+    transition: all 0.15s ease !important;
+}
+.internal-shell .modal-footer .btn-primary:hover,
+.internal-shell .modal-footer button.btn-primary:hover {
+    background: #1e293b !important;
+    border-color: #1e293b !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+}
+.internal-shell .modal-footer .btn-success,
+.internal-shell .modal-footer button.btn-success {
+    background: #0071e3 !important;
+    color: #ffffff !important;
+    border: 1.5px solid #0071e3 !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.25) !important;
+    transition: all 0.15s ease !important;
+}
+.internal-shell .modal-footer .btn-success:hover,
+.internal-shell .modal-footer button.btn-success:hover {
+    background: #0077ed !important;
+    border-color: #0077ed !important;
+    color: #ffffff !important;
     transform: translateY(-1px) !important;
 }
 
@@ -1142,4 +1219,200 @@ body.has-active-modal {
 
 .staff-workspace .right-panel .detail-value {
     color: #0f172a !important;
+}
+
+/* =========================================================================
+   STAFF & ADMIN RESPONSIVE SYSTEM (Mobile & Tablet iOS Enhancements)
+   Strictly scoped inside media queries. Desktop (> 1024px) is 100% untouched.
+   ========================================================================= */
+
+@media (max-width: 1024px) {
+    /* Tablet: 2-column KPI strip */
+    .metrics-strip {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 14px !important;
+    }
+
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Admin Users & Pricing settings */
+    .people-panel,
+    .report-table-card {
+        border-radius: 16px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Topbar on mobile */
+    .internal-topbar {
+        padding: 8px 14px !important;
+        gap: 8px !important;
+    }
+
+    #topbarLiveClock {
+        display: none !important;
+    }
+
+    .topbar-center {
+        display: none !important;
+    }
+
+    .topbar-user-meta {
+        display: none !important;
+    }
+
+    .topbar-status-chip {
+        display: none !important;
+    }
+
+    /* KPI strip on mobile */
+    .metrics-strip {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    /* Floor filter row & status chips become horizontal swipe strip */
+    .staff-page-head {
+        padding: 10px 14px !important;
+        gap: 8px !important;
+    }
+
+    .floor-switcher {
+        display: flex !important;
+        overflow-x: auto !important;
+        scroll-snap-type: x mandatory !important;
+        -webkit-overflow-scrolling: touch !important;
+        gap: 6px !important;
+        padding-bottom: 4px !important;
+        scrollbar-width: none !important;
+    }
+
+    .floor-switcher::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .floor-switcher button {
+        flex: 0 0 auto !important;
+        scroll-snap-align: start !important;
+        min-height: 36px !important;
+        padding: 0 12px !important;
+        font-size: 12.5px !important;
+    }
+
+    /* Sơ đồ phòng grid on mobile */
+    .staff-workspace .floor-section > .row {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        margin: 0 !important;
+    }
+
+    .staff-workspace .floor-section > .row > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .room-card {
+        padding: 12px 10px !important;
+        border-radius: 14px !important;
+        min-height: 90px !important;
+    }
+
+    .room-card .room-number {
+        font-size: 16px !important;
+    }
+
+    /* =========================================================================
+       ROOM DETAIL PANEL AS NATIVE iOS BOTTOM SHEET (<= 768px)
+       ========================================================================= */
+    .staff-workspace .right-panel {
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: auto !important;
+        max-height: 84vh !important;
+        border-radius: 24px 24px 0 0 !important;
+        border: none !important;
+        border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+        box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.28) !important;
+        z-index: 1060 !important;
+        padding: 12px 18px max(24px, env(safe-area-inset-bottom)) !important;
+        transform: translateY(105%) !important;
+        transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        box-sizing: border-box !important;
+    }
+
+    .staff-workspace .right-panel.is-open {
+        transform: translateY(0) !important;
+    }
+
+    /* iOS Drag Handle Bar Indicator */
+    .staff-workspace .right-panel::before {
+        content: "" !important;
+        display: block !important;
+        width: 40px !important;
+        height: 5px !important;
+        background: rgba(0, 0, 0, 0.22) !important;
+        border-radius: 999px !important;
+        margin: 2px auto 14px auto !important;
+        flex-shrink: 0 !important;
+    }
+
+    .staff-workspace .right-panel-header {
+        position: sticky !important;
+        top: -12px !important;
+        background: #ffffff !important;
+        margin: -4px -18px 14px -18px !important;
+        padding: 10px 18px 12px 18px !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+        z-index: 10 !important;
+    }
+
+    .staff-workspace .right-panel .staff-action-btn {
+        width: 100% !important;
+        min-height: 48px !important;
+        font-size: 14.5px !important;
+        font-weight: 700 !important;
+        border-radius: 12px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    /* Operational Modals on Mobile */
+    .internal-shell .modal-dialog {
+        width: calc(100vw - 20px) !important;
+        max-width: 520px !important;
+        margin: 10px auto !important;
+    }
+
+    .internal-shell .modal-content {
+        border-radius: 20px !important;
+        max-height: calc(100svh - 20px) !important;
+    }
+
+    .internal-shell .modal-header,
+    .internal-shell .modal-body,
+    .internal-shell .modal-footer {
+        padding: 14px 16px !important;
+    }
+
+    .internal-shell .modal-footer {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .internal-shell .modal-footer .btn {
+        width: 100% !important;
+        min-height: 44px !important;
+        margin: 0 !important;
+    }
 }

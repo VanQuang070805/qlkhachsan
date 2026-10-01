@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Thanh toán · Royal Hotel')
+@section('title', 'Thanh toán · Posh Boutique')
 
 @section('content')
 @php
@@ -35,7 +35,7 @@
                 <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-amber-50 border border-amber-200 text-amber-800 shadow-xs" style="font-size: 11.5px; font-weight: 600;">
                     <i class="bi bi-hourglass-split text-amber-600"></i>
                     <span>GIỮ PHÒNG:</span>
-                    <strong class="font-monospace text-amber-900" id="countdownTimer">14:59</strong>
+                    <strong class="font-monospace text-amber-900" id="countdownTimer">10:00</strong>
                 </div>
             </div>
         </div>
@@ -137,21 +137,6 @@
                         </div>
                     </label>
 
-                    {{-- Phương thức 5: Tiền mặt tại quầy lễ tân --}}
-                    <label class="aeth-payment-choice" for="method_cash">
-                        <input type="radio" name="payment_method" id="method_cash" value="cash" style="display:none;">
-                        <span class="aeth-radio-indicator"></span>
-                        <div class="aeth-payment-info">
-                            <div class="aeth-payment-title-row">
-                                <span class="aeth-payment-title">Thanh toán tại quầy lễ tân</span>
-                            </div>
-                            <div class="aeth-payment-desc">Giữ chỗ trước và thanh toán khi check-in tại khách sạn</div>
-                        </div>
-                        <div class="aeth-payment-logo-box" style="font-size:22px; color:#10b981;">
-                            <img src="{{ asset('images/payment-methods/cash.svg') }}" alt="Tiền mặt" style="height:26px;">
-                        </div>
-                    </label>
-
                     {{-- Lưu an toàn vào Apple Keychain --}}
                     <div class="d-flex align-items-center gap-2 mt-3 mb-4 ps-1">
                         <input type="checkbox" id="saveKeychain" class="form-check-input mt-0" checked style="cursor:pointer; width:16px; height:16px;">
@@ -191,61 +176,61 @@
 
                         {{-- Đầu biên lai --}}
                         <div class="d-flex align-items-center justify-content-between pb-3 border-bottom">
-                            <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b;">
+                            <span style="font-size: 13.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #475569;">
                                 <i class="bi bi-receipt-cutoff me-1"></i> CHI TIẾT ĐẶT PHÒNG
                             </span>
-                            <span class="badge rounded-pill bg-emerald-50 text-emerald-700 px-2.5 py-1 border border-emerald-200/80" style="font-size: 11px; font-weight: 600;">
-                                <span class="aeth-pulse-dot me-1" style="width:5px; height:5px;"></span> Đang giữ phòng
+                            <span class="badge rounded-pill bg-emerald-50 text-emerald-700 px-3 py-1.5 border border-emerald-200/80" style="font-size: 12px; font-weight: 600;">
+                                <span class="aeth-pulse-dot me-1" style="width:6px; height:6px;"></span> Đang giữ phòng
                             </span>
                         </div>
 
                         {{-- Thẻ media phòng thu nhỏ --}}
                         <div class="d-flex align-items-center gap-3">
-                            <img src="{{ $roomImage }}" alt="{{ $roomTypeName }}" style="width: 72px; height: 72px; border-radius: 16px; object-fit: cover; border: 1px solid #e2e8f0; flex-shrink: 0;">
+                            <img src="{{ $roomImage }}" alt="{{ $roomTypeName }}" style="width: 76px; height: 76px; border-radius: 16px; object-fit: cover; border: 1px solid #e2e8f0; flex-shrink: 0;">
                             <div>
-                                <small style="display:block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--apple-blue);">
+                                <small style="display:block; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--apple-blue);">
                                     VILLA BIỆT LẬP HƯỚNG ĐỒI
                                 </small>
-                                <strong style="display:block; font-size: 15px; color: #0f172a; margin-top: 1px;">
+                                <strong style="display:block; font-size: 17px; color: #0f172a; margin-top: 1px;">
                                     {{ $roomTypeName }}
                                 </strong>
-                                <span class="text-slate-500" style="font-size: 11.5px;">
-                                    {{ $roomNumbers ?: 'Royal Suite' }} • {{ $nights }} đêm lưu trú
+                                <span class="text-slate-500" style="font-size: 13px;">
+                                    {{ $roomNumbers ?: 'Posh Suite' }} • {{ $nights }} đêm lưu trú
                                 </span>
                             </div>
                         </div>
 
                         {{-- Khung ngày Nhận / Trả phòng kép --}}
-                        <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 16px; padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div style="background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 16px; padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div>
-                                <small class="text-muted text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.05em; display:block;">NHẬN PHÒNG</small>
-                                <strong style="font-size: 13px; color: #0f172a; display:block; margin-top: 2px;">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 11px; letter-spacing: 0.05em; display:block;">NHẬN PHÒNG</small>
+                                <strong style="font-size: 15px; color: #0f172a; display:block; margin-top: 2px;">
                                     {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }}
                                 </strong>
-                                <span class="text-slate-500" style="font-size: 11px;">Thứ {{ \Carbon\Carbon::parse($booking->check_in)->dayOfWeek + 1 }} (14:00)</span>
+                                <span class="text-slate-500" style="font-size: 12px;">Thứ {{ \Carbon\Carbon::parse($booking->check_in)->dayOfWeek + 1 }} (14:00)</span>
                             </div>
                             <div>
-                                <small class="text-muted text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.05em; display:block;">TRẢ PHÒNG</small>
-                                <strong style="font-size: 13px; color: #0f172a; display:block; margin-top: 2px;">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 11px; letter-spacing: 0.05em; display:block;">TRẢ PHÒNG</small>
+                                <strong style="font-size: 15px; color: #0f172a; display:block; margin-top: 2px;">
                                     {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }}
                                 </strong>
-                                <span class="text-slate-500" style="font-size: 11px;">Chủ Nhật (12:00)</span>
+                                <span class="text-slate-500" style="font-size: 12px;">Chủ Nhật (12:00)</span>
                             </div>
                         </div>
 
                         {{-- Khung thông tin khách có nút Sửa --}}
-                        <div class="d-flex align-items-center justify-content-between p-2.5 rounded-3 bg-light border border-slate-100">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="aeth-author-avatar" style="width:32px; height:32px; font-size:11px;">
+                        <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light border border-slate-100">
+                            <div class="d-flex align-items-center gap-2.5">
+                                <div class="aeth-author-avatar" style="width:36px; height:36px; font-size:12px; font-weight:700;">
                                     {{ $initials ?: 'HM' }}
                                 </div>
                                 <div>
-                                    <strong style="display:block; font-size: 12.5px; color: #0f172a;">{{ $booking->customer_name }}</strong>
-                                    <small class="text-slate-500" style="font-size: 11px;">{{ $booking->customer_email }}</small>
+                                    <strong style="display:block; font-size: 14px; color: #0f172a;">{{ $booking->customer_name }}</strong>
+                                    <small class="text-slate-500" style="font-size: 12px;">{{ $booking->customer_email }}</small>
                                 </div>
                             </div>
                             <a href="{{ route('booking.create', ['room_ids'=>$booking->rooms->pluck('id')->all(),'check_in'=>$booking->check_in->format('Y-m-d'),'check_out'=>$booking->check_out->format('Y-m-d'),'adults'=>$booking->adult_count,'children'=>$booking->child_count]) }}"
-                               class="text-primary fw-semibold" style="font-size: 12px; text-decoration: none;">
+                               class="text-primary fw-semibold" style="font-size: 13px; text-decoration: none;">
                                 Sửa
                             </a>
                         </div>
@@ -253,21 +238,21 @@
                         {{-- Bảng giá & Voucher SUMMER2026 --}}
                         <div class="aeth-breakdown">
                             <div class="aeth-breakdown-row">
-                                <span>Giá phòng ({{ $nights }} đêm)</span>
-                                <strong>{{ number_format($booking->total_price, 0, ',', '.') }}đ</strong>
+                                <span style="font-size: 14.5px;">Giá phòng ({{ $nights }} đêm)</span>
+                                <strong style="font-size: 15.5px;">{{ number_format($booking->total_price, 0, ',', '.') }}đ</strong>
                             </div>
 
-                            <div class="pt-2 border-top">
+                            <div class="pt-2" style="border-top: none !important;">
                                 <div class="d-flex align-items-baseline justify-content-between">
-                                    <span style="font-size: 13px; font-weight: 600; color: #334155;">Tổng tiền thanh toán</span>
+                                    <span style="font-size: 15px; font-weight: 700; color: #334155;">Tổng tiền thanh toán</span>
                                     <div class="text-end">
-                                        <div style="font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.03em;">
+                                        <div style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.03em;">
                                             {{ number_format($booking->total_price, 0, ',', '.') }}đ
                                         </div>
-                                        <small class="text-muted" style="font-size: 11px;">≈ ${{ number_format($usdPrice, 2) }} USD</small>
+                                        <small class="text-muted" style="font-size: 12px;">≈ ${{ number_format($usdPrice, 2) }} USD</small>
                                     </div>
                                 </div>
-                        <small class="text-slate-400 d-block mt-0.5" style="font-size: 11px;">Giá lưu trú theo thời gian đã chọn</small>
+                                <small class="text-slate-400 d-block mt-1" style="font-size: 12px;">Giá lưu trú theo thời gian đã chọn</small>
                             </div>
                         </div>
 
@@ -320,8 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Countdown Timer (14:59 down to 00:00)
-    let timeLeft = 14 * 60 + 59;
+    // Countdown Timer (10:00 down to 00:00)
+    let timeLeft = 10 * 60;
     const timerEl = document.getElementById('countdownTimer');
     const interval = setInterval(() => {
         if (timeLeft <= 0) {

@@ -11,6 +11,11 @@ use Carbon\Carbon;
 
 class CheckInTokenService
 {
+    public function qrPayload(Booking $booking): string
+    {
+        return 'ROYAL-CHECKIN:'.$this->issue($booking);
+    }
+
     public function issue(Booking $booking): string
     {
         $nonce = Str::random(40);

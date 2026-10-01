@@ -52,7 +52,7 @@ class CancellationController extends Controller
     public function cancel(Request $request, int $id)
     {
         $validated = $request->validate([
-            'reason' => 'required|string|max:500',
+            'reason' => 'nullable|string|max:500',
         ]);
 
         $isEligible = false;
@@ -66,7 +66,7 @@ class CancellationController extends Controller
                 : 0;
             $booking->update([
                 'status' => 'cancelled', 'cancelled_at' => now(),
-                'cancellation_reason' => $validated['reason'],
+                'cancellation_reason' => $validated['reason'] ?? null,
                 'refund_status' => $refundAmount > 0 ? 'eligible' : 'none',
                 'refund_amount' => $refundAmount,
             ]);

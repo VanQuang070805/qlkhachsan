@@ -1,6 +1,6 @@
 @extends('client.layouts.app')
 
-@section('title', 'Về Royal & Liên hệ · Royal Hotel | Lưu trú tinh tế')
+@section('title', 'Liên hệ · Posh Boutique')
 
 @section('content')
 <div class="contact-page contact-page--full">
@@ -14,7 +14,7 @@
                 Một nơi dừng chân thanh lịch, riêng tư và đủ gần để bạn chạm tới mọi nhịp sống Hà Nội.
             </p>
             <div class="contact-hero__actions" style="margin-top: 28px; display: flex; align-items: center; justify-content: center; gap: 14px;">
-                <a class="button button--primary" href="#contact-details" data-gsap-scroll-to style="border-radius: 999px; background: #000000; color: #ffffff; padding: 12px 28px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">Liên hệ với Royal</a>
+                <a class="button button--primary" href="#contact-details" data-gsap-scroll-to style="border-radius: 999px; background: #000000; color: #ffffff; padding: 12px 28px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">Liên hệ với Posh Boutique</a>
                 <a class="contact-hero__scroll" href="#royal-story" data-gsap-scroll-to style="border-radius: 999px; background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); color: #ffffff; padding: 12px 24px; font-weight: 600; text-decoration: none; border: 1px solid rgba(255,255,255,0.4);">Câu chuyện của chúng tôi <span aria-hidden="true">↓</span></a>
             </div>
         </div>
@@ -26,8 +26,8 @@
         <div class="contact-story__copy" data-reveal>
             <p class="editorial-eyebrow">Our story</p>
             <h2 id="royal-story-title">Quiet by design</h2>
-            <p>Royal Hotel được tạo nên cho những hành trình cần sự đơn giản và chỉn chu. Từ cách chọn phòng rõ ràng đến lúc bạn nhận phòng, mỗi chi tiết đều hướng đến cảm giác thư thái.</p>
-            <dl class="contact-story__facts" aria-label="Thông tin Royal Hotel">
+            <p>Posh Boutique được tạo nên cho những hành trình cần sự đơn giản và chỉn chu. Từ cách chọn phòng rõ ràng đến lúc bạn nhận phòng, mỗi chi tiết đều hướng đến cảm giác thư thái.</p>
+            <dl class="contact-story__facts" aria-label="Thông tin Posh Boutique">
                 <div><dt>05</dt><dd>Hạng phòng</dd></div>
                 <div><dt>24/7</dt><dd>Luôn sẵn sàng</dd></div>
                 <div><dt>12</dt><dd>Chùa Bộc</dd></div>
@@ -40,7 +40,7 @@
                     <span class="ctrl-dot ctrl-yellow"></span>
                     <span class="ctrl-dot ctrl-green"></span>
                 </div>
-                <span class="macos-card-title">Không gian kiến trúc Royal Hotel — Photo Gallery</span>
+                <span class="macos-card-title">Không gian kiến trúc Posh Boutique — Photo Gallery</span>
                 <div style="width: 52px;" aria-hidden="true"></div>
             </div>
             <div class="contact-gallery__viewport" data-gallery-viewport role="region" aria-label="Kéo ngang hoặc dùng phím mũi tên để xem album" tabindex="0">
@@ -120,8 +120,8 @@
             <p>Gọi, gửi email hoặc ghé thăm chúng tôi tại Chùa Bộc.</p>
         </div>
         <div class="contact-methods">
-            <a class="contact-method" href="tel:0123456789" aria-label="Gọi Royal Hotel theo số 0123 456 789" data-reveal><span class="contact-method__icon"><i class="bi bi-telephone" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Điện thoại</span><strong>0123 456 789</strong><span class="contact-method__hint">Hỗ trợ nhanh qua cuộc gọi</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
-            <a class="contact-method" href="mailto:royalhotel@gmail.com" aria-label="Gửi email đến royalhotel@gmail.com" data-reveal><span class="contact-method__icon"><i class="bi bi-envelope" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Email</span><strong>royalhotel@gmail.com</strong><span class="contact-method__hint">Phản hồi yêu cầu chi tiết</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
+            <a class="contact-method" href="tel:0123456789" aria-label="Gọi Posh Boutique theo số 0123 456 789" data-reveal><span class="contact-method__icon"><i class="bi bi-telephone" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Điện thoại</span><strong>0123 456 789</strong><span class="contact-method__hint">Hỗ trợ nhanh qua cuộc gọi</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
+            <a class="contact-method" href="mailto:poshboutique@gmail.com" aria-label="Gửi email đến poshboutique@gmail.com" data-reveal><span class="contact-method__icon"><i class="bi bi-envelope" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Email</span><strong>poshboutique@gmail.com</strong><span class="contact-method__hint">Phản hồi yêu cầu chi tiết</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
         </div>
     </section>
 
@@ -140,11 +140,11 @@
                     <span class="ctrl-dot ctrl-yellow"></span>
                     <span class="ctrl-dot ctrl-green"></span>
                 </div>
-                <span class="macos-card-title">Bản đồ Royal Hotel — 12 Chùa Bộc, Hà Nội</span>
+                <span class="macos-card-title">Bản đồ Posh Boutique — 12 Chùa Bộc, Hà Nội</span>
                 <div style="width: 52px;" aria-hidden="true"></div>
             </div>
             <div style="margin: 14px 20px 0 20px; border-radius: 18px; overflow: hidden; height: 380px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04);">
-                <iframe title="Bản đồ Royal Hotel tại 12 Chùa Bộc, Hà Nội" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.6203769615904!2d105.82535447503089!3d21.00784918063632!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac806cfc0845%3A0x3848505bd3b9490f!2zMTIgUC4gQ2jDuWEgQuG7mWMsIEtpbSBMacOqbiwgSMOgIE7hu5lpIDEwMDAwMCwgVmnhu4d0IE5hbQ!5e0!3m2!1svi!2s!4v1777979688214!5m2!1svi!2s" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen style="width: 100%; height: 100%; border: 0; display: block;"></iframe>
+                <iframe title="Bản đồ Posh Boutique tại 12 Chùa Bộc, Hà Nội" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.6203769615904!2d105.82535447503089!3d21.00784918063632!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac806cfc0845%3A0x3848505bd3b9490f!2zMTIgUC4gQ2jDuWEgQuG7mWMsIEtpbSBMacOqbiwgSMOgIE7hu5lpIDEwMDAwMCwgVmnhu4d0IE5hbQ!5e0!3m2!1svi!2s!4v1777979688214!5m2!1svi!2s" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen style="width: 100%; height: 100%; border: 0; display: block;"></iframe>
             </div>
         </div>
     </section>

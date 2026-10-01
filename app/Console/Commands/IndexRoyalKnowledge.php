@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 class IndexRoyalKnowledge extends Command
 {
     protected $signature = 'knowledge:index {--no-embeddings : Chỉ lập chỉ mục văn bản, không gọi embedding API}';
-    protected $description = 'Phân đoạn và lập chỉ mục kho kiến thức Royal Hotel';
+    protected $description = 'Phân đoạn và lập chỉ mục kho kiến thức Posh Boutique';
 
     public function handle(RoyalKnowledgeService $knowledge): int
     {

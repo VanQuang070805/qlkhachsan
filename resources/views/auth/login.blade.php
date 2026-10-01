@@ -4,7 +4,7 @@
 <div class="sana-auth-card">
     <div id="customer-card">
         <header class="sana-heading auth-intro">
-            <h1 class="sana-heading__title">Welcome to Royal Hotel</h1>
+            <h1 class="sana-heading__title">Welcome to Posh Boutique</h1>
         </header>
 
         @if(session('success'))

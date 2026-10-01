@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title','Người dùng · Royal Hotel')
+@section('title','Người dùng · Posh Boutique')
 @section('page-title','Quản lý người dùng')
 @section('content')
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -153,7 +153,7 @@
                     {{-- Subtitle / description --}}
                     <div class="mb-3.5 pb-2 border-bottom" style="border-color: rgba(0,0,0,0.05) !important;">
                         <p class="text-muted small mb-0" style="color: #64748b; font-size: 0.84rem;">
-                            Tạo tài khoản phân quyền quản trị hoặc lễ tân vận hành khách sạn Royal Hotel.
+                            Tạo tài khoản phân quyền quản trị hoặc lễ tân vận hành khách sạn Posh Boutique.
                         </p>
                     </div>
 

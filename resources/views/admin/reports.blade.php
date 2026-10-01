@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title','Tổng quan · Royal Hotel')
+@section('title','Tổng quan · Posh Boutique')
 @section('page-title','Tổng quan')
 @section('content')
 <form class="report-filter-bar" method="GET" action="{{ route('admin.reports') }}">
@@ -188,7 +188,7 @@ const statusRows = @json($statusChartData);
 const bookingRows = @json($bookings);
 const roomInventory = @json($roomInventory);
 const colors = ['#6ea8df','#55b89a','#e6b85c','#ad91e8','#e78383'];
-const money = value => new Intl.NumberFormat('vi-VN').format(value) + ' đ';
+const money = value => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Math.round(Number(value) || 0)) + ' đ';
 const chartMuted = () => getComputedStyle(document.body).getPropertyValue('--muted').trim() || '#697780';
 const chartLine = () => getComputedStyle(document.body).getPropertyValue('--line').trim() || '#e4eaee';
 const statusValues = ['pending','confirmed','checked_in','completed','cancelled'];

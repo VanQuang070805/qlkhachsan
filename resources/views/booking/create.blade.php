@@ -118,51 +118,31 @@
                             </div>
                         </div>
 
-                        {{-- Field 4: Khung giờ nhận phòng (Phân đoạn thời tiết) --}}
+                        {{-- Field 4: Khung giờ nhận phòng (Tiêu chuẩn 14:00 - 15:00) --}}
                         <div class="aeth-field-group">
                             <div class="aeth-field-header">
                                 <label class="aeth-label">Khung giờ nhận phòng</label>
-                                <span class="text-emerald-600 d-inline-flex align-items-center gap-1" style="font-size: 11.5px; font-weight: 600;">
+                                <span class="text-emerald-700 d-inline-flex align-items-center gap-1.5" style="font-size: 12px; font-weight: 600;">
                                     <span class="aeth-pulse-dot" style="width:6px; height:6px;"></span>
-                                    Check-in chuẩn: 14:00
+                                    Giờ chuẩn khách sạn
                                 </span>
                             </div>
-                            <div class="aeth-segmented-grid">
-                                <button type="button" class="aeth-segment-btn is-active" onclick="selectTimeSegment(this, '14:00 - 16:00')">
-                                    <i class="bi bi-sun"></i>
-                                    <span>14:00 - 16:00</span>
-                                </button>
-                                <button type="button" class="aeth-segment-btn" onclick="selectTimeSegment(this, '16:00 - 18:00')">
-                                    <i class="bi bi-sunset"></i>
-                                    <span>16:00 - 18:00</span>
-                                </button>
-                                <button type="button" class="aeth-segment-btn" onclick="selectTimeSegment(this, 'Sau 18:00')">
-                                    <i class="bi bi-moon-stars"></i>
-                                    <span>Sau 18:00</span>
-                                </button>
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div style="width: 38px; height: 38px; border-radius: 10px; background: #eff6ff; color: var(--apple-blue); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
+                                    <div>
+                                        <strong style="display: block; font-size: 15px; font-weight: 700; color: #0f172a;">14:00 - 15:00</strong>
+                                        <span class="text-slate-500" style="font-size: 12px;">Khung giờ nhận phòng tiêu chuẩn trong ngày</span>
+                                    </div>
+                                </div>
+                                <span class="badge bg-white text-slate-700 border border-slate-200 rounded-pill px-3 py-1.5" style="font-size: 12px; font-weight: 600;">
+                                    <i class="bi bi-check2 text-emerald-600 me-1"></i> Mặc định
+                                </span>
                             </div>
-                            <input type="hidden" name="arrival_time" id="arrivalTimeInput" value="14:00 - 16:00">
-                        </div>
-
-                        {{-- Field 5: Ghi chú cho quản gia --}}
-                        <div class="aeth-field-group">
-                            <div class="aeth-field-header">
-                                <label class="aeth-label" for="conciergeNote">Ghi chú cho quản gia</label>
-                                <span class="aeth-label-hint">Không bắt buộc</span>
-                            </div>
-                            <textarea id="conciergeNote" name="special_requests" rows="2" class="aeth-input" style="height:auto; padding:12px 14px; resize:none;"
-                                placeholder="Ưu tiên phòng tầng cao có tầm nhìn hoàng hôn vịnh biển và sắp xếp đón ga đến sân bay theo đúng giờ bay hạ cánh.">{{ old('special_requests') }}</textarea>
-                        </div>
-
-                        {{-- Submit Button --}}
-                        <div class="mt-4 pt-2">
-                            <button type="submit" class="aeth-btn-primary" id="btnSubmitStep1">
-                                <span>Tiếp tục đến thanh toán</span>
-                                <i class="bi bi-arrow-right"></i>
-                            </button>
-                            <p class="text-center text-muted mt-2 mb-0" style="font-size: 11px;">
-                                Bảo mật giao dịch theo chuẩn Apple Pay &amp; PCI-DSS Level 1.
-                            </p>
+                            <input type="hidden" name="arrival_time" id="arrivalTimeInput" value="14:00 - 15:00">
+                            <input type="hidden" name="special_requests" value="">
                         </div>
 
                     </form>
@@ -217,18 +197,29 @@
                         {{-- Bảng tính tiền thu nhỏ --}}
                         <div class="aeth-breakdown">
                             <div class="aeth-breakdown-row">
-                                <span>Tiền phòng ({{ $nights }} đêm)</span>
-                                <strong>{{ number_format($total, 0, ',', '.') }}đ</strong>
+                                <span style="font-size: 14px;">Tiền phòng ({{ $nights }} đêm)</span>
+                                <strong style="font-size: 15px;">{{ number_format($total, 0, ',', '.') }}đ</strong>
                             </div>
-                            <div class="aeth-total-box" style="margin-top:6px;">
+                            <div class="aeth-total-box" style="margin-top:6px; border:none !important; outline:none !important; box-shadow:none !important; background:#f8fafc !important;">
                                 <div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #1e3a8a;">Tổng thanh toán</div>
-                                    <small style="font-size: 10.5px; color: #64748b;">Theo giá phòng đã chọn</small>
+                                    <div style="font-size: 14px; font-weight: 700; color: #0f172a;">Tổng thanh toán</div>
+                                    <small style="font-size: 11px; color: #64748b;">Theo giá phòng đã chọn</small>
                                 </div>
-                                <strong style="font-size: 19px; color: var(--apple-blue);">{{ number_format($total, 0, ',', '.') }}đ</strong>
+                                <strong style="font-size: 21px; font-weight: 800; color: #0f172a;">{{ number_format($total, 0, ',', '.') }}đ</strong>
                             </div>
                         </div>
 
+                        {{-- Nút Tiếp tục đến thanh toán (Chuyển sang card bên phải) --}}
+                        <div class="mt-4 pt-1">
+                            <button type="submit" form="bookingForm" class="aeth-btn-primary" id="btnSubmitStep1"
+                                onclick="document.getElementById('bookingForm').requestSubmit ? document.getElementById('bookingForm').requestSubmit() : document.getElementById('bookingForm').submit()"
+                                style="height: 52px; font-size: 16px; font-weight: 700; border-radius: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <span>Tiếp tục đến thanh toán</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </button>
+                            <p class="text-center text-muted mt-2 mb-0" style="font-size: 11.5px;">
+                                <i class="bi bi-shield-check text-emerald-600 me-1"></i> Bảo mật giao dịch chuẩn Apple Pay &amp; PCI-DSS
+                            </p>
                         </div>
 
                     </div>

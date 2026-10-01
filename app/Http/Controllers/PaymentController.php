@@ -9,6 +9,7 @@ use App\Services\Payment\VietQRService;
 use App\Services\Payment\MoMoService;
 use App\Services\Payment\ZaloPayService;
 use App\Services\Payment\VNPayService;
+use App\Services\ExpirePendingBookingHolds;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -44,7 +45,7 @@ class PaymentController extends Controller
         }
 
         $request->validate([
-            'payment_method' => 'required|in:cash,vietqr,momo,zalopay,vnpay',
+            'payment_method' => 'required|in:vietqr,momo,zalopay,vnpay',
         ]);
 
         $booking->update(['payment_method' => $request->payment_method]);
@@ -81,7 +82,7 @@ class PaymentController extends Controller
     {
         $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
         $this->authorizeCustomerBooking($booking);
-        abort_unless(in_array($booking->status, ['pending', 'confirmed'], true), 409, 'Đặt phòng không còn khả dụng để thanh toán.');
+        $this->assertDepositPayable($booking);
 
         if ($booking->isPaid()) {
             return redirect()->route('payment.success', $bookingId);
@@ -146,6 +147,15 @@ class PaymentController extends Controller
     {
         $booking = Booking::findOrFail($bookingId);
         $this->authorizeCustomerBooking($booking);
+
+        if (app(ExpirePendingBookingHolds::class)->expireIfDue($booking)) {
+            return response()->json(['status' => 'expired'], 410);
+        }
+        $booking->refresh();
+
+        if ($booking->status === 'cancelled') {
+            return response()->json(['status' => 'expired'], 410);
+        }
 
         if ($booking->isPaid()) {
             return response()->json([
@@ -314,12 +324,13 @@ class PaymentController extends Controller
         $this->authorizeCustomerBooking($booking);
         abort_unless($booking->isPaid() && in_array($booking->status, ['confirmed', 'checked_in', 'completed'], true), 409, 'Thanh toán chưa được xác nhận.');
 
+        $checkin_token = in_array($booking->status, ['confirmed', 'checked_in'], true)
+            ? app(\App\Services\CheckInTokenService::class)->qrPayload($booking)
+            : null;
         $qr_base64 = '';
-        if (class_exists('Endroid\QrCode\QrCode')) {
+        if ($checkin_token && class_exists('Endroid\QrCode\QrCode')) {
             try {
-                $qr_data = 'ROYAL-CHECKIN:'.app(\App\Services\CheckInTokenService::class)->issue($booking);
-
-                $qr = QrCode::create($qr_data)
+                $qr = QrCode::create($checkin_token)
                     ->setEncoding(new Encoding('UTF-8'))
                     ->setErrorCorrectionLevel(new ErrorCorrectionLevelHigh())
                     ->setSize(300)
@@ -335,7 +346,7 @@ class PaymentController extends Controller
             }
         }
 
-        return view('payment.success', compact('booking', 'qr_base64'));
+        return view('payment.success', compact('booking', 'checkin_token', 'qr_base64'));
     }
 
     public function error(int $bookingId)
@@ -373,6 +384,7 @@ class PaymentController extends Controller
     private function confirmPayment(Booking $booking, string $gateway, string $transactionId, array $rawData): bool
     {
         if ($transactionId === '') return false;
+        app(ExpirePendingBookingHolds::class)->expireIfDue($booking);
 
         $lock = Cache::lock('payment:'.$gateway.':'.$transactionId, 15);
         if (!$lock->get()) return false;
@@ -391,7 +403,7 @@ class PaymentController extends Controller
             }
             if ($booking->isPaid() || !in_array($booking->status, ['pending', 'confirmed'], true)) return;
             $createdAt = $booking->{$booking->getCreatedAtColumn()};
-            if ($booking->status === 'pending' && $createdAt && $createdAt->lt(now()->subMinutes(30))) return;
+            if ($booking->status === 'pending' && $createdAt && $createdAt->lte(now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))) return;
 
             $roomIds = $booking->rooms()->orderBy('rooms.id')->pluck('rooms.id');
             Room::whereIn('id', $roomIds)->orderBy('id')->lockForUpdate()->get();
@@ -443,9 +455,11 @@ class PaymentController extends Controller
 
     private function assertDepositPayable(Booking $booking): void
     {
+        app(ExpirePendingBookingHolds::class)->expireIfDue($booking);
+        $booking->refresh();
         abort_unless(in_array($booking->status, ['pending', 'confirmed'], true), 409, 'Đặt phòng không còn khả dụng để thanh toán.');
         $createdAt = $booking->{$booking->getCreatedAtColumn()};
-        abort_if($booking->status === 'pending' && $createdAt && $createdAt->lt(now()->subMinutes(30)), 409, 'Thời gian giữ phòng đã hết.');
+        abort_if($booking->status === 'pending' && $createdAt && $createdAt->lte(now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES)), 409, 'Thời gian giữ phòng đã hết.');
     }
 
     private function confirmCheckoutPayment(Booking $booking, string $gateway, string $transactionId, float $amount, array $rawData): bool
@@ -548,14 +562,16 @@ class PaymentController extends Controller
         try {
             $to      = $booking->customer_email;
             $name    = $booking->customer_name;
-            $hotel   = config('app.name', 'Royal Hotel');
-            $subject = "💳 Thanh toán thành công – Đặt phòng #{$booking->id}";
+            $hotel   = config('app.name', 'Posh Boutique');
+            $subject = "Xác nhận đặt phòng & Mã nhận phòng QR – #{$booking->id} | {$hotel}";
 
             $booking->loadMissing('rooms.roomType');
             $rooms = $booking->rooms;
 
             $qrBytes = $this->generateQrCodeBytes($booking);
-            $body = $this->buildPaymentEmailHtml($booking, $rooms, $method, $transId, $hotel);
+            $logoPath = public_path('aura-logo-white.png');
+            $logoBytes = is_file($logoPath) ? file_get_contents($logoPath) : '';
+            $body = $this->buildPaymentEmailHtml($booking, $rooms, $method, $transId, $hotel, $qrBytes !== '', $logoBytes !== '');
             
             $mailCfg = [
                 'host'       => config('mail.mailers.smtp.host'),
@@ -567,7 +583,7 @@ class PaymentController extends Controller
                 'from_name'  => config('mail.from.name'),
             ];
 
-            $this->sendMailWithPHPMailer($to, $name, $subject, $body, $mailCfg, $qrBytes);
+            $this->sendMailWithPHPMailer($to, $name, $subject, $body, $mailCfg, $qrBytes, $logoBytes);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Payment receipt delivery failed', ['booking_id' => $booking->id, 'exception' => get_class($e)]);
         }
@@ -579,7 +595,7 @@ class PaymentController extends Controller
             return '';
         }
 
-        $qr_data = 'ROYAL-CHECKIN:'.app(\App\Services\CheckInTokenService::class)->issue($booking);
+        $qr_data = app(\App\Services\CheckInTokenService::class)->qrPayload($booking);
 
         $qr = QrCode::create($qr_data)
             ->setEncoding(new Encoding('UTF-8'))
@@ -593,7 +609,7 @@ class PaymentController extends Controller
         return $writer->write($qr)->getString();
     }
 
-    private function sendMailWithPHPMailer(string $to, string $name, string $subject, string $body, array $mailCfg, ?string $attachment = null): void
+    private function sendMailWithPHPMailer(string $to, string $name, string $subject, string $body, array $mailCfg, ?string $qrBytes = null, ?string $logoBytes = null): void
     {
         if (empty($to)) return;
 
@@ -610,8 +626,12 @@ class PaymentController extends Controller
             $mail->setFrom($mailCfg['from_email'] ?? $mailCfg['username'], $mailCfg['from_name'] ?? 'Khách Sạn');
             $mail->addAddress($to, $name);
             
-            if ($attachment) {
-                $mail->addStringAttachment($attachment, 'CheckIn_QR.png', PHPMailer::ENCODING_BASE64, 'image/png');
+            if ($logoBytes) {
+                $mail->addStringEmbeddedImage($logoBytes, 'royal-hotel-logo', 'Royal_Hotel_Logo.png', PHPMailer::ENCODING_BASE64, 'image/png');
+            }
+            if ($qrBytes) {
+                $mail->addStringEmbeddedImage($qrBytes, 'checkin-qr', 'CheckIn_QR.png', PHPMailer::ENCODING_BASE64, 'image/png');
+                $mail->addStringAttachment($qrBytes, 'CheckIn_QR.png', PHPMailer::ENCODING_BASE64, 'image/png');
             }
             
             $mail->isHTML(true);
@@ -622,23 +642,38 @@ class PaymentController extends Controller
         }
 
         // Fallback: Laravel default mailer
-        \Illuminate\Support\Facades\Mail::html($body, function ($message) use ($to, $name, $subject, $attachment) {
+        \Illuminate\Support\Facades\Mail::html($body, function ($message) use ($to, $name, $subject, $qrBytes, $logoBytes) {
             $message->to($to, $name)
                     ->subject($subject);
-            if ($attachment) {
-                $message->attachData($attachment, 'CheckIn_QR.png', ['mime' => 'image/png']);
+            $replacements = [];
+            if ($logoBytes) {
+                $replacements['cid:royal-hotel-logo'] = $message->embedData($logoBytes, 'Royal_Hotel_Logo.png', 'image/png');
+            }
+            if ($qrBytes) {
+                $replacements['cid:checkin-qr'] = $message->embedData($qrBytes, 'CheckIn_QR.png', 'image/png');
+                $message->attachData($qrBytes, 'CheckIn_QR.png', ['mime' => 'image/png']);
+            }
+            if ($replacements) {
+                $message->getSymfonyMessage()->html(str_replace(array_keys($replacements), array_values($replacements), $body));
             }
         });
     }
 
-    private function buildPaymentEmailHtml(Booking $b, $rooms, string $method, string $transId, string $hotel): string
+    private function buildPaymentEmailHtml(Booking $b, $rooms, string $method, string $transId, string $hotel, bool $hasQr = false, bool $hasLogo = false): string
     {
         $escape = fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $customerName = $escape($b->customer_name);
         $hotel = $escape($hotel);
         $transId = $escape($transId);
-      $depositPrice = (float)$b->total_price / 2;   
-$price = number_format($depositPrice, 0, ',', '.') . ' ₫';
+        $depositPrice = (float)$b->total_price / 2;
+        $remainingPrice = (float)$b->total_price - $depositPrice;
+        $totalFormatted = number_format((float)$b->total_price, 0, ',', '.') . ' ₫';
+        $depositFormatted = number_format($depositPrice, 0, ',', '.') . ' ₫';
+        $remainingFormatted = number_format($remainingPrice, 0, ',', '.') . ' ₫';
+
+        $checkInFormatted = !empty($b->check_in) ? \Carbon\Carbon::parse($b->check_in)->format('d/m/Y') : '—';
+        $checkOutFormatted = !empty($b->check_out) ? \Carbon\Carbon::parse($b->check_out)->format('d/m/Y') : '—';
+
         $supportedMethods = [
             'cash'    => 'Tiền mặt tại quầy',
             'vietqr'  => 'Chuyển khoản VietQR',
@@ -647,82 +682,127 @@ $price = number_format($depositPrice, 0, ',', '.') . ' ₫';
             'vnpay'   => 'Cổng VNPay',
         ];
         $methodLabel = $escape($supportedMethods[$method] ?? $method);
-        
-        $roomListHtml = '';
+
+        $roomRowsHtml = '';
         foreach ($rooms as $r) {
-            $roomListHtml .= '<li>Phòng <strong>'.$escape($r->room_number).'</strong> - Hạng phòng: '.$escape($r->roomType->name ?? '').'</li>';
+            $typeName = $escape($r->roomType->type_name ?? $r->roomType->name ?? 'Tiêu chuẩn');
+            $roomRowsHtml .= '<tr><td style="padding:10px 0; border-bottom:1px solid #f1f5f9; font-size:14px; color:#1e293b;">Phòng <strong>'.$escape($r->room_number).'</strong></td><td style="padding:10px 0; border-bottom:1px solid #f1f5f9; font-size:14px; text-align:right; color:#64748b;">Hạng: <strong style="color:#0f172a;">'.$typeName.'</strong></td></tr>';
         }
+
+        $qrCodeBlock = '';
+        if ($hasQr) {
+            $qrCodeBlock = <<<QR
+            <div style="text-align: center; margin: 16px 0 8px 0;">
+                <img src="cid:checkin-qr" width="165" height="165" alt="Mã QR Check-in" style="display:inline-block; border-radius:12px; border:1px solid #cbd5e1; padding:8px; background:#ffffff;">
+                <p style="margin: 8px 0 0 0; font-size: 12px; color: #64748b; font-weight: 500;">Mã QR xác thực làm thủ tục nhận phòng nhanh</p>
+            </div>
+QR;
+        }
+
+        $logoImgHtml = $hasLogo ? '<img src="cid:royal-hotel-logo" alt="Posh Boutique Logo" class="header-logo" width="105" style="display:block; margin:0 auto 10px auto; max-width:105px; height:auto;">' : '';
 
         return <<<HTML
 <!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xác nhận đặt phòng - {$hotel}</title>
 <style>
-    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; color: #333333; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .header { background-color: #059669; color: #ffffff; padding: 35px 20px; text-align: center; }
-    .header h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-    .header p { margin: 10px 0 0; font-size: 15px; opacity: 0.9; }
-    .content { padding: 30px; }
-    .greeting { font-size: 18px; margin-bottom: 20px; color: #111827; }
-    .payment-badge { display: inline-block; background-color: #d1fae5; color: #047857; padding: 10px 20px; border-radius: 30px; font-weight: bold; font-size: 16px; margin-bottom: 25px; border: 1px solid #a7f3d0; letter-spacing: 0.5px; }
-    .section-title { font-size: 16px; font-weight: bold; color: #059669; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 15px; margin-top: 25px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .details-table { width: 100%; border-collapse: collapse; }
-    .details-table td { padding: 12px 0; border-bottom: 1px solid #f3f4f6; font-size: 15px; }
-    .details-table td:first-child { color: #6b7280; width: 45%; }
-    .details-table td:last-child { font-weight: 600; text-align: right; color: #111827; }
-    .room-list { background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 15px 0; border: 1px solid #f3f4f6; }
-    .room-list ul { margin: 0; padding-left: 20px; color: #4b5563; }
-    .room-list li { margin-bottom: 8px; font-size: 15px; }
-    .room-list li:last-child { margin-bottom: 0; }
-    .total-box { background-color: #059669; color: #ffffff; padding: 20px; border-radius: 8px; text-align: center; margin-top: 30px; }
-    .total-box p { margin: 0; font-size: 14px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
-    .total-box h2 { margin: 8px 0 0; font-size: 32px; }
-    .qr-notice { text-align: center; background-color: #fef3c7; color: #92400e; padding: 15px; border-radius: 8px; margin-top: 25px; font-size: 14px; border: 1px solid #fde68a; line-height: 1.5; }
-    .footer { background-color: #f9fafb; padding: 20px; text-align: center; font-size: 13px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f6f5f2; margin: 0; padding: 24px 12px; color: #1e293b; -webkit-font-smoothing: antialiased; }
+    .email-wrapper { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); border: 1px solid #e7e5df; }
+    .email-header { background: linear-gradient(180deg, #0b0c10 0%, #141722 100%); color: #ffffff; padding: 34px 24px 30px; text-align: center; border-bottom: 2px solid #d4af37; }
+    .header-logo { display: block; margin: 0 auto 10px auto; max-width: 105px; height: auto; }
+    .hotel-name { margin: 0; font-family: 'Georgia', serif; font-size: 22px; letter-spacing: 3px; text-transform: uppercase; color: #ffffff; font-weight: 600; }
+    .header-sub { margin: 8px 0 0; font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: #e2e8f0; font-weight: 500; }
+    .email-content { padding: 32px 28px; }
+    .greeting { font-size: 16px; margin-bottom: 12px; color: #0f172a; font-weight: 600; }
+    .intro-text { color: #475569; font-size: 14px; line-height: 1.65; margin-bottom: 20px; }
+    .card-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02); }
+    .card-title { font-size: 12.5px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 12px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+    .info-table { width: 100%; border-collapse: collapse; }
+    .info-table td { padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 13.5px; }
+    .info-table td:first-child { color: #64748b; width: 44%; }
+    .info-table td:last-child { font-weight: 600; text-align: right; color: #0f172a; }
+    .info-table tr:last-child td { border-bottom: none; }
+    .qr-card { background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 20px; text-align: center; margin: 20px 0; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03); }
+    .qr-badge { display: inline-block; background: #0071e3; color: #ffffff; font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .qr-instruction { font-size: 13px; color: #475569; line-height: 1.55; margin: 10px 0 0 0; }
+    .total-banner { background: #0c0d12; color: #ffffff; padding: 20px; border-radius: 14px; text-align: center; margin: 22px 0; border: 1px solid rgba(255,255,255,0.08); }
+    .total-banner p { margin: 0; font-size: 11.5px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+    .total-banner h2 { margin: 6px 0 0; font-size: 28px; font-weight: 700; color: #38bdf8; font-family: -apple-system, sans-serif; }
+    .signoff { margin-top: 20px; font-size: 13.5px; color: #334155; line-height: 1.5; }
+    .email-footer { background-color: #f8fafc; padding: 22px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.6; }
+    .email-footer p { margin: 3px 0; }
 </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <h1>{$hotel}</h1>
-        <p>Giao Dịch Thành Công</p>
+<div class="email-wrapper">
+    <div class="email-header">
+        {$logoImgHtml}
+        <h1 class="hotel-name">POSH BOUTIQUE</h1>
+        <p class="header-sub">Xác Nhận Đặt Phòng &amp; Mã Nhận Phòng QR</p>
     </div>
-    <div class="content">
-        <div style="text-align: center;">
-            <div class="payment-badge">✓ ĐÃ ĐẶT CỌC</div>
+    <div class="email-content">
+        <div class="greeting">Kính gửi quý khách <strong>{$customerName}</strong>,</div>
+        <p class="intro-text">
+            Posh Boutique xin trân trọng thông báo yêu cầu đặt phòng của quý khách đã được ghi nhận thành công trên hệ thống. Khoản tiền cọc 50% đã được xác nhận thanh toán an toàn. Số tiền còn lại quý khách sẽ thanh toán khi làm thủ tục nhận phòng tại khách sạn.
+        </p>
+
+        <!-- Fast Check-in QR Section -->
+        <div class="qr-card">
+            <span class="qr-badge">Dịch Vụ Nhận Phòng Nhanh</span>
+            <h3 style="margin: 6px 0 0 0; font-size: 15px; color: #0f172a; font-weight: 700;">MÃ QR NHẬN PHÒNG TỰ ĐỘNG</h3>
+            {$qrCodeBlock}
+            <p class="qr-instruction">
+                Quý khách vui lòng xuất trình <strong>Mã QR ở trên</strong> tại quầy Lễ tân để hoàn tất thủ tục nhận phòng tức thì trong 5 giây mà không cần điền giấy tờ.
+            </p>
         </div>
 
-        <div class="greeting">Kính gửi <strong>{$customerName}</strong>,</div>
-       <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Cảm ơn quý khách. Khoản đặt cọc 50% tiền phòng của quý khách đã được ghi nhận thành công trên hệ thống. Số tiền còn lại quý khách vui lòng thanh toán khi nhận phòng.</p>
-<p>Đã Đặt Cọc (50%)</p>
-        
-        <div class="section-title">Chi Tiết Giao Dịch</div>
-        <table class="details-table">
-            <tr><td>Mã đặt phòng</td><td>#{$b->id}</td></tr>
-            <tr><td>Mã giao dịch (TransID)</td><td>{$transId}</td></tr>
-            <tr><td>Phương thức TT</td><td>{$methodLabel}</td></tr>
-            <tr><td>Trạng thái</td><td style="color: #059669;">Thành công</td></tr>
-        </table>
-
-        <div class="section-title">Danh Sách Phòng Đã Đặt</div>
-        <div class="room-list">
-            <ul>{$roomListHtml}</ul>
+        <!-- Reservation Details -->
+        <div class="card-box">
+            <div class="card-title">Chi Tiết Kỳ Nghỉ</div>
+            <table class="info-table">
+                <tr><td>Mã đặt phòng</td><td>#{$b->id}</td></tr>
+                <tr><td>Ngày nhận phòng</td><td>{$checkInFormatted} (từ 14:00)</td></tr>
+                <tr><td>Ngày trả phòng</td><td>{$checkOutFormatted} (trước 12:00)</td></tr>
+                <tr><td>Phương thức thanh toán</td><td>{$methodLabel}</td></tr>
+                <tr><td>Trạng thái đặt phòng</td><td style="color: #15803d;">✓ Đã xác nhận</td></tr>
+            </table>
         </div>
 
-        <div class="total-box">
-            <p>Đã Thanh Toán</p>
-            <h2>{$price}</h2>
+        <!-- Room List -->
+        <div class="card-box">
+            <div class="card-title">Danh Sách Phòng Đã Đặt</div>
+            <table class="info-table">
+                {$roomRowsHtml}
+            </table>
         </div>
 
-        <div class="qr-notice">
-            <strong>Lưu ý quan trọng:</strong> Vui lòng lưu lại email này và xuất trình <strong>Mã QR đính kèm</strong> khi đến làm thủ tục nhận phòng tại quầy Lễ tân.
+        <!-- Payment Breakdown -->
+        <div class="card-box">
+            <div class="card-title">Chi Tiết Thanh Toán</div>
+            <table class="info-table">
+                <tr><td>Tổng tiền phòng dự kiến</td><td>{$totalFormatted}</td></tr>
+                <tr><td>Đã đặt cọc thanh toán (50%)</td><td style="color: #0071e3;">{$depositFormatted}</td></tr>
+                <tr><td>Còn lại thanh toán khi nhận phòng</td><td style="color: #0f172a; font-size: 14.5px;">{$remainingFormatted}</td></tr>
+            </table>
+        </div>
+
+        <div class="total-banner">
+            <p>Số Tiền Đã Thanh Toán</p>
+            <h2>{$depositFormatted}</h2>
+        </div>
+
+        <div class="signoff">
+            Trân trọng phục vụ,<br>
+            <strong style="color: #0f172a;">Ban Quản lý Posh Boutique</strong>
         </div>
     </div>
-    <div class="footer">
-        <p>&copy; 2026 {$hotel}. All rights reserved.</p>
-        <p>Email này được tạo tự động, vui lòng không trả lời.</p>
+    <div class="email-footer">
+        <p><strong>Posh Boutique</strong> — Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội</p>
+        <p>Hotline: 024 3828 9999 | Email: contact@poshboutique.vn</p>
+        <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">&copy; 2026 Posh Boutique. All rights reserved.</p>
     </div>
 </div>
 </body>

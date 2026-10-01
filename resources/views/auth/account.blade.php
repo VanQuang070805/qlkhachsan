@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Thông tin cá nhân · Royal Hotel')
+@section('title', 'Thông tin cá nhân · Posh Boutique')
 
 @section('content')
 <section class="commerce-page account-profile" aria-labelledby="account-title">

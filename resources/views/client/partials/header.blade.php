@@ -1,16 +1,17 @@
-<header class="site-header" data-site-header data-home-header data-homepage-header aria-label="Thanh điều hướng Royal Hotel">
+<header class="site-header" data-site-header data-home-header data-homepage-header aria-label="Thanh điều hướng Posh Boutique">
     <div class="site-header__inner">
-        <a href="{{ route('home') }}" class="site-header__brand-spacer" aria-label="Về trang chủ Royal Hotel"></a>
+        <div class="site-header__brand-spacer" aria-hidden="true">
+            <img src="{{ asset('aura-logo-white.png') }}" alt="" class="site-header__logo-img" draggable="false">
+        </div>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" data-nav-toggle>
             <span class="sr-only">Mở menu</span><span></span><span></span>
         </button>
         <nav class="primary-nav" id="primary-navigation" aria-label="Điều hướng chính" data-primary-nav>
             <a class="{{ request()->routeIs('home') ? 'is-active' : '' }}" href="{{ route('home') }}">Trang chủ</a>
-            <a class="{{ request()->routeIs('rooms.*') ? 'is-active' : '' }}" href="{{ route('rooms.index') }}">Phòng nghỉ</a>
-            <a class="{{ request()->routeIs('contact', 'about') ? 'is-active' : '' }}" href="{{ route('contact') }}">Về Royal &amp; Liên hệ</a>
+            <a class="{{ request()->routeIs('contact', 'about') ? 'is-active' : '' }}" href="{{ route('contact') }}">Về Posh &amp; Liên hệ</a>
             <span class="primary-nav__divider" aria-hidden="true"></span>
             @if(session('user_id'))
-                <a class="primary-nav__mobile-account" href="{{ route('booking.mine') }}">Kỳ nghỉ của tôi</a>
+                <a class="primary-nav__mobile-account" href="{{ route('booking.mine') }}">Lịch sử đặt phòng</a>
                 <a class="primary-nav__mobile-account" href="{{ route('account.show') }}">Thông tin cá nhân</a>
             @else
                 <a class="primary-nav__mobile-account" href="{{ route('login') }}">Đăng nhập</a>
@@ -20,10 +21,10 @@
             @if(session('user_id'))
                 <details class="account-menu">
                     <summary class="account-link account-icon" aria-label="Tài khoản của tôi" title="Tài khoản của tôi">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>
                     </summary>
                     <div class="account-menu__panel">
-                        <a href="{{ route('booking.mine') }}"><i class="bi bi-suitcase2"></i>Kỳ nghỉ của tôi</a>
+                        <a href="{{ route('booking.mine') }}"><i class="bi bi-suitcase2"></i>Lịch sử đặt phòng</a>
                         <a href="{{ route('account.show') }}"><i class="bi bi-person"></i>Thông tin cá nhân</a>
                     </div>
                 </details>

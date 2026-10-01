@@ -76,7 +76,7 @@ main:has(.page-hero),main:has(.editorial-hero),main:has(.contact-hero) { backgro
    Matches https://www.supaste.com/ #features design:
    - Pitch black notch hanging flush from top: 0
    - Concave fillet curves on top-left and top-right
-   - Clean "Royal Hotel" brand typography (no squircle box)
+   - Clean "Posh Boutique" brand typography (no squircle box)
    - Active nav item in clean subtle pill (no white outline box)
    - High-contrast pure white pill CTA button (never drowned in white)
    - Smooth entrance animation on page arrival
@@ -151,7 +151,7 @@ main:has(.page-hero),main:has(.editorial-hero),main:has(.contact-hero) { backgro
     position: relative !important;
 }
 
-/* Brand Royal Hotel text without squircle icon */
+/* Brand Aura Logo on Notch Header (non-interactive, sized to match previous text) */
 .site-header[data-homepage-header] .site-header__brand-spacer {
     display: inline-flex !important;
     align-items: center !important;
@@ -159,18 +159,26 @@ main:has(.page-hero),main:has(.editorial-hero),main:has(.contact-hero) { backgro
     width: auto !important;
     min-width: auto !important;
     text-decoration: none !important;
-    cursor: pointer !important;
+    cursor: default !important;
+    pointer-events: none !important;
+    user-select: none !important;
 }
-.site-header[data-homepage-header] .site-header__brand-spacer::before {
-    display: none !important;
-}
+.site-header[data-homepage-header] .site-header__brand-spacer::before,
 .site-header[data-homepage-header] .site-header__brand-spacer::after {
-    content: "Royal Hotel";
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 13.5px;
-    letter-spacing: -0.01em;
-    font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+    display: none !important;
+    content: none !important;
+}
+
+.site-header__logo-img {
+    height: 16px !important;
+    width: auto !important;
+    max-height: 16px !important;
+    max-width: 52px !important;
+    object-fit: contain !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    pointer-events: none !important;
+    user-select: none !important;
 }
 
 /* Supaste-styled Navigation Links */
@@ -232,17 +240,73 @@ main:has(.page-hero),main:has(.editorial-hero),main:has(.contact-hero) { backgro
     color: #cbd5e1 !important;
     font-size: 13px !important;
     font-weight: 500 !important;
-    padding: 4px 8px !important;
+    padding: 5px 12px !important;
     border: none !important;
     background: transparent !important;
-    min-height: auto !important;
-    border-radius: 6px !important;
-    transition: color 0.18s ease !important;
+    min-height: 30px !important;
+    border-radius: 8px !important;
+    transition: color 0.18s ease, background-color 0.18s ease !important;
+    line-height: 1.4 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 .site-header[data-homepage-header] .site-header__actions .account-link:hover {
     color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Notch Header Account Icon (match tab height 30px, remove circular white bg and gray border) */
+.site-header[data-homepage-header] .site-header__actions .account-menu {
+    display: inline-flex !important;
+    align-items: center !important;
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.site-header[data-homepage-header] .site-header__actions .account-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    border: none !important;
     background: transparent !important;
-    border-color: transparent !important;
+    color: #cbd5e1 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    cursor: pointer !important;
+    transition: color 0.18s ease, background-color 0.18s ease !important;
+}
+
+.site-header[data-homepage-header] .site-header__actions .account-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+    color: inherit !important;
+}
+
+.site-header[data-homepage-header] .site-header__actions .account-icon:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.site-header[data-homepage-header] .site-header__actions .account-menu[open] .account-icon {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 .site-header[data-homepage-header] .site-header__actions .button--small,
 .site-header[data-homepage-header].is-scrolled .site-header__actions .button--small,
@@ -1487,4 +1551,76 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
     font-weight: 700 !important;
     letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
+}
+
+/* ==========================================================================
+   QUIET LUXURY FINISH: ANTI-BLACK-BORDER & BORDERLESS ICON HYGIENE
+   ========================================================================== */
+
+/* 1. Eliminate harsh black outlines and borders on focus/click everywhere on customer pages */
+.client-shell input:focus,
+.client-shell select:focus,
+.client-shell textarea:focus,
+.client-shell button:focus,
+.client-shell a:focus,
+.client-shell [tabindex]:focus,
+.client-shell input:focus-visible,
+.client-shell select:focus-visible,
+.client-shell textarea:focus-visible,
+.client-shell button:focus-visible,
+.client-shell a:focus-visible,
+.client-shell [tabindex]:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12) !important;
+}
+
+.rooms-select-trigger,
+.rooms-select-trigger:focus,
+.rooms-select-trigger:focus-visible,
+.rooms-select-trigger:active,
+.rooms-multiselect-item,
+.rooms-multiselect-item:focus,
+.rooms-combobox-item,
+.rooms-combobox-item:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* 2. Eliminate all gray square borders around icons across customer interface */
+.client-shell .aeth-amenity-card,
+.aeth-amenity-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.client-shell .aeth-amenity-icon,
+.aeth-amenity-icon {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.client-shell .aeth-spec-card,
+.aeth-spec-card {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.client-shell .aeth-spec-icon-box,
+.aeth-spec-icon-box {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* 3. Eliminate borders surrounding total payment box */
+.aeth-total-box,
+.total-box,
+[class*="total-box"] {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
 }

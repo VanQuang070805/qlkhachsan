@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 class SnapshotHotelMetrics extends Command
 {
     protected $signature = 'reports:snapshot {--date= : Ngày snapshot theo YYYY-MM-DD}';
-    protected $description = 'Lưu snapshot KPI hằng ngày cho báo cáo Royal Hotel';
+    protected $description = 'Lưu snapshot KPI hằng ngày cho báo cáo Posh Boutique';
 
     public function handle(): int
     {

@@ -437,9 +437,11 @@ class ReceptionController extends Controller
             DB::beginTransaction();
 
             $booking = DB::selectOne("
-                SELECT b.id, b.check_out, b.total_price, b.status, b.customer_name
+                SELECT b.id, b.check_out, b.total_price, b.status, b.customer_name, rt.price AS room_rate
                 FROM bookings b
                 JOIN booking_rooms br ON br.booking_id = b.id
+                JOIN rooms r ON r.id = br.room_id
+                JOIN room_types rt ON rt.id = r.room_type_id
                 WHERE br.room_id = ?
                   AND b.status = 'checked_in'
                 ORDER BY b.check_out DESC
@@ -452,11 +454,12 @@ class ReceptionController extends Controller
             }
 
             if ($mode === 'hours') {
-                $addedAmount = $amount * 200000;
+                $hourlyRate = round(max(0, (float) $booking->room_rate) * 0.1, 2);
+                $addedAmount = round($amount * $hourlyRate, 2);
                 $newTotal = (float) $booking->total_price + $addedAmount;
                 DB::update('UPDATE bookings SET total_price = ? WHERE id = ? AND status = ?', [$newTotal, $booking->id, 'checked_in']);
                 DB::commit();
-                return response()->json(['success' => true, 'message' => 'Gia hạn thành công '.$amount.' giờ · '.number_format($addedAmount, 0, ',', '.').'đ.', 'added_amount' => $addedAmount, 'total_price' => $newTotal]);
+                return response()->json(['success' => true, 'message' => 'Gia hạn thành công '.$amount.' giờ · '.number_format($addedAmount, 0, ',', '.').'đ (10% giá phòng mỗi giờ).', 'hourly_rate' => $hourlyRate, 'added_amount' => $addedAmount, 'total_price' => $newTotal]);
             }
 
             $oldCheckout = $booking->check_out;
@@ -648,8 +651,8 @@ class ReceptionController extends Controller
     private function pendingHoldExpirySql(): string
     {
         return DB::getDriverName() === 'sqlite'
-            ? "datetime(b.created_at) >= datetime('now', '-30 minutes')"
-            : 'b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)';
+            ? "datetime(b.created_at) > datetime('now', '-".Booking::PAYMENT_HOLD_MINUTES." minutes')"
+            : 'b.created_at > DATE_SUB(NOW(), INTERVAL '.Booking::PAYMENT_HOLD_MINUTES.' MINUTE)';
     }
     
 }

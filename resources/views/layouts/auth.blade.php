@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#ffffff">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $pageTitle ?? 'Tài khoản · Royal Hotel' }}</title>
-    <link rel="icon" href="{{ asset('royal-hotel-logo.png') }}" type="image/png">
+    <title>{{ $pageTitle ?? 'Tài khoản · Posh Boutique' }}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,27 +20,8 @@
 </head>
 <body class="auth-shell">
 
-    {{-- Top Notch Header (Identical to Homepage Notch, Without Login Button) --}}
-    <header class="site-header" data-site-header data-home-header data-homepage-header aria-label="Thanh điều hướng tài khoản">
-        <div class="site-header__inner">
-            <a href="{{ route('home') }}" class="site-header__brand-spacer" aria-label="Về trang chủ Royal Hotel"></a>
-
-            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" data-nav-toggle>
-                <span class="sr-only">Mở menu</span><span></span><span></span>
-            </button>
-
-            <nav class="primary-nav" id="primary-navigation" aria-label="Điều hướng chính" data-primary-nav>
-                <a class="{{ request()->routeIs('home') ? 'is-active' : '' }}" href="{{ route('home') }}">Trang chủ</a>
-                <a class="{{ request()->routeIs('rooms.*') ? 'is-active' : '' }}" href="{{ route('rooms.index') }}">Phòng nghỉ</a>
-                <a class="{{ request()->routeIs('contact') ? 'is-active' : '' }}" href="{{ route('contact') }}">Chính sách &amp; Điều khoản</a>
-                <a href="{{ route('home') }}#faq">FAQ</a>
-            </nav>
-
-            <div class="site-header__actions">
-                <a class="button button--small" href="{{ route('rooms.index') }}">Đặt phòng</a>
-            </div>
-        </div>
-    </header>
+    {{-- Top Notch Header (Synchronized with Homepage Notch, FAQ removed) --}}
+    @include('client.partials.header')
 
     {{-- Split 2-Column Main Layout --}}
     <main class="sana-auth-main">
@@ -45,7 +30,7 @@
             @yield('content')
         </div>
 
-        {{-- Right Column: Dark Luxury Laptop Showcase (Adapted for Royal Hotel) --}}
+        {{-- Right Column: Dark Luxury Laptop Showcase (Adapted for Posh Boutique) --}}
         <div class="sana-showcase-col" aria-hidden="true">
             <div class="sana-laptop">
                 {{-- macOS Traffic Lights Header --}}
@@ -55,7 +40,7 @@
                         <span class="ctrl-dot ctrl-yellow"></span>
                         <span class="ctrl-dot ctrl-green"></span>
                     </div>
-                    <span class="macos-card-title">Royal Hotel &mdash; Cổng trải nghiệm dịch vụ</span>
+                    <span class="macos-card-title">Posh Boutique &mdash; Cổng trải nghiệm dịch vụ</span>
                     <div class="macos-card-spacer" aria-hidden="true"></div>
                 </div>
 
@@ -65,7 +50,7 @@
                     <div class="sana-laptop__sidebar">
                         <div class="sana-laptop__workspace">
                             <span class="sana-laptop__workspace-dot"></span>
-                            <span>Royal Suites</span>
+                            <span>Posh Suites</span>
                         </div>
                         <ul class="sana-laptop__nav-list">
                             <li class="sana-laptop__nav-item is-active">
@@ -95,7 +80,7 @@
                     <div class="sana-laptop__content">
                         <div>
                             <div class="sana-laptop__greeting">
-                                <h3>Welcome to Royal Hotel</h3>
+                                <h3>Welcome to Posh Boutique</h3>
                                 <p>Không gian lưu trú tinh tế &amp; dịch vụ chuẩn mực 5 sao</p>
                             </div>
 
@@ -107,9 +92,9 @@
                                     <p class="sana-laptop__card-sub">Skyline view &amp; Private pool</p>
                                 </div>
 
-                                {{-- Card 2: Royal Executive --}}
+                                {{-- Card 2: Posh Executive --}}
                                 <div class="sana-laptop__card">
-                                    <img src="{{ asset('images/rooms/1.jpg') }}" alt="Royal Executive" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
+                                    <img src="{{ asset('images/rooms/1.jpg') }}" alt="Posh Executive" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
                                     <p class="sana-laptop__card-title">Executive Suite</p>
                                     <p class="sana-laptop__card-sub">24/7 Butler &amp; Jacuzzi</p>
                                 </div>
@@ -126,7 +111,7 @@
                         {{-- Bottom Prompt Bar --}}
                         <div class="sana-laptop__prompt-bar">
                             <i class="bi bi-stars" style="color: #60a5fa;"></i>
-                            <span>Hỏi Royal Concierge về phòng nghỉ, đưa đón hoặc dịch vụ...</span>
+                            <span>Hỏi Posh Concierge về phòng nghỉ, đưa đón hoặc dịch vụ...</span>
                         </div>
                     </div>
                 </div>
@@ -145,7 +130,7 @@
             <span class="dot-mark" aria-hidden="true">
                 <span></span><span></span><span></span><span></span>
             </span>
-            <span>Royal Hotel</span>
+            <span>Posh Boutique</span>
         </div>
         <div class="sana-bottom-bar__right">
             <span>Curated for a quieter kind of stay</span>

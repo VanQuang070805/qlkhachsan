@@ -17,6 +17,9 @@
 /public/hot
 /public/storage
 /public/temp/*.png
+/public/email_booking_qr_preview.html
+/public/email_review_request_preview.html
+/public/review_preview.html
 /storage/app/private/incident-backup/*.sql
 /public/graph.html
 /storage/*.key

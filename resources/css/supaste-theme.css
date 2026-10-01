@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Supaste Theme for Royal Hotel
+   Supaste Theme for Posh Boutique
    1:1 Faithful Clone of https://www.supaste.com/ UI / Visual System
    - Colors: Electric Royal Blue (#0066ff, #0050db), Onyx Black (#0d0d0d, #000)
    - Fonts: Inter Display / Inter + Instrument Serif (italic)
@@ -79,27 +79,22 @@
     margin: 0 !important;
 }
 
-/* Supaste Blue Squircle Logo + Royal Hotel */
+/* Notch Header Logo (non-interactive Aura logo image) */
 .site-header[data-homepage-header] .site-header__brand-spacer {
     display: inline-flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 0 !important;
     flex: 0 0 auto !important;
     text-decoration: none !important;
-    cursor: pointer !important;
+    cursor: default !important;
+    pointer-events: none !important;
+    user-select: none !important;
 }
 
-.site-header[data-homepage-header] .site-header__brand-spacer::before {
-    display: none !important;
-}
-
+.site-header[data-homepage-header] .site-header__brand-spacer::before,
 .site-header[data-homepage-header] .site-header__brand-spacer::after {
-    content: "Royal Hotel" !important;
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    font-size: 13.5px !important;
-    letter-spacing: -0.01em !important;
-    font-family: var(--supaste-font-sans) !important;
+    display: none !important;
+    content: none !important;
 }
 
 .site-header[data-homepage-header] .primary-nav {
@@ -814,7 +809,7 @@
    SUPASTE OFFICIAL PARTNERS / LOGOS STRIP (90x90 PILLS)
    ---------------------------------------------------- */
 .supaste-section {
-    padding: 120px 24px 80px !important;
+    padding: 80px 24px 56px !important;
     max-width: 1180px !important;
     margin: 0 auto !important;
     position: relative !important;
@@ -822,16 +817,11 @@
 
 .supaste-section__header {
     text-align: center !important;
-    margin-bottom: 56px !important;
+    margin-bottom: 40px !important;
 }
 
 .supaste-section__eyebrow {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.12em !important;
-    text-transform: uppercase !important;
-    color: #0066ff !important;
-    margin-bottom: 12px !important;
+    display: none !important;
 }
 
 .supaste-section__title {
@@ -1455,6 +1445,15 @@
     text-decoration: none !important;
 }
 
+.supaste-footer__logo-img {
+    height: 24px !important;
+    width: auto !important;
+    max-width: 64px !important;
+    object-fit: contain !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
 .supaste-footer__squircle {
     width: 22px !important;
     height: 22px !important;
@@ -1477,7 +1476,7 @@
     font-weight: 400 !important;
 }
 
-/* Footer Headline: Stay refined. Rest effortlessly. */
+/* Footer headline */
 .supaste-footer__headline {
     margin: 0 0 16px 0 !important;
     display: flex !important;

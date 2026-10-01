@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Kỳ nghỉ của tôi · Royal Hotel')
+@section('title', 'Kỳ nghỉ của tôi · POSH BOUTIQUE')
 
 @section('content')
 @php
@@ -13,10 +13,10 @@
         'completed' => 'Hoàn thành'
     ];
 
-    $allCount = $bookings->total() ?? $bookings->count();
-    $upcomingCount = $bookings->filter(fn($b) => in_array($b->status, ['pending', 'confirmed', 'checked_in']))->count();
-    $completedCount = $bookings->filter(fn($b) => $b->status === 'completed')->count();
-    $cancelledCount = $bookings->filter(fn($b) => in_array($b->status, ['cancelled', 'rejected']))->count();
+    $allCount = (int) ($bookingCounts->all_count ?? 0);
+    $upcomingCount = (int) ($bookingCounts->upcoming_count ?? 0);
+    $completedCount = (int) ($bookingCounts->completed_count ?? 0);
+    $cancelledCount = (int) ($bookingCounts->cancelled_count ?? 0);
     $totalNights = $bookings->sum(fn($b) => \Carbon\Carbon::parse($b->check_in)->diffInDays($b->check_out) ?: 1);
 @endphp
 
@@ -33,7 +33,7 @@
                     </span>
                 </div>
                 <h1 style="font-size: 26px; font-weight: 800; color: #0f172a; letter-spacing: -0.025em; margin: 0;">
-                    Kỳ Nghỉ Của Quý Khách
+                    Lịch Sử Đặt Phòng
                 </h1>
             </div>
 
@@ -46,12 +46,6 @@
                     <span class="position-absolute top-50 translate-middle-y end-0 me-2 badge bg-light text-muted border font-monospace" style="font-size: 10px;">⌘K</span>
                 </div>
 
-                {{-- Nút Xuất PDF --}}
-                <button type="button" class="btn btn-white rounded-pill border border-slate-200 px-3 py-2 text-slate-700 shadow-xs d-flex align-items-center gap-1.5"
-                        style="font-size: 12.5px; font-weight: 600;" onclick="window.print()">
-                    <i class="bi bi-download text-primary"></i>
-                    <span>Xuất PDF</span>
-                </button>
             </div>
         </div>
 
@@ -63,7 +57,7 @@
                 </button>
                 <button type="button" class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold text-slate-700 filter-tab" data-filter="upcoming" onclick="filterByStatus('upcoming', this)">
                     <span class="aeth-pulse-dot me-1" style="width:5px; height:5px;"></span>
-                    Sắp tới <span class="badge bg-blue-50 text-primary rounded-pill ms-1">{{ $upcomingCount ?: 1 }}</span>
+                    Đã Đặt <span class="badge bg-blue-50 text-primary rounded-pill ms-1">{{ $upcomingCount }}</span>
                 </button>
                 <button type="button" class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold text-slate-700 filter-tab" data-filter="completed" onclick="filterByStatus('completed', this)">
                     Hoàn thành <span class="badge bg-slate-100 text-slate-600 rounded-pill ms-1">{{ $completedCount }}</span>
@@ -104,6 +98,7 @@
                 $isCancelled = in_array($booking->status, ['cancelled', 'rejected']);
                 $isCompleted = $booking->status === 'completed';
                 $isUpcoming = in_array($booking->status, ['pending', 'confirmed', 'checked_in']);
+                $checkinToken = $checkinTokens[$booking->id] ?? null;
                 $filterGroup = $isCancelled ? 'cancelled' : ($isCompleted ? 'completed' : 'upcoming');
             @endphp
             <article class="booking-card-horizontal p-4 rounded-4 bg-white border border-slate-200 shadow-xs transition-all {{ $isCancelled ? 'opacity-75' : '' }}"
@@ -127,7 +122,7 @@
                         <div class="d-flex align-items-center gap-2 mb-1">
                             @if($isUpcoming)
                                 <span class="badge rounded-pill bg-emerald-50 text-emerald-700 border border-emerald-200 d-inline-flex align-items-center gap-1" style="font-size: 11px; font-weight: 600;">
-                                    <span class="aeth-pulse-dot" style="width:5px; height:5px;"></span> {{ $statusLabels[$booking->status] ?? 'Sắp tới' }}
+                                    <span class="aeth-pulse-dot" style="width:5px; height:5px;"></span> {{ $statusLabels[$booking->status] ?? 'Đã đặt' }}
                                 </span>
                             @elseif($isCompleted)
                                 <span class="badge rounded-pill bg-light text-slate-700 border d-inline-flex align-items-center gap-1" style="font-size: 11px; font-weight: 600;">
@@ -173,26 +168,30 @@
                                         style="font-size: 11.5px; font-weight: 600; background: #0f172a; border: 1px solid #1e293b; transition: all 0.2s ease;"
                                         onclick="openWalletModal('{{ $booking->id }}', '{{ addslashes($roomType?->type_name ?? 'Phòng Royal') }}', '{{ addslashes($booking->customer_name) }}', 'Tầng {{ $floor }}')">
                                     <i class="bi bi-apple"></i>
-                                    <span>Apple Wallet</span>
+                    <span>Apple Wallet</span>
                                 </button>
 
                                 @php
-                                    $checkinQrDataUri = '';
-                                    try {
-                                        $qrObj = \Endroid\QrCode\QrCode::create('Booking ID: #' . $booking->id)->setSize(194)->setMargin(2);
-                                        $checkinQrDataUri = (new \Endroid\QrCode\Writer\SvgWriter())->write($qrObj)->getDataUri();
-                                    } catch (\Throwable $e) {
-                                        $checkinQrDataUri = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=2&data=' . urlencode('Booking ID: #' . $booking->id);
+                                    $checkinQrDataUri = null;
+                                    if ($checkinToken) {
+                                        try {
+                                            $qrObj = \Endroid\QrCode\QrCode::create($checkinToken)->setSize(194)->setMargin(2);
+                                            $checkinQrDataUri = (new \Endroid\QrCode\Writer\SvgWriter())->write($qrObj)->getDataUri();
+                                        } catch (\Throwable $e) {
+                                            $checkinQrDataUri = null;
+                                        }
                                     }
                                 @endphp
                                 {{-- Nút Check-in QR (Apple Blue Pill) --}}
+                                @if($checkinQrDataUri)
                                 <button type="button" class="btn rounded-pill px-3 py-1.5 text-white d-inline-flex align-items-center gap-1.5 shadow-xs"
                                         style="font-size: 11.5px; font-weight: 600; background: #0071e3; border: none; box-shadow: 0 2px 8px rgba(0,113,227,0.28); transition: all 0.2s ease;"
                                         data-qr-uri="{{ $checkinQrDataUri }}"
-                                        onclick="openQrModal('{{ $booking->id }}', '{{ addslashes($roomType?->type_name ?? 'Phòng Royal') }}', this.dataset.qrUri)">
+                                        onclick="openQrModal('{{ $booking->id }}', '{{ addslashes($roomType?->type_name ?? 'Phòng Posh') }}', this.dataset.qrUri)">
                                     <i class="bi bi-qr-code"></i>
                                     <span>Mã nhận phòng</span>
                                 </button>
+                                @endif
 
                                 @if($booking->payment_status !== 'paid' && $booking->payment_method !== 'cash')
                                 <a href="{{ route('payment.form', $booking->id) }}" class="btn rounded-pill px-3 py-1.5 text-decoration-none d-inline-flex align-items-center gap-1 shadow-xs"
@@ -273,7 +272,7 @@
             <div style="position:absolute; top:-20px; right:-20px; width:120px; height:120px; background:radial-gradient(circle, rgba(0,113,227,0.5), transparent 70%); pointer-events:none;"></div>
             
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="fw-bold tracking-wider text-white" style="font-size: 13px; letter-spacing:0.12em;">ROYAL HOTEL</span>
+                <span class="fw-bold tracking-wider text-white" style="font-size: 13px; letter-spacing:0.12em;">POSH BOUTIQUE</span>
                 <span class="badge bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 rounded-pill px-2.5 py-1" style="font-size: 10px; font-weight: 700;">NFC KEY ACTIVE</span>
             </div>
 
@@ -382,12 +381,12 @@
             </div>
 
             <div style="display: inline-block; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 9999px; padding: 5px 14px; font-size: 12px; font-weight: 600; color: #059669;">
-                Hiệu lực: Check-in tự động 14:00
+                Mã có hiệu lực đến hết ngày trả phòng
             </div>
         </div>
 
         <p class="text-slate-600 mb-4" style="font-size: 12.5px; line-height: 1.5;">
-            Quý khách vui lòng xuất trình mã này tại quầy Lễ tân Royal Hotel để hoàn tất nhận phòng trong giây lát.
+            Quý khách vui lòng xuất trình mã này tại quầy Lễ tân POSH BOUTIQUE để hoàn tất nhận phòng trong giây lát.
         </p>
 
         <button type="button" class="btn btn-primary w-100 py-2.5 rounded-pill fw-semibold text-white shadow-xs" style="background:#0071e3; border:none; height: 44px;" onclick="closeModal('qrModal')">
@@ -421,7 +420,7 @@
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; font-size: 13px;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px;">
                 <span style="color: #64748b; font-weight: 500;">Đơn vị phát hành:</span>
-                <span style="color: #0f172a; font-weight: 700; text-align: right;">Công ty CP Royal Hotel</span>
+                <span style="color: #0f172a; font-weight: 700; text-align: right;">Công ty CP POSH BOUTIQUE</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px;">
                 <span style="color: #64748b; font-weight: 500;">Dịch vụ:</span>
@@ -440,7 +439,7 @@
                 <span>Thành tiền</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid #f1f5f9; color: #0f172a;">
-                <span style="font-weight: 500;">Dịch vụ lưu trú Royal</span>
+                <span style="font-weight: 500;">Dịch vụ lưu trú Posh Boutique</span>
                 <span style="font-weight: 700;" id="invoiceItemPrice">0 đ</span>
             </div>
         </div>
@@ -454,7 +453,7 @@
         {{-- Chữ ký số --}}
         <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 12px; color: #475569; margin-bottom: 18px;">
             <i class="bi bi-shield-check" style="font-size: 16px; color: #059669; flex-shrink: 0;"></i>
-            <span>Chữ ký số hợp lệ: <strong>VNPT-CA Token</strong> · Royal Hotel Hospitality JSC</span>
+            <span>Chữ ký số hợp lệ: <strong>VNPT-CA Token</strong> · POSH BOUTIQUE Hospitality JSC</span>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -519,7 +518,7 @@
                 <div style="width: 20px; height: 20px; border-radius: 50%; background: #eff6ff; color: #0071e3; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px;">3</div>
                 <div>
                     <div style="font-weight: 700; color: #0f172a; font-size: 13px;">Mã đối soát giao dịch</div>
-                    <div style="color: #0071e3; font-size: 12px; font-weight: 600;" id="refundBookingCode">ROYAL-REFUND-7458291048</div>
+                    <div style="color: #0071e3; font-size: 12px; font-weight: 600;" id="refundBookingCode">POSH-REFUND-7458291048</div>
                 </div>
             </div>
         </div>
@@ -601,13 +600,16 @@ function handleAddToWallet() {
 }
 
 function openQrModal(id, roomName, qrDataUri) {
+    if (!qrDataUri) {
+        return;
+    }
     document.getElementById('qrSubtitle').textContent = roomName;
     const qrImg = document.getElementById('qrCodeImg');
     if (qrImg) {
-        const fallbackUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=2&data=' + encodeURIComponent('Booking ID: #' + (id || '1'));
-        qrImg.src = qrDataUri || fallbackUrl;
+        qrImg.src = qrDataUri;
         qrImg.onerror = function() {
-            this.src = fallbackUrl;
+            this.removeAttribute('src');
+            this.alt = 'Không thể tải mã nhận phòng. Vui lòng liên hệ lễ tân.';
         };
     }
     openModalHelper('qrModal');
@@ -621,7 +623,7 @@ function openInvoiceModal(id, price, name) {
 }
 
 function openRefundModal(id, price) {
-    document.getElementById('refundBookingCode').textContent = 'ROYAL-REFUND-' + (id || '7458291048');
+    document.getElementById('refundBookingCode').textContent = 'POSH-REFUND-' + (id || '7458291048');
     document.getElementById('refundAmount').textContent = price + ' đ';
     openModalHelper('refundModal');
 }

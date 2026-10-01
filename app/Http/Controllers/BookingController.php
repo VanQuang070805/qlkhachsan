@@ -168,7 +168,11 @@ class BookingController extends Controller
             abort(403);
         }
 
-        return view('booking.success', compact('booking'));
+        $checkin_token = in_array($booking->status, ['confirmed', 'checked_in'], true)
+            ? app(\App\Services\CheckInTokenService::class)->qrPayload($booking)
+            : null;
+
+        return view('booking.success', compact('booking', 'checkin_token'));
     }
 
     /**
@@ -181,7 +185,22 @@ class BookingController extends Controller
             ->orderByDesc((new Booking)->getCreatedAtColumn())
             ->paginate(10);
 
-        return view('booking.my_bookings', compact('bookings'));
+        $bookingCounts = Booking::where('user_id', Auth::id())
+            ->selectRaw(
+                'COUNT(*) AS all_count,
+                 COALESCE(SUM(CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END), 0) AS upcoming_count,
+                 COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS completed_count,
+                 COALESCE(SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END), 0) AS cancelled_count',
+                ['pending', 'confirmed', 'checked_in', 'completed', 'cancelled', 'rejected']
+            )->first();
+
+        $checkinTokens = $bookings->getCollection()
+            ->filter(fn (Booking $booking) => in_array($booking->status, ['confirmed', 'checked_in'], true))
+            ->mapWithKeys(fn (Booking $booking) => [
+                $booking->id => app(\App\Services\CheckInTokenService::class)->qrPayload($booking),
+            ]);
+
+        return view('booking.my_bookings', compact('bookings', 'bookingCounts', 'checkinTokens'));
     }
 
     // ──────────────────────────────────────────────────────────

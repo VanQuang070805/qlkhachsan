@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Đặt Phòng Thành Công — Royal Hotel')
+@section('title', 'Đặt phòng thành công · POSH BOUTIQUE')
 
 @push('styles')
 <style>
@@ -215,7 +215,7 @@
         } catch (\Throwable $e) {}
     }
 
-    $room_name = 'Phòng Nghỉ Royal';
+    $room_name = 'Phòng Nghỉ Posh';
     if (isset($booking->rooms) && $booking->rooms->isNotEmpty()) {
         $roomTypes = $booking->rooms->map(fn($r) => $r->roomType?->name ?? ('Phòng ' . $r->room_number))->unique()->filter();
         if ($roomTypes->isNotEmpty()) {
@@ -225,15 +225,9 @@
         $room_name = $booking->type_name;
     }
 
-    if (empty($qr_base64)) {
+    if (empty($qr_base64) && !empty($checkin_token)) {
         try {
-            $qrData = json_encode([
-                'booking_id' => $booking->id,
-                'customer'   => $booking->customer_name,
-                'check_in'   => $booking->check_in,
-                'hotel'      => 'Royal Hotel'
-            ]);
-            $qrObj = \Endroid\QrCode\QrCode::create($qrData)
+            $qrObj = \Endroid\QrCode\QrCode::create($checkin_token)
                 ->setSize(240)
                 ->setMargin(8);
             $writer = new \Endroid\QrCode\Writer\PngWriter();
@@ -306,10 +300,12 @@
 
         {{-- Cụm 2 nút: Mã Check-in & Xem Lịch Sử --}}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            @if($checkin_token)
             <button type="button" class="btn-action-checkin" onclick="openQrModal()">
                 <i class="bi bi-qr-code" style="font-size: 15px;"></i>
                 <span>Mã Check-in</span>
             </button>
+            @endif
             <a href="{{ route('booking.mine') }}" class="btn-action-history">
                 <i class="bi bi-clock-history" style="font-size: 15px;"></i>
                 <span>Xem Lịch Sử</span>
@@ -350,20 +346,24 @@
                     $standardQr = null;
                     if (!empty($qr_base64)) {
                         $standardQr = 'data:image/png;base64,' . $qr_base64;
-                    } else {
+                    } elseif (!empty($checkin_token)) {
                         try {
-                            $qrObj = \Endroid\QrCode\QrCode::create('Booking ID: #' . $booking->id)->setSize(194)->setMargin(2);
+                            $qrObj = \Endroid\QrCode\QrCode::create($checkin_token)->setSize(194)->setMargin(2);
                             $standardQr = (new \Endroid\QrCode\Writer\SvgWriter())->write($qrObj)->getDataUri();
                         } catch (\Throwable $e) {
-                            $standardQr = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=2&data=' . urlencode('Booking ID: #' . $booking->id);
+                            $standardQr = null;
                         }
                     }
                 @endphp
-                <img src="{{ $standardQr }}" alt="Mã QR Check-in Chuẩn" style="width: 194px; height: 194px; display: block; border-radius: 8px;" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=2&data={{ urlencode('Booking ID: #' . $booking->id) }}';">
+                @if($standardQr)
+                    <img src="{{ $standardQr }}" alt="Mã QR Check-in" style="width: 194px; height: 194px; display: block; border-radius: 8px;">
+                @else
+                    <p class="small text-muted mb-0">Mã check-in chưa khả dụng. Vui lòng liên hệ lễ tân.</p>
+                @endif
             </div>
 
             <div style="display: inline-block; margin-top: 14px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 9999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; color: #059669;">
-                Hiệu lực: Check-in tự động 14:00 ({{ \Carbon\Carbon::parse($booking->check_in)->format('d/m') }})
+                Mã có hiệu lực đến hết ngày trả phòng ({{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }})
             </div>
         </div>
 
