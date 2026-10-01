@@ -1,15 +1,37 @@
 """Report the room 501 cleaning rocker switch to the Laravel receptionist app."""
 
+import argparse
 import json
 import logging
 import os
 import signal
 import threading
 from dataclasses import dataclass
+from pathlib import Path
 from urllib import error, parse, request
 
 
 LOG = logging.getLogger(__name__)
+
+
+def load_env_file(path):
+    """Load a simple KEY=VALUE file without requiring python-dotenv."""
+    path = Path(path)
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        if line.startswith("export "):
+            line = line[7:].lstrip()
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if key:
+            os.environ.setdefault(key, value)
 
 
 @dataclass(frozen=True)
@@ -57,13 +79,19 @@ class CleaningApiClient:
         self.opener = opener or request.urlopen
 
     def send(self, needs_cleaning):
+        return self._request("POST", {"needs_cleaning": bool(needs_cleaning)})
+
+    def status(self):
+        return self._request("GET")
+
+    def _request(self, method, body=None):
         room = parse.quote(self.config.room_number, safe="")
         url = f"{self.config.api_base_url}/api/iot/rooms/{room}/cleaning-request"
-        payload = json.dumps({"needs_cleaning": bool(needs_cleaning)}).encode("utf-8")
+        payload = json.dumps(body).encode("utf-8") if body is not None else None
         api_request = request.Request(
             url,
             data=payload,
-            method="POST",
+            method=method,
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json",
@@ -134,18 +162,33 @@ class StateReporter:
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    try:
-        from gpiozero import Button
-    except ImportError as exc:
-        raise SystemExit("gpiozero is missing; run: sudo apt install python3-gpiozero") from exc
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--check-api", action="store_true", help="Check URL/API key without reading GPIO")
+    args = parser.parse_args()
+
+    load_env_file(Path(__file__).with_name(".env"))
 
     try:
         config = CleaningSwitchConfig.from_env()
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
 
+    client = CleaningApiClient(config)
+    if args.check_api:
+        try:
+            print(json.dumps(client.status(), ensure_ascii=False, indent=2))
+            return 0
+        except Exception as exc:
+            LOG.error("API check failed: %s", exc)
+            return 1
+
+    try:
+        from gpiozero import Button
+    except ImportError as exc:
+        raise SystemExit("gpiozero is missing; run: sudo apt install python3-gpiozero") from exc
+
     switch = Button(config.gpio, pull_up=True, bounce_time=config.bounce_time)
-    reporter = StateReporter(CleaningApiClient(config), config.retry_seconds)
+    reporter = StateReporter(client, config.retry_seconds)
     worker = threading.Thread(target=reporter.run, name="cleaning-state-reporter", daemon=True)
     stop = threading.Event()
 

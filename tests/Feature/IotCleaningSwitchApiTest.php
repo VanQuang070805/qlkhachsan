@@ -39,6 +39,18 @@ class IotCleaningSwitchApiTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_device_can_check_api_and_current_room_state(): void
+    {
+        $this->getJson('/api/iot/rooms/501/cleaning-request', [
+            'X-API-Key' => 'test-device-key',
+        ])->assertOk()->assertJson([
+            'success' => true,
+            'room_number' => '501',
+            'status' => 'occupied',
+            'needs_cleaning' => false,
+        ]);
+    }
+
     public function test_switch_can_turn_room_501_cleaning_request_on_and_off(): void
     {
         $headers = ['X-API-Key' => 'test-device-key'];

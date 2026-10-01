@@ -6,6 +6,8 @@ use App\Http\Controllers\PaymentController;
 
 Route::post('/iot/rooms/{roomNumber}/cleaning-request', [IotRoomController::class, 'updateCleaningRequest'])
     ->name('iot.rooms.cleaning-request');
+Route::get('/iot/rooms/{roomNumber}/cleaning-request', [IotRoomController::class, 'showCleaningRequest'])
+    ->name('iot.rooms.cleaning-request.show');
 
 // ============================================================
 // WEBHOOK — Nhận callback từ cổng thanh toán

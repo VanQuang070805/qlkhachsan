@@ -8,17 +8,26 @@ use Illuminate\Support\Facades\DB;
 
 class IotRoomController extends Controller
 {
-    public function updateCleaningRequest(Request $request, string $roomNumber)
+    public function showCleaningRequest(Request $request, string $roomNumber)
     {
-        $configuredKey = (string) config('iot.device_api_key');
-        $providedKey = (string) $request->header('X-API-Key');
-
-        if ($configuredKey === '' || $providedKey === '' || ! hash_equals($configuredKey, $providedKey)) {
-            return response()->json(['message' => 'Khóa thiết bị không hợp lệ.'], 401);
+        if ($response = $this->rejectUnauthorizedDevice($request, $roomNumber)) {
+            return $response;
         }
 
-        if ($roomNumber !== (string) config('iot.cleaning_room_number', '501')) {
-            return response()->json(['message' => 'Thiết bị không được phép điều khiển phòng này.'], 403);
+        $room = Room::query()->where('room_number', $roomNumber)->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'room_number' => $room->room_number,
+            'status' => $room->status,
+            'needs_cleaning' => $room->needs_cleaning,
+        ]);
+    }
+
+    public function updateCleaningRequest(Request $request, string $roomNumber)
+    {
+        if ($response = $this->rejectUnauthorizedDevice($request, $roomNumber)) {
+            return $response;
         }
 
         $validated = $request->validate([
@@ -52,5 +61,21 @@ class IotRoomController extends Controller
                 ? "Phòng {$room->room_number} cần dọn dẹp."
                 : "Đã tắt yêu cầu dọn dẹp phòng {$room->room_number}.",
         ]);
+    }
+
+    private function rejectUnauthorizedDevice(Request $request, string $roomNumber)
+    {
+        $configuredKey = (string) config('iot.device_api_key');
+        $providedKey = (string) $request->header('X-API-Key');
+
+        if ($configuredKey === '' || $providedKey === '' || ! hash_equals($configuredKey, $providedKey)) {
+            return response()->json(['message' => 'Khóa thiết bị không hợp lệ.'], 401);
+        }
+
+        if ($roomNumber !== (string) config('iot.cleaning_room_number', '501')) {
+            return response()->json(['message' => 'Thiết bị không được phép điều khiển phòng này.'], 403);
+        }
+
+        return null;
     }
 }
