@@ -1,58 +1,68 @@
 @extends('layouts.auth')
 
 @section('content')
-<div class="auth-card" data-aos="fade-up" data-aos-duration="1000">
-    <div class="hotel-brand">Royal Hotel</div>
-    <p class="subtitle">Tạo mật khẩu mới</p>
+<div class="sana-auth-card">
+    <header class="sana-heading">
+        <h1 class="sana-heading__title">Create new password</h1>
+        <p class="sana-heading__sub">Ensure your account stays secure</p>
+    </header>
 
-    <form action="{{ route('password.reset') }}" method="POST" autocomplete="off" novalidate>
-    @csrf
-        <div class="mb-4 text-start">
-            <label for="new_password" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Mật khẩu mới</label>
-            <div class="password-wrapper">
+    @include('auth.partials.form-status')
+
+    <form action="{{ route('password.reset') }}" method="POST" autocomplete="on" novalidate data-inline-validation>
+        @csrf
+        <div class="sana-form-group">
+            <div class="sana-password-wrap">
                 <input
                     type="password"
-                    class="form-control"
-                    id="new_password"
-                    name="new_password"
-                    placeholder="Nhập mật khẩu mới..."
+                    class="sana-input @error('password') is-invalid @enderror"
+                    id="password"
+                    name="password"
+                    placeholder="Ít nhất 10 ký tự, có chữ hoa, chữ thường và số"
                     required
                     autocomplete="new-password"
-                    style="padding-left: 15px;"
+                    minlength="10"
+                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,}"
+                    data-validate
+                    data-required-message="Vui lòng nhập mật khẩu mới."
+                    data-min-message="Mật khẩu cần có ít nhất 10 ký tự."
+                    data-pattern-message="Mật khẩu phải có chữ hoa, chữ thường và số."
+                    aria-describedby="password-error"
                 >
-                <button type="button" class="toggle-password" aria-label="Hiện/Ẩn mật khẩu">
+                <button type="button" class="sana-password-toggle" aria-label="Hiện mật khẩu">
                     <i class="bi bi-eye"></i>
                 </button>
             </div>
+            <p class="field-error" id="password-error" data-error-for="password">@error('password')<i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}@enderror</p>
         </div>
         
-        <div class="mb-4 text-start">
-            <label for="confirm_password" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Xác nhận mật khẩu</label>
-            <div class="password-wrapper">
+        <div class="sana-form-group">
+            <div class="sana-password-wrap">
                 <input
                     type="password"
-                    class="form-control"
-                    id="confirm_password"
-                    name="confirm_password"
-                    placeholder="Nhập lại mật khẩu..."
+                    class="sana-input"
+                    id="password_confirmation"
+                    name="password_confirmation"
+                    placeholder="Xác nhận lại mật khẩu mới"
                     required
                     autocomplete="new-password"
-                    style="padding-left: 15px;"
+                    minlength="10"
+                    data-validate
+                    data-required-message="Vui lòng xác nhận mật khẩu."
+                    aria-describedby="password_confirmation-error"
                 >
-                <button type="button" class="toggle-password" aria-label="Hiện/Ẩn mật khẩu">
+                <button type="button" class="sana-password-toggle" aria-label="Hiện mật khẩu">
                     <i class="bi bi-eye"></i>
                 </button>
             </div>
+            <p class="field-error" id="password_confirmation-error" data-error-for="password_confirmation"></p>
         </div>
 
-        <div class="d-grid mb-4">
-            <button type="submit" class="btn btn-primary">Lưu Mật Khẩu</button>
-        </div>
+        <button type="submit" class="sana-submit-btn">Lưu mật khẩu mới</button>
 
-        <div class="text-center">
-            <a href="{{ route('login') }}" style="color: #b08d28; font-weight: 600; text-decoration: none;">Quay lại Đăng Nhập</a>
+        <div class="sana-switch-link" style="margin-top: 20px;">
+            <a href="{{ route('login') }}">Quay lại đăng nhập</a>
         </div>
     </form>
 </div>
-
 @endsection

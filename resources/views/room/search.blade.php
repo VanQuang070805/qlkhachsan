@@ -8,23 +8,23 @@
    IMPORT FONTS
    Sender font styles
 ══════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ══════════════════════════════════════════
    CSS VARIABLES
 ══════════════════════════════════════════ */
 :root {
-    --gold:       #C9A84C;
-    --gold-light: #E8C87A;
-    --gold-dark:  #9A7335;
-    --ink:        #1A1A2E;
-    --ink-soft:   #2D2D44;
-    --cream:      #FAF8F3;
-    --muted:      #7A7A8A;
+    --gold:       #0066ff;
+    --gold-light: #e0f0ff;
+    --gold-dark:  #0050db;
+    --ink:        #09090b;
+    --ink-soft:   #18181b;
+    --cream:      #f8fafc;
+    --muted:      #64748b;
     --card-bg:    #FFFFFF;
-    --border:     #E8E4D8;
-    --success:    #2A7A4F;
-    --danger:     #C0392B;
+    --border:     #e2e8f0;
+    --success:    #10b981;
+    --danger:     #ef4444;
 }
 
 /* ══════════════════════════════════════════
@@ -32,9 +32,9 @@
 ══════════════════════════════════════════ */
 .search-hero {
     position: relative;
-    background: linear-gradient(135deg, #1A1A2E 0%, #16213E 40%, #0F3460 100%);
-    padding: 64px 0 100px;
-    margin: -24px -12px 0;
+    background: radial-gradient(circle at 50% 0%, #0066ff 0%, #0050db 45%, #003db3 100%);
+    padding: clamp(150px, 17vh, 182px) 0 100px;
+    margin: 0;
     overflow: hidden;
 }
 
@@ -43,8 +43,8 @@
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(ellipse 600px 400px at 80% 50%, rgba(201,168,76,.12) 0%, transparent 70%),
-        radial-gradient(ellipse 300px 300px at 10% 80%, rgba(201,168,76,.07) 0%, transparent 60%);
+        radial-gradient(ellipse 600px 400px at 80% 50%, rgba(37,151,208,.12) 0%, transparent 70%),
+        radial-gradient(ellipse 300px 300px at 10% 80%, rgba(255,255,255,.2) 0%, transparent 60%);
 }
 
 .search-hero::after {
@@ -57,7 +57,7 @@
 }
 
 .hero-label {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .75rem;
     font-weight: 600;
     letter-spacing: .2em;
@@ -67,7 +67,7 @@
 }
 
 .hero-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: clamp(2.2rem, 5vw, 3.6rem);
     font-weight: 300;
     color: #fff;
@@ -81,9 +81,9 @@
 }
 
 .hero-sub {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .95rem;
-    color: rgba(255,255,255,.55);
+    color: rgba(255,255,255,.9);
 }
 
 /* ══════════════════════════════════════════
@@ -97,11 +97,11 @@
     margin-top: -52px;
     position: relative;
     z-index: 10;
-    border: 1px solid rgba(201,168,76,.15);
+    border: 1px solid rgba(37,151,208,.12);
 }
 
 .search-field-label {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .7rem;
     font-weight: 600;
     letter-spacing: .12em;
@@ -119,7 +119,7 @@
     border: 1.5px solid var(--border);
     border-radius: 10px;
     padding: 10px 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .95rem;
     color: var(--ink);
     background: var(--cream);
@@ -130,7 +130,7 @@
 .search-input:focus {
     outline: none;
     border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(201,168,76,.12);
+    box-shadow: 0 0 0 3px rgba(37,151,208,.12);
     background: #fff;
 }
 
@@ -140,7 +140,7 @@
 }
 
 .date-error {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .78rem;
     color: var(--danger);
     margin-top: 4px;
@@ -156,7 +156,7 @@
     border: none;
     border-radius: 10px;
     padding: 11px 28px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: .95rem;
     letter-spacing: .04em;
@@ -167,7 +167,7 @@
 
 .btn-search:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(201,168,76,.35);
+    box-shadow: 0 8px 24px rgba(37,151,208,.24);
 }
 
 .search-divider {
@@ -193,7 +193,7 @@
 }
 
 .results-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--ink);
@@ -202,7 +202,7 @@
 .badge-available {
     background: linear-gradient(135deg, var(--gold-dark), var(--gold));
     color: #fff;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .8rem;
     font-weight: 600;
     padding: 5px 14px;
@@ -211,7 +211,7 @@
 }
 
 .results-meta {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .85rem;
     color: var(--muted);
 }
@@ -233,7 +233,7 @@
     background: var(--ink);
     color: #fff;
     padding: 14px 20px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .8rem;
     font-weight: 600;
     letter-spacing: .14em;
@@ -248,7 +248,7 @@
 .filter-body { padding: 20px; }
 
 .filter-section-label {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .7rem;
     font-weight: 700;
     letter-spacing: .14em;
@@ -301,7 +301,7 @@
     border: 1.5px solid var(--border);
     border-radius: 8px;
     padding: 6px 10px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .82rem;
     color: var(--ink);
     background: var(--cream);
@@ -315,7 +315,7 @@
     gap: 8px;
     padding: 5px 0;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .85rem;
     color: var(--ink-soft);
     border-radius: 6px;
@@ -337,7 +337,7 @@
     border: 1.5px solid var(--border);
     border-radius: 8px;
     padding: 8px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .82rem;
     color: var(--muted);
     cursor: pointer;
@@ -369,14 +369,14 @@
 
 .room-card-header {
     display: flex;
-    align-items: stretch;
-    gap: 0;
+    align-items: center;
+    gap: 16px;
     cursor: pointer;
     background: none;
     border: none;
     width: 100%;
     text-align: left;
-    padding: 0;
+    padding: 14px 18px;
     position: relative;
 }
 
@@ -394,17 +394,23 @@
 .room-card.open .room-card-header::after { transform: scaleX(1); }
 
 .room-img {
-    width: 140px;
-    min-width: 140px;
+    width: 160px;
+    min-width: 160px;
+    height: 120px;
+    border-radius: 12px;
     object-fit: cover;
     display: block;
     flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
 
-@media (max-width: 576px) { .room-img { width: 100px; min-width: 100px; } }
+@media (max-width: 576px) {
+    .room-card-header { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
+    .room-img { width: 100%; min-width: 100%; height: 160px; }
+}
 
 .room-card-info {
-    padding: 18px 20px;
+    padding: 0;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -412,7 +418,7 @@
 }
 
 .room-type-name {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.35rem;
     font-weight: 700;
     color: var(--ink);
@@ -420,7 +426,7 @@
 }
 
 .room-price {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--gold-dark);
@@ -433,7 +439,7 @@
 }
 
 .room-meta {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .83rem;
     color: var(--muted);
     display: flex;
@@ -443,7 +449,7 @@
 }
 
 .room-desc {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .84rem;
     color: var(--muted);
     line-height: 1.5;
@@ -455,7 +461,7 @@
     background: var(--cream);
     border: 1px solid var(--border);
     color: var(--ink-soft);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .75rem;
     padding: 3px 10px;
     border-radius: 99px;
@@ -465,7 +471,7 @@
 .badge-rooms {
     background: rgba(42,122,79,.12);
     color: var(--success);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .75rem;
     font-weight: 600;
     padding: 4px 12px;
@@ -496,7 +502,7 @@
 .room-card.open .room-body { display: block; }
 
 .room-body-hint {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .82rem;
     color: var(--muted);
     padding: 14px 0 10px;
@@ -516,9 +522,10 @@
     min-width: 88px;
     cursor: pointer;
     transition: all .2s;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     text-align: center;
     user-select: none;
+    appearance: none;
 }
 
 .room-chip-btn:hover { border-color: var(--gold); background: rgba(201,168,76,.05); }
@@ -556,7 +563,7 @@
 .quick-book-row { margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border); }
 
 .quick-book-hint {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .78rem;
     color: var(--muted);
     margin-bottom: 10px;
@@ -571,7 +578,7 @@
     color: var(--gold-dark);
     border-radius: 8px;
     padding: 5px 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .8rem;
     font-weight: 600;
     cursor: pointer;
@@ -600,7 +607,7 @@
     color: var(--ink);
     border-radius: 8px;
     padding: 5px 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .78rem;
     font-weight: 600;
     letter-spacing: .03em;
@@ -657,7 +664,7 @@
 }
 
 .cart-info {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     color: rgba(255,255,255,.85);
     font-size: .9rem;
 }
@@ -683,7 +690,7 @@
     color: #ff6b6b !important;
 }
 .cart-total {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--gold-light);
@@ -699,7 +706,7 @@
     color: rgba(255,255,255,.7);
     border-radius: 8px;
     padding: 7px 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .82rem;
     cursor: pointer;
     transition: background .15s;
@@ -712,7 +719,7 @@
     color: #fff;
     border-radius: 8px;
     padding: 8px 20px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .88rem;
     font-weight: 700;
     cursor: pointer;
@@ -742,14 +749,14 @@
 }
 
 .empty-state h5 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.5rem;
     color: var(--ink);
     margin-bottom: 8px;
 }
 
 .empty-state p {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: .9rem;
     color: var(--muted);
 }
@@ -761,7 +768,7 @@
     border: none;
     border-radius: 16px;
     overflow: hidden;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 .modal-luxury .modal-header {
@@ -772,7 +779,7 @@
 }
 
 .modal-luxury .modal-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.3rem;
     font-weight: 700;
 }
@@ -806,6 +813,15 @@ body { background: var(--cream) !important; }
      SEARCH FORM CARD (floating)
 ══════════════════════════════════════════ -->
 <div class="search-card">
+    <div class="macos-card-bar" style="margin: -24px -28px 20px -28px; border-radius: 18px 18px 0 0;">
+        <div class="window-controls">
+            <span class="ctrl-dot ctrl-red"></span>
+            <span class="ctrl-dot ctrl-yellow"></span>
+            <span class="ctrl-dot ctrl-green"></span>
+        </div>
+        <span class="macos-card-title">Tìm kiếm phòng trống — Royal Concierge</span>
+        <span style="font-size: 11px; color: #64748b;">macOS Finder Mode</span>
+    </div>
     <form method="GET" action="{{ route('rooms.search') }}" id="searchForm" novalidate>
         <div class="row g-3 align-items-end">
 
@@ -869,7 +885,6 @@ body { background: var(--cream) !important; }
 <!-- RESULTS BAR -->
 <div class="results-bar">
     <div class="results-title">Kết quả tìm kiếm</div>
-    <span class="badge-available" id="totalBadge"><?= $totalAvailable ?> phòng trống</span>
     <span class="results-meta">
         <i class="bi bi-calendar3 me-1"></i><?= htmlspecialchars($checkIn) ?> → <?= htmlspecialchars($checkOut) ?>
         &nbsp;·&nbsp;
@@ -907,8 +922,8 @@ body { background: var(--cream) !important; }
                 if ($filterMin === $filterMax) $filterMax = $filterMin + 500000;
                 ?>
                 <div class="d-flex justify-content-between mb-1">
-                    <small style="font-family:'DM Sans';font-size:.75rem;color:var(--muted)" id="priceMinLabel"><?= number_format($filterMin, 0, ',', '.') ?></small>
-                    <small style="font-family:'DM Sans';font-size:.75rem;color:var(--muted)" id="priceMaxLabel"><?= number_format($filterMax, 0, ',', '.') ?></small>
+                    <small style="font-family:'Inter';font-size:.75rem;color:var(--muted)" id="priceMinLabel"><?= number_format($filterMin, 0, ',', '.') ?></small>
+                    <small style="font-family:'Inter';font-size:.75rem;color:var(--muted)" id="priceMaxLabel"><?= number_format($filterMax, 0, ',', '.') ?></small>
                 </div>
                 <div class="price-range-track">
                     <div class="price-range-fill" id="rangeFill"></div>
@@ -969,7 +984,7 @@ body { background: var(--cream) !important; }
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body" style="font-family:'DM Sans';padding:20px 24px">
+                    <div class="modal-body" style="font-family:'Inter';padding:20px 24px">
                         <p id="capacityWarningMsg" class="mb-2"></p>
                         <p class="text-muted small mb-0">Hãy chọn thêm phòng bằng tính năng <strong>Giỏ phòng</strong> bên dưới để đủ sức chứa.</p>
                     </div>
@@ -1017,14 +1032,29 @@ body { background: var(--cream) !important; }
             <?php 
             foreach ($roomTypes as $i => $type):
                 $typeId     = $type['id'];
-                $imgSrc     = url('/') . '/images/rooms/' . $typeId . '.jpg';
+                $imgSrc     = data_get($type, 'image') ?: config('room_images.' . $typeId . '.0', url('/') . '/images/rooms/default.jpg');
                 $imgFallback= url('/') . '/images/rooms/default.jpg';
-                $roomCount  = count($type['available_rooms']);
                 $amenityIds = collect($type['amenities'] ?? [])->pluck('id')->all();
+                $availabilityUrl = route('rooms.detail', $type['id']) . '?' . http_build_query([
+                    'check_in' => $checkIn,
+                    'check_out' => $checkOut,
+                    'adults' => $adults,
+                    'children' => $children,
+                ]);
             ?>
             <div class="room-card room-type-card <?= $i === 0 ? 'open' : '' ?>"
                  data-price="<?= (float)$type['price'] ?>"
-                 data-amenities="<?= htmlspecialchars(json_encode($amenityIds)) ?>">
+                 data-amenities="<?= htmlspecialchars(json_encode($amenityIds)) ?>"
+                 data-availability-url="<?= htmlspecialchars($availabilityUrl, ENT_QUOTES) ?>">
+
+                <div class="macos-card-bar">
+                    <div class="window-controls">
+                        <span class="ctrl-dot ctrl-red"></span>
+                        <span class="ctrl-dot ctrl-yellow"></span>
+                        <span class="ctrl-dot ctrl-green"></span>
+                    </div>
+                    <span class="macos-card-title"><?= htmlspecialchars($type['type_name']) ?> — Royal Preview</span>
+                </div>
 
                 <!-- Header -->
                 <button type="button" class="room-card-header" onclick="toggleCard(this.closest('.room-card'))">
@@ -1044,10 +1074,10 @@ body { background: var(--cream) !important; }
                                     $halfStar = ($avgRating - $fullStars) >= 0.5 ? 1 : 0;
                                     $emptyStars = 5 - $fullStars - $halfStar;
                                     for ($i = 0; $i < $fullStars; $i++) {
-                                        echo '<i class="bi bi-star-fill" style="color: #C9A84C;"></i>';
+                                        echo '<i class="bi bi-star-fill" style="color: #2597d0;"></i>';
                                     }
                                     if ($halfStar) {
-                                        echo '<i class="bi bi-star-half" style="color: #C9A84C;"></i>';
+                                        echo '<i class="bi bi-star-half" style="color: #2597d0;"></i>';
                                     }
                                     for ($i = 0; $i < $emptyStars; $i++) {
                                         echo '<i class="bi bi-star" style="color: #ccc;"></i>';
@@ -1059,7 +1089,6 @@ body { background: var(--cream) !important; }
                                     }
                                     ?>
                                 </div>
-                                <span class="badge-rooms"><?= $roomCount ?> phòng trống</span>
                             </div>
                             <div class="room-meta">
                                 <span class="room-price"><?= number_format($type['price'], 0, ',', '.') ?> VNĐ<small>/đêm</small></span>
@@ -1098,29 +1127,22 @@ body { background: var(--cream) !important; }
                         <?php 
                         $displayRooms = $type['all_rooms'] ?? $type['available_rooms'] ?? [];
                         foreach ($displayRooms as $room): 
-                            $isTaken = $room['is_booked'] ?? false;
-                            if ($isTaken) continue; // Ẩn các phòng đã đặt
+                            $isTaken = ($room['is_booked'] ?? false) || ($room['status'] ?? 'available') !== 'available';
                         ?>
-                        <div class="room-chip room-chip-btn <?= $isTaken ? 'taken' : '' ?>"
+                        <button type="button" class="room-chip room-chip-btn <?= $isTaken ? 'taken' : '' ?>"
                             id="chip-<?= $room['id'] ?>"
                             data-room-id="<?= $room['id'] ?>"
+                            data-room-status="<?= $isTaken ? (($room['is_booked'] ?? false) ? 'reserved' : htmlspecialchars($room['status'] ?? 'unavailable')) : 'available' ?>"
                             data-room-label="Phòng <?= htmlspecialchars($room['room_number']) ?>"
                             data-price="<?= (float)$type['price'] ?>"
                             data-max-guests="<?= (int)$type['max_guests'] ?>"
                             data-max-adults="<?= (int)$type['max_adults'] ?>"
                             data-max-children="<?= (int)$type['max_children'] ?>"
                             data-room-type-name="<?= htmlspecialchars($type['type_name']) ?>"
-                            <?= $isTaken ? 'title="Phòng đã được đặt"' : 'onclick="toggleRoom(this)"' ?>>
+                            aria-pressed="false" <?= $isTaken ? 'disabled aria-disabled="true"' : 'onclick="toggleRoom(this)"' ?>>
                             <span class="chip-num">P.<?= htmlspecialchars($room['room_number']) ?></span>
                             <span class="chip-floor">Tầng <?= $room['floor'] ?></span>
-                            <span class="chip-floor">
-                                <?php if ($isTaken): ?>
-                                    <i class="bi bi-x-circle-fill"></i> Đã đặt
-                                <?php else: ?>
-                                    <i class="bi bi-people"></i> <?= $type['max_guests'] ?>
-                                <?php endif; ?>
-                            </span>
-                        </div>
+                        </button>
                         <?php endforeach; ?>
                     </div>
 
@@ -1129,7 +1151,7 @@ body { background: var(--cream) !important; }
                         <div style="display:flex;flex-wrap:wrap;gap:8px">
                             <?php foreach ($displayRooms as $room): 
                                 $isTaken = $room['is_booked'] ?? false;
-                                 if ($isTaken) continue; // Ẩn các phòng đã đặt
+                                $isTaken = $isTaken || ($room['status'] ?? 'available') !== 'available';
                             ?>
                             <button type="button" class="btn-quick <?= $isTaken ? 'taken' : '' ?>"
                                     data-href="{{ route('booking.create') }}?room_id={{ $room['id'] }}&check_in={{ urlencode($checkIn) }}&check_out={{ urlencode($checkOut) }}&adults={{ $adults }}&children={{ $children }}"
@@ -1138,7 +1160,8 @@ body { background: var(--cream) !important; }
                                     data-max-children="<?= (int)$type['max_children'] ?>"
                                     data-room-label="Phòng <?= htmlspecialchars($room['room_number']) ?>"
                                     data-room-type-name="<?= htmlspecialchars($type['type_name']) ?>"
-                                    <?= $isTaken ? 'disabled title="Phòng đã được đặt"' : 'onclick="quickBook(this)"' ?>>
+                                    data-room-id="<?= $room['id'] ?>"
+                                    <?= $isTaken ? 'disabled aria-disabled="true"' : 'onclick="quickBook(this)"' ?>>
                                 <i class="bi <?= $isTaken ? 'bi-x-circle' : 'bi-calendar-check' ?>"></i>
                                 P.<?= htmlspecialchars($room['room_number']) ?>
                             </button>
@@ -1153,7 +1176,7 @@ body { background: var(--cream) !important; }
                 <i class="bi bi-funnel"></i>
                 <h5>Không khớp bộ lọc</h5>
                 <p>Thử điều chỉnh khoảng giá hoặc bỏ bớt tiện nghi.</p>
-                <button type="button" onclick="resetFilters()" style="background:var(--ink);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-family:'DM Sans';cursor:pointer;font-size:.85rem">Xoá bộ lọc</button>
+                <button type="button" onclick="resetFilters()" style="background:var(--ink);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-family:'Inter';cursor:pointer;font-size:.85rem">Xoá bộ lọc</button>
             </div>
 
         </form>
@@ -1304,10 +1327,12 @@ if (savedCartJson) {
     }
 }
 function toggleRoom(chip) {
+    if (chip.disabled || chip.classList.contains('taken')) return;
     const id = chip.dataset.roomId;
     if (selected[id]) {
         delete selected[id];
         chip.classList.remove('selected');
+        chip.setAttribute('aria-pressed', 'false');
     } else {
         selected[id] = {
             label: chip.dataset.roomLabel,
@@ -1318,6 +1343,7 @@ function toggleRoom(chip) {
             roomTypeName: chip.dataset.roomTypeName || 'phòng'
         };
         chip.classList.add('selected');
+        chip.setAttribute('aria-pressed', 'true');
     }
     saveCart();
     updateCartBar();
@@ -1361,11 +1387,62 @@ function updateCartBar() {
         sum.toLocaleString('vi-VN') + ' VNĐ (' + nights + ' đêm)';
 }
 
+async function refreshRoomAvailability(card) {
+    if (!card?.dataset.availabilityUrl) return;
+    try {
+        const response = await fetch(card.dataset.availabilityUrl, {
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const states = new Map((data.rooms || []).map(room => [String(room.id), room]));
+        card.querySelectorAll('[data-room-id]').forEach(control => {
+            const id = String(control.dataset.roomId);
+            const state = states.get(id);
+            if (!state) return;
+            const isAvailable = state.available === true;
+            if (control.classList.contains('room-chip-btn')) {
+                control.disabled = !isAvailable;
+                control.setAttribute('aria-disabled', String(!isAvailable));
+                control.dataset.roomStatus = state.status;
+                control.classList.toggle('taken', !isAvailable);
+            } else if (control.classList.contains('btn-quick')) {
+                control.disabled = !isAvailable;
+                control.setAttribute('aria-disabled', String(!isAvailable));
+                const icon = control.querySelector('i');
+                if (icon) icon.className = `bi ${isAvailable ? 'bi-calendar-check' : 'bi-x-circle'}`;
+            }
+
+            if (!isAvailable && selected[id]) {
+                delete selected[id];
+                const chip = document.getElementById(`chip-${id}`);
+                chip?.classList.remove('selected');
+                chip?.setAttribute('aria-pressed', 'false');
+            }
+        });
+
+        saveCart();
+        updateCartBar();
+        applyFilters();
+    } catch (error) {
+        // A temporary availability refresh failure leaves the server-rendered state intact.
+    }
+}
+
+function refreshVisibleAvailability() {
+    if (document.visibilityState !== 'visible') return;
+    document.querySelectorAll('.room-type-card').forEach(refreshRoomAvailability);
+}
+
 function clearCart() {
     Object.keys(selected).forEach(id => {
         delete selected[id];
         const chip = document.getElementById('chip-' + id);
-        if (chip) chip.classList.remove('selected');
+        if (chip) {
+            chip.classList.remove('selected');
+            chip.setAttribute('aria-pressed', 'false');
+        }
     });
     sessionStorage.removeItem('booking_cart');
     updateCartBar();
@@ -1375,7 +1452,10 @@ function removeCartItem(id) {
     if (selected[id]) {
         delete selected[id];
         const chip = document.getElementById('chip-' + id);
-        if (chip) chip.classList.remove('selected');
+        if (chip) {
+            chip.classList.remove('selected');
+            chip.setAttribute('aria-pressed', 'false');
+        }
         saveCart();
         updateCartBar();
     }
@@ -1503,12 +1583,6 @@ function applyFilters() {
         card.style.display = show ? '' : 'none';
         if (show) visible++;
     });
-    const badge = document.getElementById('totalBadge');
-    if (badge) {
-        let total = 0;
-        cards.forEach(c => { if (c.style.display !== 'none') total += c.querySelectorAll('.room-chip').length; });
-        badge.textContent = total + ' phòng trống';
-    }
     document.getElementById('noFilterResult')?.classList.toggle('d-none', visible > 0);
 }
 
@@ -1528,6 +1602,7 @@ Object.keys(selected).forEach(id => {
     const chip = document.getElementById('chip-' + id);
     if (chip && !chip.classList.contains('taken')) {
         chip.classList.add('selected');
+        chip.setAttribute('aria-pressed', 'true');
     } else {
         delete selected[id];
     }
@@ -1536,5 +1611,9 @@ saveCart();
 if (Object.keys(selected).length > 0) {
     updateCartBar();
 }
+refreshVisibleAvailability();
+window.setInterval(refreshVisibleAvailability, 15000);
+document.addEventListener('visibilitychange', refreshVisibleAvailability);
+window.addEventListener('pageshow', refreshVisibleAvailability);
 </script>
 @endsection

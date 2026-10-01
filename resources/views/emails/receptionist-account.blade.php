@@ -18,13 +18,10 @@
             <p style="margin:8px 0; color:#1e3a8a;">
                 <strong>Tên đăng nhập:</strong> {{ $username }}
             </p>
-            <p style="margin:8px 0; color:#1e3a8a;">
-                <strong>Mật khẩu:</strong> {{ $plainPassword }}
-            </p>
         </div>
 
         <p style="color:#6b7280; font-size:13px;">
-            Vui lòng đăng nhập và đổi mật khẩu sau khi nhận được email này.
+            Mật khẩu không được gửi qua email. Vui lòng dùng mật khẩu đã được cấp qua kênh nội bộ và đổi mật khẩu sau lần đăng nhập đầu tiên.
         </p>
 
         <hr style="border:none; border-top:1px solid #e5e7eb; margin:20px 0;">

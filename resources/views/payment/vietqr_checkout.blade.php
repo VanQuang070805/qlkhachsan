@@ -42,7 +42,7 @@
                 </div>
 
                 <div style="background:#fff3cd;border:1px solid #ffeeba;padding:10px;border-radius:8px;margin-top:10px;font-size:14px;text-align:center;">
-                    Mã QR còn hiệu lực trong  <strong id="countdown">5:00</strong>
+                    Mã QR còn hiệu lực trong <strong id="countdown">30:00</strong>
                 </div>
 
                 {{-- Trạng thái polling --}}
@@ -61,15 +61,15 @@
                 <div class="card-body" style="text-align:center">
                     <div style="color:#666;font-size:14px;text-transform:uppercase;letter-spacing:.05em;font-weight:600">Số tiền còn lại cần thanh toán</div>
                     <div style="font-size:36px;font-weight:800;color:#dc3545;margin:8px 0">
-                        {{ number_format($remaining, 0, ',', '.') }} ₫
+                        {{ number_format($remaining, 0, ',', '.') }} đ
                     </div>
                     <div style="font-size:12px;color:#999;margin-bottom:8px">
-                        Tổng: {{ number_format($booking->total_price, 0, ',', '.') }} ₫ —
-                        Đã đặt cọc: {{ number_format($booking->deposit_amount ?? 0, 0, ',', '.') }} ₫
+                        Tổng: {{ number_format($booking->total_price, 0, ',', '.') }} đ —
+                        Đã đặt cọc: {{ number_format($booking->deposit_amount ?? 0, 0, ',', '.') }} đ
                         @if($booking->late_checkout_fee > 0)
                            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
                             <span style="color:#f59e0b">⏰ Phụ thu trả muộn</span>
-                            <span style="color:#f59e0b">+ {{ number_format($booking->late_checkout_fee, 0, ',', '.') }} ₫</span>
+                            <span style="color:#f59e0b">+ {{ number_format($booking->late_checkout_fee, 0, ',', '.') }} đ</span>
                         </div>
                         @endif
                     </div>
@@ -98,15 +98,15 @@
                     <div style="margin-top:12px;background:#fff8f8;border-radius:8px;padding:12px;">
                         <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
                             <span style="color:#666">Tổng tiền phòng</span>
-                            <span>{{ number_format($booking->total_price, 0, ',', '.') }} ₫</span>
+                            <span>{{ number_format($booking->total_price, 0, ',', '.') }} đ</span>
                         </div>
                         <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
                             <span style="color:#27ae60">Đã đặt cọc</span>
-                            <span style="color:#27ae60">- {{ number_format($booking->deposit_amount ?? 0, 0, ',', '.') }} ₫</span>
+                            <span style="color:#27ae60">- {{ number_format($booking->deposit_amount ?? 0, 0, ',', '.') }} đ</span>
                         </div>
                         <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;border-top:1px solid #eee;padding-top:8px;margin-top:4px">
                             <span style="color:#dc3545">Còn lại</span>
-                            <span style="color:#dc3545">{{ number_format($remaining, 0, ',', '.') }} ₫</span>
+                            <span style="color:#dc3545">{{ number_format($remaining, 0, ',', '.') }} đ</span>
                         </div>
                     </div>
                 </div>
@@ -137,7 +137,7 @@
 
     <div class="alert alert-warning text-center">
         <i class="fa-solid fa-triangle-exclamation me-2"></i>
-        Booking sẽ được hoàn tất và phòng chuyển sang trạng thái cần dọn dẹp sau khi nhận được thanh toán. Quá trình xác nhận có thể mất 1–2 phút.
+        Booking sẽ được hoàn tất và phòng chuyển sang dọn dẹp sau khi nhận được thanh toán. Quá trình xác nhận có thể mất 1–2 phút.
     </div>
 </div>
 </main>
@@ -153,7 +153,7 @@
     if (!localStorage.getItem(timerKey)) {
         localStorage.setItem(timerKey, Date.now().toString());
     }
-    let time = Math.max(0, 300 - Math.floor((Date.now() - parseInt(localStorage.getItem(timerKey))) / 1000));
+    let time = Math.max(0, 1800 - Math.floor((Date.now() - parseInt(localStorage.getItem(timerKey))) / 1000));
 
     const countdownEl = document.getElementById('countdown');
     const fmt = t => Math.floor(t/60) + ':' + (t%60 < 10 ? '0' : '') + (t%60);

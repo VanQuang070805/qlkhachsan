@@ -3,258 +3,358 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($pageTitle ?? 'Khách sạn Royal Hotel') ?></title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            margin: 0;
-            background-color: #0f172a; /* Dark fallback */
-        }
-
-        .auth-container {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 80px 20px;
-            position: relative;
-            background-image: url('https://i.pinimg.com/1200x/a7/cc/2a/a7cc2a6bdcf9ec356b624620785053e7.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-
-        /* Soft overlay to let the bright image show but keep text readable */
-        .auth-container::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.1));
-            z-index: 1;
-        }
-
-        .auth-wrapper {
-            position: relative;
-            z-index: 2;
-            width: 100%;
-        }
-
-        .auth-card {
-            max-width: 480px;
-            width: 100%;
-            /* Premium White Glassmorphism effect */
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-            padding: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-            margin: 0 auto;
-        }
-
-        .auth-card.register-card {
-            max-width: 500px;
-        }
-
-        .auth-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(212, 175, 55, 0.5); /* Gold accent on hover */
-            box-shadow: 0 25px 60px rgba(0,0,0,0.2);
-        }
-
-        .hotel-brand {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #b08d28; /* Deeper Champagne Gold for white bg */
-            text-align: center;
-            margin-bottom: 10px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .auth-card p.subtitle {
-            color: #475569;
-            text-align: center;
-            font-size: 0.95rem;
-            margin-bottom: 30px;
-            font-weight: 400;
-        }
-
-        .auth-card .form-label {
-            font-weight: 600;
-            color: #1e293b;
-            font-size: 0.9rem;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
-        }
-
-        .auth-card .form-control {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            padding: 12px 15px;
-            font-size: 1rem;
-            color: #1e293b;
-            transition: all 0.3s ease;
-        }
-
-        .auth-card .form-control::placeholder {
-            color: #94a3b8;
-        }
-
-        .auth-card .form-control:focus {
-            background: #ffffff;
-            border-color: #d4af37;
-            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
-            outline: none;
-        }
-
-        .password-wrapper { position: relative; }
-        .toggle-password {
-            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
-            border: none; background: transparent; color: #64748b; cursor: pointer;
-            transition: color 0.3s ease;
-        }
-        .toggle-password:hover { color: #d4af37; }
-
-        .auth-card .btn-auth, .auth-card .btn-primary {
-            background: linear-gradient(135deg, #d4af37, #b08d28);
-            border: none;
-            padding: 12px;
-            font-weight: 600;
-            border-radius: 10px;
-            color: #ffffff;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            width: 100%;
-            font-size: 1rem;
-            margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
-        }
-
-        .auth-card .btn-auth:hover, .auth-card .btn-primary:hover {
-            background: linear-gradient(135deg, #e5c158, #c49e35);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
-            color: #ffffff;
-        }
-
-        .auth-card a {
-            color: #b08d28;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: color 0.3s ease;
-        }
-
-        .auth-card a:hover {
-            color: #8c6e1e;
-            text-decoration: underline;
-        }
-
-        .auth-card .text-center { font-size: 0.95rem; color: #475569; }
-
-        .auth-card .alert {
-            backdrop-filter: blur(5px);
-            border-radius: 10px;
-        }
-        .auth-card .alert-danger {
-            background: rgba(220, 53, 69, 0.1);
-            border: 1px solid rgba(220, 53, 69, 0.2);
-            color: #dc3545;
-        }
-        .auth-card .alert-success {
-            background: rgba(25, 135, 84, 0.1);
-            border: 1px solid rgba(25, 135, 84, 0.2);
-            color: #198754;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: #94a3b8;
-            margin: 25px 0;
-            font-weight: 500;
-        }
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #cbd5e1;
-        }
-        .divider:not(:empty)::before { margin-right: 15px; }
-        .divider:not(:empty)::after { margin-left: 15px; }
-
-        @media (max-width: 768px) {
-            .auth-container { padding: 40px 15px; }
-            .auth-card { padding: 30px 20px; max-width: 100%; border-radius: 15px; }
-            .hotel-brand { font-size: 1.8rem; }
-            .auth-card .form-control { padding: 10px 12px; font-size: 0.95rem; }
-            .auth-card .btn-auth, .auth-card .btn-primary { padding: 10px; font-size: 0.95rem; }
-        }
-    </style>
+    <meta name="theme-color" content="#ffffff">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ $pageTitle ?? 'Tài khoản · Royal Hotel' }}</title>
+    <link rel="icon" href="{{ asset('royal-hotel-logo.png') }}" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('styles')
 </head>
-<body>
+<body class="auth-shell">
 
-    <div class="auth-container">
-        <div class="auth-wrapper">
-            <!-- FLASH MESSAGE -->
-            @if(session('success'))
-                <div style="max-width:480px;margin:0 auto 15px auto;">
-                    <div class="alert alert-success alert-dismissible fade show text-center" role="alert">
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </div>
-            @endif
-            @if(session('error'))
-                <div style="max-width:480px;margin:0 auto 15px auto;">
-                    <div class="alert alert-danger alert-dismissible fade show text-center" role="alert">
-                        {{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </div>
-            @endif
+    {{-- Top Notch Header (Identical to Homepage Notch, Without Login Button) --}}
+    <header class="site-header" data-site-header data-home-header data-homepage-header aria-label="Thanh điều hướng tài khoản">
+        <div class="site-header__inner">
+            <a href="{{ route('home') }}" class="site-header__brand-spacer" aria-label="Về trang chủ Royal Hotel"></a>
 
+            <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" data-nav-toggle>
+                <span class="sr-only">Mở menu</span><span></span><span></span>
+            </button>
+
+            <nav class="primary-nav" id="primary-navigation" aria-label="Điều hướng chính" data-primary-nav>
+                <a class="{{ request()->routeIs('home') ? 'is-active' : '' }}" href="{{ route('home') }}">Trang chủ</a>
+                <a class="{{ request()->routeIs('rooms.*') ? 'is-active' : '' }}" href="{{ route('rooms.index') }}">Phòng nghỉ</a>
+                <a class="{{ request()->routeIs('contact') ? 'is-active' : '' }}" href="{{ route('contact') }}">Chính sách &amp; Điều khoản</a>
+                <a href="{{ route('home') }}#faq">FAQ</a>
+            </nav>
+
+            <div class="site-header__actions">
+                <a class="button button--small" href="{{ route('rooms.index') }}">Đặt phòng</a>
+            </div>
+        </div>
+    </header>
+
+    {{-- Split 2-Column Main Layout --}}
+    <main class="sana-auth-main">
+        {{-- Left Column: Form Content --}}
+        <div class="sana-form-col">
             @yield('content')
         </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+        {{-- Right Column: Dark Luxury Laptop Showcase (Adapted for Royal Hotel) --}}
+        <div class="sana-showcase-col" aria-hidden="true">
+            <div class="sana-laptop">
+                {{-- macOS Traffic Lights Header --}}
+                <div class="macos-card-bar">
+                    <div class="window-controls">
+                        <span class="ctrl-dot ctrl-red"></span>
+                        <span class="ctrl-dot ctrl-yellow"></span>
+                        <span class="ctrl-dot ctrl-green"></span>
+                    </div>
+                    <span class="macos-card-title">Royal Hotel &mdash; Cổng trải nghiệm dịch vụ</span>
+                    <div class="macos-card-spacer" aria-hidden="true"></div>
+                </div>
+
+                {{-- Laptop Body Inside --}}
+                <div class="sana-laptop__body">
+                    {{-- Sidebar --}}
+                    <div class="sana-laptop__sidebar">
+                        <div class="sana-laptop__workspace">
+                            <span class="sana-laptop__workspace-dot"></span>
+                            <span>Royal Suites</span>
+                        </div>
+                        <ul class="sana-laptop__nav-list">
+                            <li class="sana-laptop__nav-item is-active">
+                                <i class="bi bi-house-door"></i>
+                                <span>Tổng quan</span>
+                            </li>
+                            <li class="sana-laptop__nav-item">
+                                <i class="bi bi-door-open"></i>
+                                <span>Hạng phòng</span>
+                            </li>
+                            <li class="sana-laptop__nav-item">
+                                <i class="bi bi-cup-hot"></i>
+                                <span>Ẩm thực 24/7</span>
+                            </li>
+                            <li class="sana-laptop__nav-item">
+                                <i class="bi bi-water"></i>
+                                <span>Spa &amp; Hồ bơi</span>
+                            </li>
+                            <li class="sana-laptop__nav-item">
+                                <i class="bi bi-chat-dots"></i>
+                                <span>Concierge AI</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {{-- Main Area --}}
+                    <div class="sana-laptop__content">
+                        <div>
+                            <div class="sana-laptop__greeting">
+                                <h3>Welcome to Royal Hotel</h3>
+                                <p>Không gian lưu trú tinh tế &amp; dịch vụ chuẩn mực 5 sao</p>
+                            </div>
+
+                            <div class="sana-laptop__cards">
+                                {{-- Card 1: Presidential Suite --}}
+                                <div class="sana-laptop__card">
+                                    <img src="{{ asset('images/rooms/6.jpg') }}" alt="Presidential Suite" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
+                                    <p class="sana-laptop__card-title">Presidential Suite</p>
+                                    <p class="sana-laptop__card-sub">Skyline view &amp; Private pool</p>
+                                </div>
+
+                                {{-- Card 2: Royal Executive --}}
+                                <div class="sana-laptop__card">
+                                    <img src="{{ asset('images/rooms/1.jpg') }}" alt="Royal Executive" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
+                                    <p class="sana-laptop__card-title">Executive Suite</p>
+                                    <p class="sana-laptop__card-sub">24/7 Butler &amp; Jacuzzi</p>
+                                </div>
+
+                                {{-- Card 3: Wellness Spa --}}
+                                <div class="sana-laptop__card">
+                                    <img src="{{ asset('images/rooms/2.jpg') }}" alt="Wellness Spa" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
+                                    <p class="sana-laptop__card-title">Spa &amp; Dining</p>
+                                    <p class="sana-laptop__card-sub">Fine Dining &amp; Massage</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Bottom Prompt Bar --}}
+                        <div class="sana-laptop__prompt-bar">
+                            <i class="bi bi-stars" style="color: #60a5fa;"></i>
+                            <span>Hỏi Royal Concierge về phòng nghỉ, đưa đón hoặc dịch vụ...</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Keyboard Deck --}}
+                <div class="sana-laptop__keyboard-deck">
+                    <div class="sana-laptop__notch-lip"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {{-- Bottom Bar --}}
+    <footer class="sana-bottom-bar" aria-label="Thông tin chân trang đăng nhập">
+        <div class="sana-bottom-bar__left">
+            <span class="dot-mark" aria-hidden="true">
+                <span></span><span></span><span></span><span></span>
+            </span>
+            <span>Royal Hotel</span>
+        </div>
+        <div class="sana-bottom-bar__right">
+            <span>Curated for a quieter kind of stay</span>
+            <span>·</span>
+            <strong>✦ 5-Star Luxury Retreat</strong>
+        </div>
+    </footer>
+
+    {{-- Password Toggle and Inline Validation Scripts --}}
     <script>
-        AOS.init({ once: true, offset: 100 });
-        
-        // Toggle show/hide password for all inputs on the page
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggles = document.querySelectorAll('.toggle-password');
-            toggles.forEach(function(btn) {
-                const wrapper = btn.closest('.password-wrapper');
-                if (!wrapper) return;
-                const pwd = wrapper.querySelector('input');
-                if (!pwd) return;
-                
-                btn.addEventListener('click', function() {
-                    const isPwd = pwd.getAttribute('type') === 'password';
-                    pwd.setAttribute('type', isPwd ? 'text' : 'password');
-                    this.innerHTML = isPwd ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('.toggle-password, .sana-password-toggle');
+            if (!button) return;
+            const wrap = button.closest('.sana-password-wrap, .password-wrapper');
+            const input = wrap?.querySelector('input');
+            if (!input) return;
+            const reveal = input.type === 'password';
+            input.type = reveal ? 'text' : 'password';
+            button.setAttribute('aria-label', reveal ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+            button.innerHTML = reveal ? '<i class="bi bi-eye-slash" aria-hidden="true"></i>' : '<i class="bi bi-eye" aria-hidden="true"></i>';
+        });
+
+        document.querySelectorAll('form[data-inline-validation]').forEach((form) => {
+            const fields = [...form.querySelectorAll('input[data-validate]')];
+
+            const getFieldErrorMessage = (field) => {
+                const val = field.value.trim();
+                // 1. Required and empty
+                if (field.hasAttribute('required') && !val) {
+                    return field.dataset.requiredMessage || 'Vui lòng điền thông tin này.';
+                }
+                // If empty and not required, no error
+                if (!val) {
+                    return '';
+                }
+                // 2. Email format check
+                if (field.type === 'email' || field.getAttribute('inputmode') === 'email') {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(val)) {
+                        return field.dataset.typeMessage || 'Email chưa đúng định dạng.';
+                    }
+                }
+                // 3. Min length check
+                if (field.minLength > 0 && field.value.length < field.minLength) {
+                    return field.dataset.minMessage || `Vui lòng nhập ít nhất ${field.minLength} ký tự.`;
+                }
+                // 4. Pattern check (e.g. phone 10 digits starting with 0)
+                if (field.pattern) {
+                    const reg = new RegExp('^' + field.pattern + '$');
+                    if (!reg.test(val)) {
+                        return field.dataset.patternMessage || 'Thông tin chưa đúng định dạng.';
+                    }
+                }
+                // 5. Password confirmation match check
+                if (field.name === 'password_confirmation') {
+                    const pwd = form.querySelector('[name="password"]')?.value;
+                    if (pwd && field.value !== pwd) {
+                        return 'Mật khẩu xác nhận chưa trùng khớp.';
+                    }
+                }
+                return '';
+            };
+
+            const setFieldError = (field, message) => {
+                const errorEl = form.querySelector(`[data-error-for="${field.name}"]`);
+                if (errorEl) {
+                    errorEl.innerHTML = message ? `<i class="bi bi-exclamation-circle" aria-hidden="true"></i> ${message}` : '';
+                }
+                field.classList.toggle('is-invalid', Boolean(message));
+                field.classList.toggle('is-valid', !message && field.value.length > 0);
+                field.setAttribute('aria-invalid', String(Boolean(message)));
+                // NOTE: DO NOT CLEAR FIELD VALUE! Retain user inputs at all times.
+                return !message;
+            };
+
+            const clearFieldError = (field) => {
+                const errorEl = form.querySelector(`[data-error-for="${field.name}"]`);
+                if (errorEl) {
+                    errorEl.innerHTML = '';
+                }
+                field.classList.remove('is-invalid');
+                field.removeAttribute('aria-invalid');
+            };
+
+            fields.forEach((field) => {
+                // Blur: show error if invalid, but NEVER clear value
+                field.addEventListener('blur', () => {
+                    const msg = getFieldErrorMessage(field);
+                    if (msg) {
+                        setFieldError(field, msg);
+                    }
                 });
+
+                // Input: clear error as soon as user types
+                field.addEventListener('input', () => {
+                    if (field.classList.contains('is-invalid')) {
+                        clearFieldError(field);
+                    }
+                });
+            });
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                // 1. Client-side validation: check all fields
+                let hasError = false;
+                let firstInvalid = null;
+
+                for (const field of fields) {
+                    const msg = getFieldErrorMessage(field);
+                    if (msg) {
+                        setFieldError(field, msg);
+                        if (!firstInvalid) firstInvalid = field;
+                        hasError = true;
+                    } else {
+                        clearFieldError(field);
+                    }
+                }
+
+                if (hasError && firstInvalid) {
+                    firstInvalid.focus();
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+
+                // 2. Submit via Fetch (No page reload, keep all values!)
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const origBtnText = submitBtn ? submitBtn.innerHTML : '';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="width: 15px; height: 15px; border-width: 2px;"></span> Đang xử lý...';
+                }
+
+                try {
+                    const formData = new FormData(form);
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    // Parse JSON response
+                    const data = await response.json().catch(() => null);
+
+                    // Check if success and redirect
+                    if (response.ok && data && (data.redirect || data.success)) {
+                        window.location.href = data.redirect || '/';
+                        return;
+                    }
+
+                    // 422: Validation / Authentication error (from Laravel)
+                    if (response.status === 422 && data && data.errors) {
+                        let focused = false;
+                        for (const [errKey, errVal] of Object.entries(data.errors)) {
+                            const matchingField = form.querySelector(`[name="${errKey}"]`);
+                            const errorMsg = Array.isArray(errVal) ? errVal[0] : errVal;
+                            if (matchingField) {
+                                setFieldError(matchingField, errorMsg);
+                                if (!focused) {
+                                    matchingField.focus();
+                                    focused = true;
+                                }
+                            }
+                        }
+                        return;
+                    }
+
+                    // 429: Too Many Requests (Rate limit)
+                    if (response.status === 429) {
+                        const targetField = form.querySelector('[name="password"]') || fields[0];
+                        if (targetField) {
+                            setFieldError(targetField, 'Bạn đã thử quá nhiều lần. Vui lòng chờ 1 phút rồi thử lại.');
+                            targetField.focus();
+                        }
+                        return;
+                    }
+
+                    // Other error message
+                    if (data && data.message) {
+                        const targetField = form.querySelector('[name="password"]') || fields[0];
+                        if (targetField) {
+                            setFieldError(targetField, data.message);
+                            targetField.focus();
+                        }
+                    } else {
+                        const targetField = form.querySelector('[name="password"]') || fields[0];
+                        if (targetField) {
+                            setFieldError(targetField, 'Thông tin chưa chính xác. Vui lòng kiểm tra lại.');
+                            targetField.focus();
+                        }
+                    }
+                } catch (err) {
+                    console.error('Auth request error:', err);
+                    const firstField = fields[0];
+                    if (firstField) {
+                        setFieldError(firstField, 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
+                    }
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = origBtnText;
+                    }
+                }
             });
         });
     </script>
+    @stack('scripts')
 </body>
 </html>

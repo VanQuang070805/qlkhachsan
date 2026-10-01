@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class Holiday extends Model
 {
@@ -21,12 +22,15 @@ class Holiday extends Model
      */
     public static function isHoliday(Carbon $date): bool
     {
-    $monthDay = $date->format('m-d');
-    
-    return self::where(function ($q) use ($date, $monthDay) {
-        $q->where('recurring', true)
-          ->whereRaw("DATE_FORMAT(date, '%m-%d') = ?", [$monthDay]);
-    })->orWhere(function ($q) use ($date) {
+        $monthDay = $date->format('m-d');
+        $monthDayExpression = DB::getDriverName() === 'sqlite'
+            ? "strftime('%m-%d', date)"
+            : "DATE_FORMAT(date, '%m-%d')";
+
+        return self::where(function ($q) use ($date, $monthDay, $monthDayExpression) {
+            $q->where('recurring', true)
+              ->whereRaw("{$monthDayExpression} = ?", [$monthDay]);
+        })->orWhere(function ($q) use ($date) {
         $q->where('recurring', false)
           ->whereDate('date', $date->toDateString());
     })->exists();

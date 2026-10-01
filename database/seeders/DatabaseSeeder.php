@@ -6,25 +6,22 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        if (!app()->environment('local', 'testing') || !env('LOCAL_DEMO_PASSWORD')) {
-            throw new \RuntimeException('Sample data requires local/testing and LOCAL_DEMO_PASSWORD in .env.');
+        if (!app()->environment(['local', 'testing'])) {
+            throw new \RuntimeException('Demo seeding is restricted to local and testing environments.');
         }
-        if (DB::table('users')->exists() || DB::table('rooms')->exists()) {
-            throw new \RuntimeException('Sample data requires an empty database. Existing data was not changed.');
-        }
-        DB::transaction(function () {
         // ======================================
         // USERS
         // ======================================
         DB::table('users')->insert([
             [
                 'username'   => 'admin',
-                'password'   => Hash::make(env('LOCAL_DEMO_PASSWORD')),
+                'password'   => Hash::make(env('LOCAL_ADMIN_PASSWORD', Str::password(32))),
                 'fullname'   => 'Quản trị hệ thống',
                 'email'      => 'admin@hotel.com',
                 'phone'      => '0900000001',
@@ -35,7 +32,7 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'username'   => 'reception',
-                'password'   => Hash::make(env('LOCAL_DEMO_PASSWORD')),
+                'password'   => Hash::make(env('LOCAL_RECEPTION_PASSWORD', Str::password(32))),
                 'fullname'   => 'Lễ tân khách sạn',
                 'email'      => 'reception@hotel.com',
                 'phone'      => '0900000002',
@@ -46,7 +43,7 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'username'   => 'customer',
-                'password'   => Hash::make(env('LOCAL_DEMO_PASSWORD')),
+                'password'   => Hash::make(env('LOCAL_CUSTOMER_PASSWORD', Str::password(32))),
                 'fullname'   => 'Nguyễn Văn A',
                 'email'      => 'customer@gmail.com',
                 'phone'      => '0900000003',
@@ -61,7 +58,7 @@ class DatabaseSeeder extends Seeder
         // ROOM TYPES
         // ======================================
         DB::table('room_types')->insert([
-            ['type_name' => 'Phòng Đơn Tiêu Chuẩn', 'price' => 400000,  'max_adults' => 1, 'max_children' => 0, 'max_guests' => 1, 'description' => 'Phòng dành cho 1 khách', 'created_at' => now(), 'updated_at' => now()],
+            ['type_name' => 'Phòng Đơn Tiêu Chuẩn', 'price' => 200000,  'max_adults' => 1, 'max_children' => 0, 'max_guests' => 1, 'description' => 'Phòng dành cho 1 khách', 'created_at' => now(), 'updated_at' => now()],
             ['type_name' => 'Phòng Đôi Tiêu Chuẩn',  'price' => 650000,  'max_adults' => 2, 'max_children' => 1, 'max_guests' => 3, 'description' => 'Phòng dành cho 2 người lớn và 1 trẻ em', 'created_at' => now(), 'updated_at' => now()],
             ['type_name' => 'Phòng Triple',            'price' => 900000,  'max_adults' => 3, 'max_children' => 1, 'max_guests' => 4, 'description' => 'Phòng dành cho nhóm khách', 'created_at' => now(), 'updated_at' => now()],
             ['type_name' => 'Phòng Gia Đình',          'price' => 1200000, 'max_adults' => 4, 'max_children' => 2, 'max_guests' => 6, 'description' => 'Phòng dành cho gia đình', 'created_at' => now(), 'updated_at' => now()],
@@ -182,8 +179,9 @@ class DatabaseSeeder extends Seeder
         // ======================================
         // PRICE POLICIES
         // ======================================
-        DB::table('price_settings')->insert([
-            ['name' => 'Dịp lễ Tết', 'start_date' => '2026-02-16', 'end_date' => '2026-02-21', 'adjustment_type' => 'percent', 'adjustment_value' => 50, 'status' => 1, 'created_at' => now(), 'updated_at' => now()],
+        DB::table('price_policies')->insert([
+            ['policy_name' => 'Cuối tuần',   'start_date' => '2026-01-01', 'end_date' => '2026-12-31', 'multiplier' => 1.2, 'created_at' => now(), 'updated_at' => now()],
+            ['policy_name' => 'Dịp lễ Tết', 'start_date' => '2026-02-16', 'end_date' => '2026-02-21', 'multiplier' => 1.5, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         // ======================================
@@ -240,6 +238,5 @@ class DatabaseSeeder extends Seeder
             ['user_id' => 3, 'room_type_id' => 2, 'rating' => 5, 'comment' => 'Phòng sạch sẽ, nhân viên thân thiện', 'created_at' => now(), 'updated_at' => now()],
             ['user_id' => 3, 'room_type_id' => 1, 'rating' => 4, 'comment' => 'Giá hợp lý, đầy đủ tiện nghi',        'created_at' => now(), 'updated_at' => now()],
         ]);
-        });
     }
 }

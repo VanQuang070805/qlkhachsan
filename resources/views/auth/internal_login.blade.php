@@ -1,59 +1,63 @@
 @extends('layouts.auth')
 
 @section('content')
-<div class="auth-card" data-aos="fade-up" data-aos-duration="1000">
-    <div class="hotel-brand">Royal Hotel</div>
-    <p class="subtitle" style="color: #64748b; font-weight: 500; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px;">
-        Đăng Nhập Nội Bộ Nhân Viên
-    </p>
+<div class="sana-auth-card">
+    <header class="sana-heading auth-intro">
+        <h1 class="sana-heading__title">Login System</h1>
+    </header>
 
-    <form action="{{ url('/internalauth/login') }}" method="POST" autocomplete="on" novalidate>
+    @include('auth.partials.form-status')
+
+    <form action="{{ route('internalauth.login') }}" method="POST" autocomplete="on" novalidate data-inline-validation>
         @csrf
-        
-        <div class="mb-4 text-start">
-            <label for="username" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Tên đăng nhập (Username)</label>
-            <input
-                type="text"
-                class="form-control"
-                id="username"
-                name="username"
-                placeholder="Nhập tên đăng nhập nội bộ..."
-                required
-                value="{{ old('username') }}"
-                autocomplete="username"
-                style="padding-left: 15px;"
-            >
+
+        {{-- Username for internal system --}}
+        <div class="sana-form-group">
+            <input type="text"
+                   class="sana-input @error('username') is-invalid @enderror"
+                   id="username"
+                   name="username"
+                   value="{{ old('username') }}"
+                   required
+                   autocomplete="username"
+                   data-validate
+                   data-required-message="Vui lòng nhập tên đăng nhập."
+                   aria-describedby="username-error"
+                   placeholder="Tên đăng nhập hệ thống">
+            <p class="field-error" id="username-error" data-error-for="username">
+                @error('username')<i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}@enderror
+            </p>
         </div>
-        
-        <div class="mb-4 text-start">
-            <label for="password" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Mật khẩu</label>
-            <div class="password-wrapper">
-                <input
-                    type="password"
-                    class="form-control"
-                    id="password"
-                    name="password"
-                    placeholder="Nhập mật khẩu..."
-                    required
-                    autocomplete="current-password"
-                    style="padding-left: 15px;"
-                >
-                <button type="button" class="toggle-password" aria-label="Hiện/Ẩn mật khẩu">
-                    <i class="bi bi-eye"></i>
+
+        {{-- Password for internal system --}}
+        <div class="sana-form-group">
+            <div class="sana-password-wrap">
+                <input type="password"
+                       class="sana-input @error('password') is-invalid @enderror"
+                       id="password"
+                       name="password"
+                       required
+                       autocomplete="current-password"
+                       data-validate
+                       data-required-message="Vui lòng nhập mật khẩu."
+                       aria-describedby="password-error"
+                       placeholder="Mật khẩu hệ thống">
+                <button type="button" class="sana-password-toggle" aria-label="Hiện mật khẩu">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
                 </button>
             </div>
+            <p class="field-error" id="password-error" data-error-for="password">
+                @error('password')<i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}@enderror
+            </p>
         </div>
 
-        <div class="d-grid mb-3">
-            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #0f172a, #334155); box-shadow: 0 4px 15px rgba(15, 23, 42, 0.4); border: none;">
-                Đăng Nhập Hệ Thống
-            </button>
-        </div>
+        {{-- Submit Button --}}
+        <button type="submit" class="sana-submit-btn">Login System</button>
 
-        <div class="text-center mt-4">
-            <a href="{{ route('login') }}" style="font-size: 0.85rem; color: #6303f4; text-decoration: none; font-weight: 600;">
-                <i class="bi bi-arrow-left"></i> Quay lại Đăng nhập Khách hàng
-            </a>
+        {{-- Return to Customer Login --}}
+        <div class="sana-switch-link" style="margin-top: 20px;">
+            <span>Bạn là khách lưu trú?</span>
+            <a href="{{ route('login') }}">Đăng nhập khách hàng</a>
         </div>
     </form>
 </div>

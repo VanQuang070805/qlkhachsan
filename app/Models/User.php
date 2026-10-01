@@ -15,6 +15,7 @@ class User extends Authenticatable
     protected $fillable = [
         'username', 'password', 'fullname', 'email',
         'phone', 'role', 'verified', 'otp_code', 'otp_expires_at',
+        'google_id', 'avatar_url',
     ];
 
     protected $hidden = ['password', 'remember_token', 'otp_code'];
@@ -44,5 +45,25 @@ class User extends Authenticatable
     public function countCustomers(): int
     {
         return self::where('role', 'customer')->orWhereNull('role')->count();
+    }
+
+    public function getRoleLabelAttribute(): string
+    {
+        return match ($this->role) {
+            'admin'        => 'Quản trị viên',
+            'receptionist' => 'Lễ tân',
+            'customer'     => 'Khách hàng',
+            default        => (string) $this->role,
+        };
+    }
+
+    public function getRoleBadgeAttribute(): string
+    {
+        return match ($this->role) {
+            'admin'        => 'danger',
+            'receptionist' => 'warning',
+            'customer'     => 'primary',
+            default        => 'secondary',
+        };
     }
 }

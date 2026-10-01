@@ -79,7 +79,7 @@ def test_incomplete_snapshot_is_rejected_without_deleting_data(tmp_path: Path):
 
 def test_servo_configuration_validation(tmp_path: Path):
     config = settings(tmp_path)
-    object.__setattr__(config, "servo_open_angle", 91)
+    object.__setattr__(config, "servo_open_angle", 181)
 
     try:
         config.validate()

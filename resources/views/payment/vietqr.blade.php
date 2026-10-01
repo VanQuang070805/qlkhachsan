@@ -38,7 +38,7 @@
                 </div>
 
                 <div style="background:#fff3cd;border:1px solid #ffeeba;padding:10px;border-radius:8px;margin-top:10px;font-size:14px;text-align:center;">
-                    Mã hết hạn sau <strong id="countdown">1:00</strong>
+                    Mã hết hạn sau <strong id="countdown">30:00</strong>
                 </div>
 
                 {{-- Trạng thái polling --}}
@@ -56,9 +56,9 @@
                 <div class="card-body" style="text-align:center">
                     <div style="color:#666;font-size:15px">Số tiền đặt cọc (50%)</div>
                     <div style="font-size:32px;font-weight:800;color:#1565C0;margin:8px 0">
-                        {{ number_format($booking->deposit_amount, 0, ',', '.') }} ₫
+                        {{ number_format($booking->deposit_amount, 0, ',', '.') }} đ
                     </div>
-                    <div style="font-size:12px;color:#999;margin-bottom:6px">Tổng: {{ number_format($booking->total_price, 0, ',', '.') }} ₫ — Phần còn lại thanh toán khi nhận phòng</div>
+                    <div style="font-size:12px;color:#999;margin-bottom:6px">Tổng: {{ number_format($booking->total_price, 0, ',', '.') }} đ — Phần còn lại thanh toán khi nhận phòng</div>
                     <div class="badge bg-info text-dark">{{ $nights }} đêm · {{ $booking->adult_count }} khách</div>
                 </div>
             </div>
@@ -124,7 +124,7 @@
     if (!localStorage.getItem(timerKey)) {
         localStorage.setItem(timerKey, Date.now().toString());
     }
-    let time = Math.max(0, 60 - Math.floor((Date.now() - parseInt(localStorage.getItem(timerKey))) / 1000));
+    let time = Math.max(0, 1800 - Math.floor((Date.now() - parseInt(localStorage.getItem(timerKey))) / 1000));
 
     const countdownEl = document.getElementById('countdown');
     const fmt = t => Math.floor(t/60) + ':' + (t%60 < 10 ? '0' : '') + (t%60);

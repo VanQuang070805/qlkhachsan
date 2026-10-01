@@ -11,6 +11,8 @@ use App\Services\Payment\ZaloPayService;
 use App\Services\Payment\VNPayService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use Endroid\QrCode\QrCode;
@@ -34,13 +36,15 @@ class PaymentController extends Controller
     public function updateMethod(Request $request, int $bookingId)
     {
         $booking = Booking::findOrFail($bookingId);
+        $this->authorizeCustomerBooking($booking);
+        $this->assertDepositPayable($booking);
 
         if ($booking->isPaid()) {
             return redirect()->route('payment.success', $bookingId);
         }
 
         $request->validate([
-            'payment_method' => 'required|in:vietqr,momo,zalopay,vnpay',
+            'payment_method' => 'required|in:cash,vietqr,momo,zalopay,vnpay',
         ]);
 
         $booking->update(['payment_method' => $request->payment_method]);
@@ -50,6 +54,8 @@ class PaymentController extends Controller
     public function form(int $bookingId)
     {
         $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
+        $this->authorizeCustomerBooking($booking);
+        $this->assertDepositPayable($booking);
 
         if ($booking->isPaid()) {
             return redirect()->route('payment.success', $bookingId);
@@ -58,23 +64,31 @@ class PaymentController extends Controller
         return view('payment.form', compact('booking'));
     }
 
+    public function preview(int $bookingId)
+    {
+        abort_unless(app()->environment(['local', 'testing']), 404);
+
+        $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
+        $this->authorizeCustomerBooking($booking);
+
+        return view('payment.form', [
+            'booking' => $booking,
+            'isPreview' => true,
+        ]);
+    }
+
     public function show(int $bookingId)
     {
         $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
+        $this->authorizeCustomerBooking($booking);
+        abort_unless(in_array($booking->status, ['pending', 'confirmed'], true), 409, 'Đặt phòng không còn khả dụng để thanh toán.');
 
         if ($booking->isPaid()) {
             return redirect()->route('payment.success', $bookingId);
         }
 
         // Kiểm tra phòng có còn available không
-        $bookedRoomIds = \DB::table('booking_rooms')
-            ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
-            ->where('bookings.payment_status', 'paid')
-            ->where('bookings.status', '!=', 'cancelled')
-            ->where('bookings.id', '!=', $bookingId)
-            ->where('bookings.check_in', '<', $booking->check_out)
-            ->where('bookings.check_out', '>', $booking->check_in)
-            ->pluck('booking_rooms.room_id');
+        $bookedRoomIds = Booking::reservedRoomIds($booking->check_in->toDateString(), $booking->check_out->toDateString(), $bookingId);
 
         $conflictRoom = $booking->rooms->first(fn($r) => $bookedRoomIds->contains($r->id));
 
@@ -86,20 +100,35 @@ class PaymentController extends Controller
                 'cancellation_reason' => 'Phòng đã được đặt bởi khách khác.',
                 'refund_status'       => 'none',
             ]);
-            foreach ($booking->rooms as $room) {
-                $room->update(['status' => \App\Models\Room::STATUS_AVAILABLE]);
-            }
+
             return redirect()->route('booking.mine')
                 ->with('error', 'Rất tiếc, phòng ' . $conflictRoom->room_number . ' đã được đặt bởi khách khác. Đặt phòng của bạn đã bị hủy tự động.');
         }
 
         return match ($booking->payment_method) {
+            'cash'    => $this->confirmCashReservation($booking),
             'vietqr'  => $this->showVietQR($booking),
             'momo'    => $this->redirectMomo($booking),
             'zalopay' => $this->redirectZalopay($booking),
             'vnpay'   => $this->redirectVnpay($booking),
             default   => abort(400, 'Phương thức thanh toán không hợp lệ'),
         };
+    }
+
+    private function confirmCashReservation(Booking $booking)
+    {
+        $booking->update(['status' => 'confirmed', 'payment_status' => 'pending', 'payment_method' => 'cash']);
+        return redirect()->route('booking.success', $booking->id)
+            ->with('success', 'Đặt phòng đã được giữ. Vui lòng thanh toán tiền mặt tại quầy.');
+    }
+
+    private function lateCheckoutFee(Booking $booking): float
+    {
+        if ($booking->waive_late_fee || now('Asia/Ho_Chi_Minh')->lte(
+            \Carbon\Carbon::parse($booking->check_out, 'Asia/Ho_Chi_Minh')->setTime(13, 0)
+        )) return 0;
+
+        return round($booking->rooms->sum(fn ($room) => (float) ($room->roomType->price ?? 0)) * .5, 2);
     }
 
     // ── VietQR ────────────────────────────────────────────
@@ -116,6 +145,7 @@ class PaymentController extends Controller
     public function checkStatus(int $bookingId): JsonResponse
     {
         $booking = Booking::findOrFail($bookingId);
+        $this->authorizeCustomerBooking($booking);
 
         if ($booking->isPaid()) {
             return response()->json([
@@ -128,11 +158,14 @@ class PaymentController extends Controller
         $transaction = $this->vietqr->checkTransaction($booking);
 
         if ($transaction) {
-            $this->confirmPayment($booking, 'vietqr', $transaction['id'], $transaction);
-            return response()->json([
-                'status'       => 'paid',
-                'redirect_url' => route('payment.success', $bookingId),
-            ]);
+            if ($this->confirmPayment($booking, 'vietqr', (string) $transaction['id'], $transaction)) {
+                return response()->json([
+                    'status'       => 'paid',
+                    'redirect_url' => route('payment.success', $bookingId),
+                ]);
+            }
+
+            return response()->json(['status' => 'expired'], 409);
         }
 
         return response()->json(['status' => 'pending']);
@@ -147,23 +180,33 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Invalid signature'], 400);
         }
 
-        $bookingId = $data['orderId'] ?? null;
+        $orderParts = explode('_', (string) ($data['orderId'] ?? '0'));
+        $bookingId = (int) ($orderParts[0] ?? 0);
+        $purpose = ($orderParts[1] ?? 'deposit') === 'checkout' ? 'checkout' : 'deposit';
         $booking   = Booking::find($bookingId);
 
-        if (!$booking || $booking->isPaid()) {
+        if (!$booking || ($purpose === 'deposit' && $booking->isPaid())) {
             return response()->json(['message' => 'OK']);
         }
 
-        if (($data['resultCode'] ?? -1) === 0) { // 0 = success
-            $this->confirmPayment($booking, 'momo', $data['transId'], $data);
+        $expected = $purpose === 'checkout' ? $this->checkoutAmount($booking) : (float) $booking->deposit_amount;
+        if (($data['resultCode'] ?? -1) === 0 && $this->amountMatches($expected, $data['amount'] ?? null)) {
+            $confirmed = $purpose === 'checkout'
+                ? $this->confirmCheckoutPayment($booking, 'momo', (string) $data['transId'], (float) $data['amount'], $data)
+                : $this->confirmPayment($booking, 'momo', (string) $data['transId'], $data);
+            if (!$confirmed) {
+                $this->recordRejectedPayment($booking, 'momo', (string) $data['transId'], $expected, $purpose, $data);
+                return response()->json(['message' => 'Payment state conflict'], 409);
+            }
         } else {
             PaymentLog::create([
                 'booking_id'   => $booking->id,
                 'gateway'      => 'momo',
                 'transaction_id'=> $data['transId'] ?? null,
-                'amount'       => $booking->total_price,
+                'amount'       => $expected,
+                'purpose'      => $purpose,
                 'status'       => 'failed',
-                'raw_response' => $data,
+                'raw_response' => $this->paymentEvidence($data),
             ]);
         }
 
@@ -179,17 +222,27 @@ class PaymentController extends Controller
             return response()->json(['return_code' => -1, 'return_message' => 'Invalid MAC']);
         }
 
-        $embedData = json_decode($data['data'] ?? '{}', true);
+        $callbackData = json_decode($data['data'] ?? '{}', true) ?: [];
+        $embedData = json_decode($callbackData['embed_data'] ?? '{}', true) ?: [];
         $bookingId = $embedData['booking_id'] ?? null;
+        $purpose = ($embedData['purpose'] ?? 'deposit') === 'checkout' ? 'checkout' : 'deposit';
         $booking   = Booking::find($bookingId);
 
-        if (!$booking || $booking->isPaid()) {
+        if (!$booking || ($purpose === 'deposit' && $booking->isPaid())) {
             return response()->json(['return_code' => 1, 'return_message' => 'OK']);
         }
 
-        if (($data['type'] ?? 0) === 1) { // 1 = payment success
-            $parsed = json_decode($data['data'], true);
-            $this->confirmPayment($booking, 'zalopay', $parsed['zp_trans_id'], $parsed);
+        $expected = $purpose === 'checkout' ? $this->checkoutAmount($booking) : (float) $booking->deposit_amount;
+        if ($this->amountMatches($expected, $callbackData['amount'] ?? null)) {
+            $confirmed = $purpose === 'checkout'
+                ? $this->confirmCheckoutPayment($booking, 'zalopay', (string) ($callbackData['zp_trans_id'] ?? ''), (float) $callbackData['amount'], $callbackData)
+                : $this->confirmPayment($booking, 'zalopay', (string) ($callbackData['zp_trans_id'] ?? ''), $callbackData);
+            if (!$confirmed) {
+                $this->recordRejectedPayment($booking, 'zalopay', (string) ($callbackData['zp_trans_id'] ?? ''), $expected, $purpose, $callbackData);
+                return response()->json(['return_code' => -1, 'return_message' => 'Payment state conflict']);
+            }
+        } else {
+            return response()->json(['return_code' => -1, 'return_message' => 'Invalid amount']);
         }
 
         return response()->json(['return_code' => 1, 'return_message' => 'OK']);
@@ -204,19 +257,31 @@ class PaymentController extends Controller
             return response()->json(['RspCode' => '97', 'Message' => 'Invalid signature']);
         }
 
-        $bookingId = $data['vnp_TxnRef'] ?? null;
+        $txnParts = explode('_', (string) ($data['vnp_TxnRef'] ?? ''));
+        $bookingId = (int) ($txnParts[0] ?? 0);
+        $purpose = ($txnParts[1] ?? 'deposit') === 'checkout' ? 'checkout' : 'deposit';
         $booking   = Booking::find($bookingId);
 
         if (!$booking) {
             return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
         }
 
-        if ($booking->isPaid()) {
+        if ($purpose === 'deposit' && $booking->isPaid()) {
             return response()->json(['RspCode' => '02', 'Message' => 'Already updated']);
         }
 
-        if (($data['vnp_ResponseCode'] ?? '') === '00') {
-            $this->confirmPayment($booking, 'vnpay', $data['vnp_TransactionNo'], $data);
+        $amount = isset($data['vnp_Amount']) ? ((float) $data['vnp_Amount'] / 100) : null;
+        $expected = $purpose === 'checkout' ? $this->checkoutAmount($booking) : (float) $booking->deposit_amount;
+        if (($data['vnp_ResponseCode'] ?? '') === '00' && $this->amountMatches($expected, $amount)) {
+            $confirmed = $purpose === 'checkout'
+                ? $this->confirmCheckoutPayment($booking, 'vnpay', (string) $data['vnp_TransactionNo'], (float) $amount, $data)
+                : $this->confirmPayment($booking, 'vnpay', (string) $data['vnp_TransactionNo'], $data);
+            if (!$confirmed) {
+                $this->recordRejectedPayment($booking, 'vnpay', (string) $data['vnp_TransactionNo'], $expected, $purpose, $data);
+                return response()->json(['RspCode' => '99', 'Message' => 'Payment state conflict']);
+            }
+        } else {
+            return response()->json(['RspCode' => '04', 'Message' => 'Invalid amount or status']);
         }
 
         return response()->json(['RspCode' => '00', 'Message' => 'Confirm success']);
@@ -233,7 +298,7 @@ class PaymentController extends Controller
             return redirect()->route('payment.error', $data['vnp_TxnRef'] ?? 0);
         }
 
-        $bookingId = $data['vnp_TxnRef'] ?? null;
+        $bookingId = (int) explode('_', (string) ($data['vnp_TxnRef'] ?? '0'))[0];
 
         if (($data['vnp_ResponseCode'] ?? '') === '00') {
             return redirect()->route('payment.success', $bookingId);
@@ -246,24 +311,13 @@ class PaymentController extends Controller
     public function success(int $bookingId)
     {
         $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
+        $this->authorizeCustomerBooking($booking);
+        abort_unless($booking->isPaid() && in_array($booking->status, ['confirmed', 'checked_in', 'completed'], true), 409, 'Thanh toán chưa được xác nhận.');
 
         $qr_base64 = '';
         if (class_exists('Endroid\QrCode\QrCode')) {
             try {
-                $checkInDate  = \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y');
-                $checkOutDate = \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y');
-
-                $qr_data  = "Ma don: #{$booking->id}\n";
-                $qr_data .= "Khách hàng: {$booking->customer_name}\n";
-                $qr_data .= "Ngày nhận: {$checkInDate}\n";
-                $qr_data .= "Ngày trả: {$checkOutDate}\n";
-               $depositPrice = $booking->total_price / 2;
-$qr_data .= "Tổng tiền phòng: " . number_format($booking->total_price) . " VNĐ\n";
-$qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
-                $qr_data .= "Danh sách phòng:\n";
-                foreach ($booking->rooms as $r) {
-                    $qr_data .= "- Phòng {$r->room_number} (Loại: " . ($r->roomType->name ?? '') . ")\n";
-                }
+                $qr_data = 'ROYAL-CHECKIN:'.app(\App\Services\CheckInTokenService::class)->issue($booking);
 
                 $qr = QrCode::create($qr_data)
                     ->setEncoding(new Encoding('UTF-8'))
@@ -287,7 +341,13 @@ $qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
     public function error(int $bookingId)
     {
         $booking = Booking::findOrFail($bookingId);
+        $this->authorizeCustomerBooking($booking);
         return view('payment.error', compact('booking'));
+    }
+
+    private function authorizeCustomerBooking(Booking $booking): void
+    {
+        abort_unless(Auth::check() && (int) $booking->user_id === (int) Auth::id(), 403);
     }
 
     // ── Redirect helpers ──────────────────────────────────
@@ -310,21 +370,53 @@ $qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
     }
 
     // ── Core: xác nhận thanh toán thành công ─────────────
-    private function confirmPayment(Booking $booking, string $gateway, string $transactionId, array $rawData): void
+    private function confirmPayment(Booking $booking, string $gateway, string $transactionId, array $rawData): bool
     {
-        $confirmed = false;
-        \DB::transaction(function () use ($booking, $gateway, $transactionId, $rawData, &$confirmed) {
-            $booking = Booking::lockForUpdate()->find($booking->id);
-            if ($booking->isPaid()) return;
+        if ($transactionId === '') return false;
 
-            PaymentLog::create([
+        $lock = Cache::lock('payment:'.$gateway.':'.$transactionId, 15);
+        if (!$lock->get()) return false;
+
+        try {
+            $confirmed = false;
+            \DB::transaction(function () use ($booking, $gateway, $transactionId, $rawData, &$confirmed) {
+            $booking = Booking::lockForUpdate()->find($booking->id);
+            if (!$booking) return;
+            $existing = PaymentLog::where('gateway', $gateway)->where('transaction_id', $transactionId)->lockForUpdate()->first();
+            if ($existing) {
+                $confirmed = $existing->status === 'success'
+                    && (int) $existing->booking_id === (int) $booking->id
+                    && $this->amountMatches((float) $booking->deposit_amount, $existing->amount);
+                return;
+            }
+            if ($booking->isPaid() || !in_array($booking->status, ['pending', 'confirmed'], true)) return;
+            $createdAt = $booking->{$booking->getCreatedAtColumn()};
+            if ($booking->status === 'pending' && $createdAt && $createdAt->lt(now()->subMinutes(30))) return;
+
+            $roomIds = $booking->rooms()->orderBy('rooms.id')->pluck('rooms.id');
+            Room::whereIn('id', $roomIds)->orderBy('id')->lockForUpdate()->get();
+            if (Booking::reservedRoomIds(
+                $booking->check_in->toDateString(),
+                $booking->check_out->toDateString(),
+                $booking->id
+            )->intersect($roomIds)->isNotEmpty()) return;
+
+            $log = PaymentLog::where('booking_id', $booking->id)
+                ->where('gateway', $gateway)
+                ->where('status', 'pending')
+                ->whereNull('transaction_id')
+                ->latest()
+                ->lockForUpdate()
+                ->first() ?? new PaymentLog(['booking_id' => $booking->id, 'gateway' => $gateway]);
+            $log->fill([
                 'booking_id'     => $booking->id,
                 'gateway'        => $gateway,
                 'transaction_id' => $transactionId,
-                'amount'         => $booking->total_price,
+                'amount'         => $booking->deposit_amount,
+                'purpose'        => 'deposit',
                 'status'         => 'success',
-                'raw_response'   => $rawData,
-            ]);
+                'raw_response'   => $this->paymentEvidence($rawData),
+            ])->save();
 
             $booking->update([
                 'payment_status' => 'paid',
@@ -333,15 +425,126 @@ $qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
             ]);
 
             $confirmed = true;
-        });
+            });
 
-        if ($confirmed) {
-            try {
-                $this->sendPaymentConfirmationEmail($booking, $gateway, $transactionId);
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning("Gửi email thanh toán thất bại cho booking #{$booking->id}: " . $e->getMessage());
+            if ($confirmed) {
+                try {
+                    $this->sendPaymentConfirmationEmail($booking, $gateway, $transactionId);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Payment receipt delivery failed', ['booking_id' => $booking->id, 'exception' => get_class($e)]);
+                }
             }
+
+            return $confirmed;
+        } finally {
+            $lock->release();
         }
+    }
+
+    private function assertDepositPayable(Booking $booking): void
+    {
+        abort_unless(in_array($booking->status, ['pending', 'confirmed'], true), 409, 'Đặt phòng không còn khả dụng để thanh toán.');
+        $createdAt = $booking->{$booking->getCreatedAtColumn()};
+        abort_if($booking->status === 'pending' && $createdAt && $createdAt->lt(now()->subMinutes(30)), 409, 'Thời gian giữ phòng đã hết.');
+    }
+
+    private function confirmCheckoutPayment(Booking $booking, string $gateway, string $transactionId, float $amount, array $rawData): bool
+    {
+        if ($transactionId === '') return false;
+        $lock = Cache::lock('payment:'.$gateway.':'.$transactionId, 15);
+        if (!$lock->get()) return false;
+
+        try {
+            return \DB::transaction(function () use ($booking, $gateway, $transactionId, $amount, $rawData) {
+                $booking = Booking::with('rooms.roomType')->lockForUpdate()->find($booking->id);
+                if (!$booking) return false;
+                $existing = PaymentLog::where('gateway', $gateway)->where('transaction_id', $transactionId)->lockForUpdate()->first();
+                if ($existing) {
+                    return $existing->status === 'success'
+                        && (int) $existing->booking_id === (int) $booking->id
+                        && $this->amountMatches($amount, $existing->amount);
+                }
+                if ($booking->status !== 'checked_in') return false;
+
+                $roomIds = $booking->rooms->pluck('id');
+                Room::whereIn('id', $roomIds)->orderBy('id')->lockForUpdate()->get();
+                $lateFee = $this->lateCheckoutFee($booking);
+                $booking->late_checkout_fee = $lateFee;
+                $expected = $booking->outstandingAmount();
+                if (!$this->amountMatches($expected, $amount)) return false;
+
+                $log = PaymentLog::where('booking_id', $booking->id)
+                    ->where('gateway', $gateway)->where('purpose', 'checkout')
+                    ->where('status', 'pending')->whereNull('transaction_id')
+                    ->latest()->lockForUpdate()->first()
+                    ?? new PaymentLog(['booking_id' => $booking->id, 'gateway' => $gateway]);
+                $log->fill([
+                    'transaction_id' => $transactionId,
+                    'amount' => $amount,
+                    'purpose' => 'checkout',
+                    'status' => 'success',
+                    'raw_response' => $this->paymentEvidence($rawData),
+                ])->save();
+
+                $booking->update([
+                    'status' => 'completed',
+                    'actual_check_out' => now(),
+                    'payment_status' => 'paid',
+                    'payment_method' => $gateway,
+                    'late_checkout_fee' => $lateFee,
+                ]);
+                Room::whereIn('id', $roomIds)->update([
+                    'status' => Room::STATUS_CLEANING,
+                    'needs_cleaning' => true,
+                    'cleaning_requested_at' => now(),
+                ]);
+                return true;
+            });
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function amountMatches(float $expected, mixed $amount): bool
+    {
+        return is_numeric($amount) && abs((float) $amount - $expected) < 0.01;
+    }
+
+    private function paymentEvidence(array $payload): array
+    {
+        return array_intersect_key($payload, array_flip([
+            'id', 'transId', 'zp_trans_id', 'vnp_TransactionNo',
+            'resultCode', 'return_code', 'vnp_ResponseCode', 'amount', 'vnp_Amount',
+        ]));
+    }
+
+    private function recordRejectedPayment(Booking $booking, string $gateway, string $transactionId, float $amount, string $purpose, array $payload): void
+    {
+        if ($transactionId === '' || PaymentLog::where('gateway', $gateway)->where('transaction_id', $transactionId)->exists()) {
+            return;
+        }
+
+        PaymentLog::create([
+            'booking_id' => $booking->id,
+            'gateway' => $gateway,
+            'transaction_id' => $transactionId,
+            'amount' => $amount,
+            'purpose' => $purpose,
+            'status' => 'failed',
+            'raw_response' => $this->paymentEvidence($payload) + ['reason' => 'state_conflict'],
+        ]);
+    }
+
+    private function amountMatchesDeposit(Booking $booking, mixed $amount): bool
+    {
+        return $this->amountMatches((float) $booking->deposit_amount, $amount);
+    }
+
+    private function checkoutAmount(Booking $booking): float
+    {
+        $booking->loadMissing('rooms.roomType');
+        $booking->late_checkout_fee = $this->lateCheckoutFee($booking);
+        return $booking->outstandingAmount();
     }
 
     private function sendPaymentConfirmationEmail(Booking $booking, string $method, string $transId): void
@@ -355,7 +558,7 @@ $qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
             $booking->loadMissing('rooms.roomType');
             $rooms = $booking->rooms;
 
-            $qr_file = $this->generateQrCodeFile($booking, $rooms);
+            $qrBytes = $this->generateQrCodeBytes($booking);
             $body = $this->buildPaymentEmailHtml($booking, $rooms, $method, $transId, $hotel);
             
             $mailCfg = [
@@ -368,34 +571,19 @@ $qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
                 'from_name'  => config('mail.from.name'),
             ];
 
-            $this->sendMailWithPHPMailer($to, $name, $subject, $body, $mailCfg, $qr_file);
-            
-            if ($qr_file && file_exists($qr_file)) {
-                unlink($qr_file);
-            }
+            $this->sendMailWithPHPMailer($to, $name, $subject, $body, $mailCfg, $qrBytes);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning("Gửi email thanh toán thất bại cho booking #{$booking->id}: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('Payment receipt delivery failed', ['booking_id' => $booking->id, 'exception' => get_class($e)]);
         }
     }
 
-    private function generateQrCodeFile(Booking $booking, $rooms): string
+    private function generateQrCodeBytes(Booking $booking): string
     {
         if (!class_exists('Endroid\QrCode\QrCode')) {
             return '';
         }
 
-        $checkInDate  = \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y');
-        $checkOutDate = \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y');
-
-        $qr_data  = "Ma don: #{$booking->id}\n";
-        $qr_data .= "Khách hàng: {$booking->customer_name}\n";
-        $qr_data .= "Ngày nhận: {$checkInDate}\n";
-        $qr_data .= "Ngày trả: {$checkOutDate}\n";
-        $qr_data .= "Tổng tiền: " . number_format($booking->total_price) . " VNĐ\n";
-        $qr_data .= "Danh sách phòng:\n";
-        foreach ($rooms as $r) {
-            $qr_data .= "- Phòng {$r->room_number} (Loại: " . ($r->roomType->name ?? '') . ")\n";
-        }
+        $qr_data = 'ROYAL-CHECKIN:'.app(\App\Services\CheckInTokenService::class)->issue($booking);
 
         $qr = QrCode::create($qr_data)
             ->setEncoding(new Encoding('UTF-8'))
@@ -406,16 +594,7 @@ $qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
             ->setBackgroundColor(new Color(255, 255, 255));
 
         $writer = new PngWriter();
-        $result = $writer->write($qr);
-
-        $tempDir = public_path('temp');
-        if (!file_exists($tempDir)) {
-            mkdir($tempDir, 0777, true);
-        }
-        $qr_file = $tempDir . "/qr_{$booking->id}.png";
-        file_put_contents($qr_file, $result->getString());
-
-        return $qr_file;
+        return $writer->write($qr)->getString();
     }
 
     private function sendMailWithPHPMailer(string $to, string $name, string $subject, string $body, array $mailCfg, ?string $attachment = null): void
@@ -435,8 +614,8 @@ $qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
             $mail->setFrom($mailCfg['from_email'] ?? $mailCfg['username'], $mailCfg['from_name'] ?? 'Khách Sạn');
             $mail->addAddress($to, $name);
             
-            if ($attachment && file_exists($attachment)) {
-                $mail->addAttachment($attachment, 'CheckIn_QR.png');
+            if ($attachment) {
+                $mail->addStringAttachment($attachment, 'CheckIn_QR.png', PHPMailer::ENCODING_BASE64, 'image/png');
             }
             
             $mail->isHTML(true);
@@ -450,14 +629,18 @@ $qr_data .= "Tiền cọc (50%): " . number_format($depositPrice) . " VNĐ\n";
         \Illuminate\Support\Facades\Mail::html($body, function ($message) use ($to, $name, $subject, $attachment) {
             $message->to($to, $name)
                     ->subject($subject);
-            if ($attachment && file_exists($attachment)) {
-                $message->attach($attachment, ['as' => 'CheckIn_QR.png']);
+            if ($attachment) {
+                $message->attachData($attachment, 'CheckIn_QR.png', ['mime' => 'image/png']);
             }
         });
     }
 
     private function buildPaymentEmailHtml(Booking $b, $rooms, string $method, string $transId, string $hotel): string
     {
+        $escape = fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $customerName = $escape($b->customer_name);
+        $hotel = $escape($hotel);
+        $transId = $escape($transId);
       $depositPrice = (float)$b->total_price / 2;   
 $price = number_format($depositPrice, 0, ',', '.') . ' ₫';
         $supportedMethods = [
@@ -467,11 +650,11 @@ $price = number_format($depositPrice, 0, ',', '.') . ' ₫';
             'zalopay' => 'Ví ZaloPay',
             'vnpay'   => 'Cổng VNPay',
         ];
-        $methodLabel = $supportedMethods[$method] ?? $method;
+        $methodLabel = $escape($supportedMethods[$method] ?? $method);
         
         $roomListHtml = '';
         foreach ($rooms as $r) {
-            $roomListHtml .= "<li>Phòng <strong>{$r->room_number}</strong> - Hạng phòng: " . ($r->roomType->name ?? '') . "</li>";
+            $roomListHtml .= '<li>Phòng <strong>'.$escape($r->room_number).'</strong> - Hạng phòng: '.$escape($r->roomType->name ?? '').'</li>';
         }
 
         return <<<HTML
@@ -515,7 +698,7 @@ $price = number_format($depositPrice, 0, ',', '.') . ' ₫';
             <div class="payment-badge">✓ ĐÃ ĐẶT CỌC</div>
         </div>
 
-        <div class="greeting">Kính gửi <strong>{$b->customer_name}</strong>,</div>
+        <div class="greeting">Kính gửi <strong>{$customerName}</strong>,</div>
        <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">Cảm ơn quý khách. Khoản đặt cọc 50% tiền phòng của quý khách đã được ghi nhận thành công trên hệ thống. Số tiền còn lại quý khách vui lòng thanh toán khi nhận phòng.</p>
 <p>Đã Đặt Cọc (50%)</p>
         
@@ -552,22 +735,31 @@ HTML;
     }
     public function staffCheckoutPayment(Request $request, int $bookingId)
     {
+        $request->validate(['payment_method'=>'required|in:cash,vietqr,momo,zalopay,vnpay', 'waive_late_fee'=>'sometimes|boolean']);
         $booking = Booking::with('rooms')->findOrFail($bookingId);
+        abort_unless($booking->status === 'checked_in', 409, 'Chỉ có thể trả phòng cho booking đang lưu trú.');
         $waive = $request->boolean('waive_late_fee', false);
         $method = $request->input('payment_method');
         // Tiền mặt — xác nhận luôn
         if ($method === 'cash') {
             \DB::transaction(function () use ($booking, $waive) {
-                $now = now();
-                $checkoutHour = $now->hour + $now->minute / 60;
-                $lateFee = 0;
-                $expectedCheckout = \Carbon\Carbon::parse($booking->check_out)->startOfDay();
-                $today = now('Asia/Ho_Chi_Minh')->startOfDay();
-                $isLateDay = $today->greaterThanOrEqualTo($expectedCheckout); // đúng ngày hoặc muộn hơn
+                $booking = Booking::with('rooms.roomType')->lockForUpdate()->findOrFail($booking->id);
+                abort_unless($booking->status === 'checked_in', 409, 'Booking đã được xử lý.');
+                $booking->waive_late_fee = $waive;
+                $lateFee = $this->lateCheckoutFee($booking);
+                $booking->late_checkout_fee = $lateFee;
+                $outstanding = $booking->outstandingAmount();
 
-                if ($checkoutHour > 12.5 && $isLateDay && !$waive) {
-                    $nightRate = $booking->rooms->sum(fn($r) => (float)($r->roomType->price ?? 0));
-                    $lateFee = $checkoutHour <= 18 ? round($nightRate * 0.5, 2) : $nightRate;
+                if ($outstanding > 0) {
+                    PaymentLog::create([
+                        'booking_id' => $booking->id,
+                        'gateway' => 'cash',
+                        'transaction_id' => 'cash-'.$booking->id.'-'.\Illuminate\Support\Str::uuid(),
+                        'amount' => $outstanding,
+                        'purpose' => 'checkout',
+                        'status' => 'success',
+                        'raw_response' => ['received_by' => Auth::id()],
+                    ]);
                 }
 
                 $booking->update([
@@ -595,10 +787,16 @@ HTML;
             'waive_late_fee' => $waive,
         ]);
 
+        $booking->loadMissing('rooms.roomType');
+        $lateFee = $this->lateCheckoutFee($booking);
+        $booking->update(['late_checkout_fee' => $lateFee]);
+        $amount = (int) round($booking->fresh()->outstandingAmount());
+        abort_if($amount <= 0, 409, 'Booking không còn số dư cần thanh toán.');
+
         $url = match($method) {
-            'momo'    => $this->momo->createPaymentUrl($booking),
-            'zalopay' => $this->zalopay->createPaymentUrl($booking),
-            'vnpay'   => $this->vnpay->createPaymentUrl($booking),
+            'momo'    => $this->momo->createPaymentUrl($booking, $amount, 'checkout'),
+            'zalopay' => $this->zalopay->createPaymentUrl($booking, $amount, 'checkout'),
+            'vnpay'   => $this->vnpay->createPaymentUrl($booking, $amount, 'checkout'),
             'vietqr'  => route('staff.bookings.vietqr', $booking->id),
             default   => null,
         };
@@ -612,23 +810,13 @@ HTML;
     public function staffVietQR(int $bookingId)
     {
         $booking  = Booking::with('rooms.roomType')->findOrFail($bookingId);
-        $now      = now();
-        $checkoutHour = $now->hour + $now->minute / 60;
-        
-            
-        $lateFee = 0;
-        $expectedCheckout = \Carbon\Carbon::parse($booking->check_out)->startOfDay();
-        $today = now('Asia/Ho_Chi_Minh')->startOfDay();
-        $isLateDay = $today->greaterThanOrEqualTo($expectedCheckout);
-
-        if ($checkoutHour > 12.5 && $isLateDay && !$booking->waive_late_fee) {
-            $nightRate = $booking->rooms->sum(fn($r) => (float)($r->roomType->price ?? 0));
-            $lateFee   = $checkoutHour <= 18 ? round($nightRate * 0.5, 2) : $nightRate;
-        }
+        abort_unless($booking->status === 'checked_in', 409, 'Chỉ có thể thanh toán trả phòng cho booking đang lưu trú.');
+        $lateFee = $this->lateCheckoutFee($booking);
         // Lưu fee vào DB luôn để staffCheckStatus dùng lại
         $booking->update(['late_checkout_fee' => $lateFee]);
 
-        $remaining = (int) ($booking->total_price - $booking->deposit_amount + $lateFee);
+        $remaining = (int) round($booking->fresh()->outstandingAmount());
+        abort_if($remaining <= 0, 409, 'Booking không còn số dư cần thanh toán.');
         $qrData    = $this->vietqr->generateCheckoutQR($booking, $remaining);
         return view('payment.vietqr_checkout', compact('booking', 'qrData', 'remaining'));
     }
@@ -651,45 +839,11 @@ HTML;
         $transaction = $this->vietqr->checkCheckoutTransaction($booking);
 
         if ($transaction) {
-            \DB::transaction(function () use ($booking, $transaction) {
-                $booking = Booking::lockForUpdate()->find($booking->id);
-                if ($booking->status === 'completed') return;
-                $booking->loadMissing('rooms.roomType');
-                $now = now();
-                $checkoutHour = $now->hour + $now->minute / 60;
-                $lateFee = 0;
-                $expectedCheckout = \Carbon\Carbon::parse($booking->check_out)->startOfDay();
-                $today = now('Asia/Ho_Chi_Minh')->startOfDay();
-                $isLateDay = $today->greaterThanOrEqualTo($expectedCheckout);
-
-                if ($checkoutHour > 12.5 && $isLateDay && !$booking->waive_late_fee) {
-                    $nightRate = $booking->rooms->sum(fn($r) => (float)($r->roomType->price ?? 0));
-                    $lateFee = $checkoutHour <= 18 ? round($nightRate * 0.5, 2) : $nightRate;
-                }
-                \App\Models\PaymentLog::create([
-                    'booking_id'     => $booking->id,
-                    'gateway'        => 'vietqr',
-                    'transaction_id' => $transaction['id'],
-                    'amount'         => $booking->total_price - $booking->deposit_amount,
-                    'status'         => 'success',
-                    'raw_response'   => $transaction,
-                ]);
-
-                $booking->update([
-                    'status'           => 'completed',
-                    'actual_check_out' => now(),
-                    'payment_status'   => 'paid',
-                    'late_checkout_fee' => $lateFee,
-                ]);
-
-                foreach ($booking->rooms as $room) {
-                    $room->update([
-                        'status' => Room::STATUS_CLEANING,
-                        'needs_cleaning' => true,
-                        'cleaning_requested_at' => now(),
-                    ]);
-                }
-            });
+            $pending = PaymentLog::where('booking_id', $booking->id)->where('gateway', 'vietqr')
+                ->where('purpose', 'checkout')->where('status', 'pending')->latest()->first();
+            if (!$pending || !$this->confirmCheckoutPayment($booking, 'vietqr', (string) $transaction['id'], (float) $pending->amount, $transaction)) {
+                return response()->json(['status' => 'conflict'], 409);
+            }
 
             return response()->json([
                 'status'       => 'paid',
@@ -710,8 +864,16 @@ HTML;
     }
     public function momoReturn(Request $request)
 {
-    $bookingId = $request->input('orderId');
-    if ($request->input('resultCode') == 0) {
+    $parts = explode('_', (string) $request->input('orderId', '0'));
+    $bookingId = (int) ($parts[0] ?? 0);
+    $purpose = ($parts[1] ?? 'deposit') === 'checkout' ? 'checkout' : 'deposit';
+    $booking = Booking::findOrFail($bookingId);
+    if ($purpose === 'checkout') {
+        return $booking->status === 'completed'
+            ? redirect()->route('staff.bookings.checkout-success', $bookingId)
+            : redirect()->route('staff.bookings');
+    }
+    if ($booking->isPaid()) {
         return redirect()->route('payment.success', $bookingId);
     }
     return redirect()->route('payment.error', $bookingId);

@@ -1,171 +1,108 @@
 @extends('layouts.auth')
 
 @section('content')
-<div class="auth-card" data-aos="fade-up" data-aos-duration="1000">
-    <div class="hotel-brand">Royal Hotel</div>
-    <p class="subtitle">Khách sạn & Khu nghỉ dưỡng sang trọng</p>
-
-    @if(session('error'))
-        <div class="alert alert-danger text-center mb-4">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
-        </div>
-    @endif
-    @if(session('success'))
-        <div class="alert alert-success text-center mb-4">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-        </div>
-    @endif
-
-    {{-- ===== ĐĂNG NHẬP KHÁCH HÀNG (Mặc định) ===== --}}
+<div class="sana-auth-card">
     <div id="customer-card">
-        <form action="{{ route('login') }}" method="POST" autocomplete="on" novalidate>
+        <header class="sana-heading auth-intro">
+            <h1 class="sana-heading__title">Welcome to Royal Hotel</h1>
+        </header>
+
+        @if(session('success'))
+            <p class="auth-form-status" role="status" style="margin-bottom: 16px; padding: 10px 18px; border-radius: 999px; background: rgba(34,197,94,0.1); color: #166534; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-check-circle" aria-hidden="true"></i><span>{{ session('success') }}</span>
+            </p>
+        @endif
+
+        <form action="{{ route('login') }}" method="POST" autocomplete="on" novalidate data-inline-validation>
             @csrf
             <input type="hidden" name="role" value="customer">
-            
-            <div class="mb-4 text-start">
-                <label for="email" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Email</label>
-                <input
-                    type="email"
-                    class="form-control"
-                    id="email"
-                    name="email"
-                    placeholder="Nhập email của bạn..."
-                    required
-                    value="{{ old('email') }}"
-                    autocomplete="email"
-                    inputmode="email"
-                    style="padding-left: 15px;"
-                >
+
+            {{-- Google OAuth Button --}}
+            <a class="sana-social-btn" href="{{ route('auth.google') }}" data-no-transition>
+                <svg viewBox="0 0 18 18" aria-hidden="true">
+                    <path fill="#4285F4" d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.797 2.716v2.259h2.909c1.702-1.567 2.684-3.875 2.684-6.615Z"/>
+                    <path fill="#34A853" d="M9 18c2.43 0 4.468-.806 5.956-2.18l-2.909-2.259c-.806.54-1.835.859-3.047.859-2.344 0-4.328-1.585-5.037-3.714H.956v2.332A9 9 0 0 0 9 18Z"/>
+                    <path fill="#FBBC05" d="M3.963 10.706A5.41 5.41 0 0 1 3.682 9c0-.592.102-1.168.281-1.706V4.962H.956A9 9 0 0 0 0 9c0 1.452.347 2.827.956 4.038l3.007-2.332Z"/>
+                    <path fill="#EA4335" d="M9 3.58c1.321 0 2.507.454 3.441 1.346l2.581-2.581C13.464.892 11.426 0 9 0A9 9 0 0 0 .956 4.962l3.007 2.332C4.672 5.165 6.656 3.58 9 3.58Z"/>
+                </svg>
+                <span>Continue with Google</span>
+            </a>
+
+            <div class="sana-divider"><span>or</span></div>
+
+            {{-- Email Input (Full Pill) --}}
+            <div class="sana-form-group">
+                <input type="email"
+                       class="sana-input @if($errors->has('email') || session('error')) is-invalid @endif"
+                       id="email"
+                       name="email"
+                       placeholder="janesmith1.mobbin@gmail.com"
+                       required
+                       value="{{ old('email', request()->cookie('royal_remembered_email')) }}"
+                       autocomplete="username"
+                       inputmode="email"
+                       data-validate
+                       data-required-message="Vui lòng nhập email."
+                       data-type-message="Email chưa đúng định dạng."
+                       aria-describedby="email-error">
+                <p class="field-error" id="email-error" data-error-for="email">
+                    @if ($errors->has('email'))
+                        <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $errors->first('email') }}
+                    @elseif (session('error'))
+                        <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ session('error') }}
+                    @endif
+                </p>
             </div>
-            
-            <div class="mb-4 text-start">
-                <label for="password" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Mật khẩu</label>
-                <div class="password-wrapper">
-                    <input
-                        type="password"
-                        class="form-control"
-                        id="password"
-                        name="password"
-                        placeholder="Nhập mật khẩu..."
-                        required
-                        autocomplete="current-password"
-                        style="padding-left: 15px;"
-                    >
-                    <button type="button" class="toggle-password" aria-label="Hiện/Ẩn mật khẩu">
-                        <i class="bi bi-eye"></i>
+
+            {{-- Password Input (Full Pill with Toggle) --}}
+            <div class="sana-form-group">
+                <div class="sana-password-wrap">
+                    <input type="password"
+                           class="sana-input @error('password') is-invalid @enderror"
+                           id="password"
+                           name="password"
+                           placeholder="Enter your password"
+                           required
+                           autocomplete="current-password"
+                           data-validate
+                           data-required-message="Vui lòng nhập mật khẩu."
+                           aria-describedby="password-error">
+                    <button type="button" class="sana-password-toggle" aria-label="Hiện mật khẩu">
+                        <i class="bi bi-eye" aria-hidden="true"></i>
                     </button>
                 </div>
-                <div class="text-end mt-2">
-                    <a href="{{ route('password.forgot') }}" style="font-size: 0.85rem; color: #64748b;">Quên mật khẩu?</a>
-                </div>
+                <p class="field-error" id="password-error" data-error-for="password">
+                    @error('password')<i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}@enderror
+                </p>
             </div>
 
-            <div class="d-grid mb-3">
-                <button type="submit" class="btn btn-primary">Đăng Nhập</button>
+            {{-- Options: Remember & Forgot --}}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 12px 18px; font-size: 13px; color: #71717a;">
+                <label style="display: flex; align-items: center; gap: 7px; cursor: pointer;">
+                    <input type="checkbox" name="remember" value="1" @checked(old('remember', true)) style="accent-color: #000000; border-radius: 4px;">
+                    <span>Duy trì đăng nhập</span>
+                </label>
+                <a href="{{ route('password.forgot') }}" style="color: #52525b; text-decoration: underline;">Quên mật khẩu?</a>
             </div>
 
-            <div class="divider">HOẶC</div>
+            {{-- Submit Button --}}
+            <button type="submit" class="sana-submit-btn">Continue</button>
 
-            <div class="text-center">
-                Chưa có tài khoản? <a href="{{ route('register') }}">Đăng ký ngay</a>
+            {{-- Terms / Fine Print --}}
+            <p class="sana-terms">
+                By signing in, you agree to the <a href="{{ route('contact') }}">Terms of Use</a>, <a href="{{ route('contact') }}">Privacy Notice</a>, and Cookie Policy.
+            </p>
+
+            <div class="sana-switch-link" style="margin-top: 14px;">
+                <span>Chưa có tài khoản?</span>
+                <a href="{{ route('register') }}">Đăng ký ngay</a>
             </div>
-            
-            <div class="text-center mt-3">
-                <a href="{{ route('home') }}" style="font-size: 0.85rem; color: #64748b; text-decoration: none;">
-                    <i class="bi bi-arrow-left"></i> Quay lại Trang chủ
-                </a>
+
+            <div class="sana-switch-link" style="margin-top: 8px;">
+                <span>Quản trị &amp; Nhân viên?</span>
+                <a href="{{ route('internalauth.login') }}">Đăng nhập hệ thống</a>
             </div>
         </form>
-        <!-- Link sang đăng nhập nhân viên -->
-        <p class="mt-4 text-center" style="font-size: 0.85rem; color: #64748b;">
-            Bạn là nhân viên khách sạn? <a href="#" id="show-staff-link" style="color: #b08d28; text-decoration: none; font-weight: 600;">Đăng nhập tại đây</a>
-        </p>
-    </div>
-
-    {{-- ===== ĐĂNG NHẬP NHÂN VIÊN (Ẩn mặc định) ===== --}}
-    <div id="staff-card" class="d-none">
-        <form action="{{ route('login') }}" method="POST" autocomplete="on" novalidate>
-            @csrf
-            <input type="hidden" name="role" value="staff">
-            
-            <div class="mb-4 text-start">
-                <label for="staff-username" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Tên đăng nhập (Username)</label>
-                <input
-                    type="text"
-                    class="form-control"
-                    id="staff-username"
-                    name="username"
-                    placeholder="Nhập tên đăng nhập nhân viên..."
-                    required
-                    value="{{ old('username') }}"
-                    autocomplete="username"
-                    style="padding-left: 15px;"
-                >
-            </div>
-            
-            <div class="mb-4 text-start">
-                <label for="staff-password" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Mật khẩu</label>
-                <div class="password-wrapper">
-                    <input
-                        type="password"
-                        class="form-control"
-                        id="staff-password"
-                        name="password"
-                        placeholder="Nhập mật khẩu..."
-                        required
-                        autocomplete="current-password"
-                        style="padding-left: 15px;"
-                    >
-                    <button type="button" class="toggle-password" aria-label="Hiện/Ẩn mật khẩu">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="d-grid mb-3">
-                <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #e9cd2e, #e87d0c); box-shadow: 0 4px 15px rgba(29, 78, 216, 0.3);">
-                    Đăng Nhập Hệ Thống
-                </button>
-            </div>
-
-            <div class="text-center mt-4">
-                <a href="{{ route('home') }}" style="font-size: 0.85rem; color: #64748b; text-decoration: none;">
-                    <i class="bi bi-arrow-left"></i> Quay lại Trang chủ
-                </a>
-            </div>
-        </form>
-        <!-- Link về đăng nhập khách hàng -->
-        <p class="mt-4 text-center" style="font-size: 0.85rem; color: #64748b;">
-            Bạn là khách đặt phòng? <a href="#" id="show-customer-link" style="color: #b08d28; text-decoration: none; font-weight: 600;">Đăng nhập khách hàng</a>
-        </p>
     </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const customerCard = document.getElementById('customer-card');
-        const staffCard    = document.getElementById('staff-card');
-        const showStaffLink = document.getElementById('show-staff-link');
-        const showCustomerLink = document.getElementById('show-customer-link');
-
-        // Khôi phục trạng thái form nếu có lỗi nhập liệu (cũ) của nhân viên hoặc khách hàng
-        const hasStaffError = "{{ old('username') }}" !== "";
-        if (hasStaffError) {
-            customerCard.classList.add('d-none');
-            staffCard.classList.remove('d-none');
-        }
-
-        showStaffLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            customerCard.classList.add('d-none');
-            staffCard.classList.remove('d-none');
-        });
-
-        showCustomerLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            staffCard.classList.add('d-none');
-            customerCard.classList.remove('d-none');
-        });
-    });
-</script>
 @endsection

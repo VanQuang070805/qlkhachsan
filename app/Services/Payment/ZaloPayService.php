@@ -20,12 +20,12 @@ class ZaloPayService
         $this->endpoint = (string) config('payment.zalopay.endpoint', 'https://sb-openapi.zalopay.vn/v2/create');
     }
 
-    public function createPaymentUrl(Booking $booking): string
+    public function createPaymentUrl(Booking $booking, ?int $amount = null, string $purpose = 'deposit'): string
     {
         $appTransId = date('ymd') . '_' . $booking->id . '_' . time();
         $appTime    = round(microtime(true) * 1000);
-        $amount = (int) $booking->deposit_amount;
-        $embedData  = json_encode(['booking_id' => $booking->id]);
+        $amount = $amount ?? (int) $booking->deposit_amount;
+        $embedData  = json_encode(['booking_id' => $booking->id, 'purpose' => $purpose]);
         $items      = json_encode([]);
         $description = "Khách sạn - Thanh toán đặt phòng #{$booking->id}";
         $appUser = 'hotel_' . ($booking->user_id ?? $booking->id);
@@ -35,7 +35,7 @@ class ZaloPayService
 
         $mac = hash_hmac('sha256', $data, $this->key1);
 
-        $response = Http::withoutVerifying()->post($this->endpoint, [
+        $response = Http::timeout(10)->retry(2, 250)->post($this->endpoint, [
             'app_id' => (int) $this->appId,
             'app_trans_id' => $appTransId,
             'app_user' => $appUser,
@@ -49,13 +49,16 @@ class ZaloPayService
             'mac'          => $mac,
         ]);
 
-        \Log::info('ZaloPay: ' . json_encode($response->json()));
         return $response->json('order_url') ?? route('payment.error', $booking->id);
     }
 
     public function verifyCallback(array $data): bool
     {
+        if ($this->key2 === '') {
+            return false;
+        }
+
         $mac = hash_hmac('sha256', $data['data'] ?? '', $this->key2);
-        return $mac === ($data['mac'] ?? '');
+        return hash_equals($mac, (string) ($data['mac'] ?? ''));
     }
 }

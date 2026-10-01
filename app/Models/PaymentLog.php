@@ -9,7 +9,7 @@ class PaymentLog extends Model
 {
     protected $fillable = [
         'booking_id', 'gateway', 'transaction_id',
-        'reference_code', 'amount', 'status', 'raw_response',
+        'reference_code', 'amount', 'purpose', 'status', 'raw_response',
     ];
 
     protected $casts = [

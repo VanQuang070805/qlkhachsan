@@ -1,48 +1,90 @@
 @extends('layouts.auth')
 
 @section('content')
-<div class="auth-card" data-aos="fade-up" data-aos-duration="1000">
-    <div class="hotel-brand">Royal Hotel</div>
-    <p class="subtitle">Xác Nhận Khôi Phục Mật Khẩu</p>
-    <p class="text-center mb-4" style="color: #475569;">Mã OTP đã được gửi đến email:<br><strong>{{ $email }}</strong></p>
+<div class="sana-auth-card">
+    <header class="sana-heading auth-intro" style="margin-bottom: 12px !important; text-align: center; align-items: center;">
+        <h1 class="sana-heading__title" style="text-align: center;">Khôi phục mật khẩu</h1>
+    </header>
 
-    @if(session('error'))
-        <div class="alert alert-danger text-center mb-4">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+    {{-- Email Pill (Centered) --}}
+    <div style="display: flex; justify-content: center; width: 100%;">
+        <div class="otp-badge">
+            <i class="bi bi-envelope" aria-hidden="true"></i>
+            <span>Mã đã gửi đến: <strong>{{ $email }}</strong></span>
         </div>
-    @endif
-    @if(session('success'))
-        <div class="alert alert-success text-center mb-4">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-        </div>
-    @endif
-
-    <form action="{{ route('password.verify-otp') }}" method="POST">
-        @csrf
-        <div class="mb-4 text-start">
-            <label for="code" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Nhập Mã OTP (6 chữ số)</label>
-            <input type="text" class="form-control" style="text-align: center; letter-spacing: 2px; font-weight: 600;" id="code" name="otp" required maxlength="6" placeholder="Ví dụ: 123456" autocomplete="off">
-        </div>
-        <div class="d-grid mb-4">
-            <button type="submit" class="btn btn-primary">Xác Nhận OTP</button>
-        </div>
-        
-        <div class="text-center">
-            <span class="text-muted" style="font-size: 0.9rem;">Không nhận được mã?</span><br>
-        </div>
-    </form>
-    
-    <div class="text-center">
-        <a href="{{ route('password.resend-otp') }}" class="btn btn-link p-0 text-decoration-none mt-1" style="color: #b08d28; font-weight: 500;">
-            Gửi lại mã OTP
-        </a>
     </div>
 
-    <div class="text-center mt-3">
-        <a href="{{ route('password.forgot') }}" style="font-size: 0.85rem; color: #64748b; text-decoration: none;">
-            <i class="bi bi-arrow-left"></i> Quay lại
+    @if(session('success'))
+        <div style="display: flex; justify-content: center; width: 100%;">
+            <div class="otp-status-toast is-success" role="status" style="margin-bottom: 14px; max-width: 360px; width: 100%;">
+                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                <span>{{ session('success') }}</span>
+            </div>
+        </div>
+    @endif
+
+    {{-- Toast feedback for AJAX resend --}}
+    <div id="otp-toast" class="otp-status-toast" style="display: none; max-width: 360px; margin-left: auto; margin-right: auto;" role="status"></div>
+
+    {{-- Main OTP Verification Form (Centered) --}}
+    <form action="{{ route('password.verify-otp') }}" method="POST" id="otp-form" novalidate style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+        @csrf
+        <input type="hidden" name="otp" id="otp-hidden" value="{{ old('otp') }}">
+
+        {{-- 6-Box Visual Grid (Moved higher up) --}}
+        <div class="otp-box-grid" id="otp-grid" role="group" aria-label="Mã OTP 6 chữ số">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="0" autocomplete="one-time-code" aria-label="Chữ số 1" autofocus>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="1" aria-label="Chữ số 2">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="2" aria-label="Chữ số 3">
+            <span class="otp-cell-separator" aria-hidden="true">&ndash;</span>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="3" aria-label="Chữ số 4">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="4" aria-label="Chữ số 5">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="5" aria-label="Chữ số 6">
+        </div>
+
+        @php
+            $initialError = null;
+            if (isset($errors) && $errors->has('otp')) {
+                $initialError = $errors->first('otp');
+            } elseif (session('error')) {
+                $initialError = session('error');
+            }
+        @endphp
+
+        {{-- Red Error Text: Only red text, centered under OTP boxes --}}
+        <div class="otp-error-text" id="otp-error" data-error-for="otp" role="alert" @if(!$initialError) data-empty="true" style="display: none !important;" @endif>
+            @if($initialError)
+                <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                <span>{{ $initialError }}</span>
+            @endif
+        </div>
+
+        {{-- Submit Button (Centered directly under OTP boxes) --}}
+        <button type="submit" class="sana-submit-btn otp-submit-btn" id="btn-submit-otp">
+            <i class="bi bi-shield-lock" aria-hidden="true"></i>
+            <span>Xác nhận mã OTP</span>
+        </button>
+    </form>
+
+    {{-- Resend OTP Section (Centered under OTP boxes) --}}
+    <div class="otp-action-row">
+        <span>Không nhận được mã?</span>
+        <button type="button" class="otp-resend-btn" id="btn-resend-otp">Gửi lại mã</button>
+        <span class="otp-countdown-text" id="otp-countdown" style="display: none;">(gửi lại sau <strong id="countdown-sec">60</strong>s)</span>
+    </div>
+
+    {{-- Hidden form for resend CSRF --}}
+    <form id="resend-form" action="{{ route('password.resend-otp') }}" method="POST" style="display: none;">
+        @csrf
+    </form>
+
+    {{-- Switch / Back Link (Centered under OTP boxes) --}}
+    <div class="sana-switch-link otp-switch-link">
+        <a href="{{ route('password.forgot') }}" style="display: inline-flex; align-items: center; gap: 6px;">
+            <i class="bi bi-arrow-left"></i> Quay lại nhập email
         </a>
     </div>
 </div>
 
+@include('auth.partials.otp-script', ['storageKey' => 'last_reset_otp_sent_time'])
 @endsection

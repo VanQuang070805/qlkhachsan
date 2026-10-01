@@ -24,14 +24,14 @@ class MoMoService
         $this->secretKey   = (string) config('payment.momo.secret_key', '');
         $this->endpoint    = (string) config('payment.momo.endpoint', 'https://payment.momo.vn/v2/gateway/api/create');
         $this->notifyUrl   = route('webhook.momo');
-        $this->returnUrl   = (string) config('payment.momo.return_url', route('payment.momo.return'));
+        $this->returnUrl   = (string) config('payment.momo.return_url', route('home'));
     }
 
-    public function createPaymentUrl(Booking $booking): string
+    public function createPaymentUrl(Booking $booking, ?int $amount = null, string $purpose = 'deposit'): string
     {
-        $orderId    = (string) $booking->id . '_' . time();
+        $orderId    = $booking->id . '_' . $purpose . '_' . time();
         $requestId  = $this->partnerCode . time();
-        $amount = (int) ($booking->deposit_amount > 0 ? $booking->deposit_amount : $booking->total_price);
+        $amount = $amount ?? (int) ($booking->deposit_amount > 0 ? $booking->deposit_amount : $booking->total_price);
         $orderInfo  = "Thanh toán đặt phòng #" . $booking->id;
         $requestType = 'payWithMethod';
         $extraData  = '';
@@ -49,7 +49,7 @@ class MoMoService
 
         $signature = hash_hmac('sha256', $rawHash, $this->secretKey);
 
-        $response = Http::withoutVerifying()->post($this->endpoint, [
+        $response = Http::timeout(10)->retry(2, 250)->post($this->endpoint, [
             'partnerCode' => $this->partnerCode,
             'partnerName' => 'Hotel',
             'storeId'     => 'HotelMain',
@@ -64,12 +64,19 @@ class MoMoService
             'requestType' => $requestType,
             'signature'   => $signature,
         ]);
-        \Log::info('MoMo: ' . json_encode($response->json()));
         return $response->json('payUrl') ?? route('payment.error', $booking->id);
     }
 
     public function verifySignature(array $data): bool
     {
+        if ($this->accessKey === '' || $this->secretKey === '') {
+            return false;
+        }
+
+        $required = ['amount','extraData','message','orderId','orderInfo','orderType','partnerCode','payType','requestId','responseTime','resultCode','transId','signature'];
+        foreach ($required as $key) {
+            if (!array_key_exists($key, $data)) return false;
+        }
         $received = $data['signature'] ?? '';
         $rawHash  = "accessKey={$this->accessKey}"
             . "&amount={$data['amount']}"
@@ -85,6 +92,6 @@ class MoMoService
             . "&resultCode={$data['resultCode']}"
             . "&transId={$data['transId']}";
 
-        return hash_hmac('sha256', $rawHash, $this->secretKey) === $received;
+        return hash_equals(hash_hmac('sha256', $rawHash, $this->secretKey), (string) $received);
     }
 }

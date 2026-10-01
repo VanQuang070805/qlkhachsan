@@ -43,12 +43,6 @@
                         @endif
                     </td>
                 </tr>
-                <tr style="border-top:1px solid #e5e7eb;">
-                    <td style="padding:8px 0; color:#6b7280;">Mật khẩu</td>
-                    <td style="padding:8px 0; color:#1e3a8a; font-weight:bold;">
-                        {{ isset($plainPassword) ? $plainPassword : '(không thay đổi)' }}
-                    </td>
-                </tr>
             </table>
         </div>
 

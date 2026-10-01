@@ -16,13 +16,22 @@ return new class extends Migration
             $table->index('guest_cccd', 'face_profiles_guest_cccd_index');
         });
 
-        DB::table('face_profiles')
-            ->join('bookings', 'bookings.id', '=', 'face_profiles.booking_id')
-            ->whereNull('face_profiles.guest_name')
-            ->update([
-                'face_profiles.guest_name' => DB::raw('bookings.customer_name'),
-                'face_profiles.guest_phone' => DB::raw('bookings.customer_phone'),
-            ]);
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement(<<<'SQL'
+                UPDATE face_profiles
+                   SET guest_name = (SELECT customer_name FROM bookings WHERE bookings.id = face_profiles.booking_id),
+                       guest_phone = (SELECT customer_phone FROM bookings WHERE bookings.id = face_profiles.booking_id)
+                 WHERE guest_name IS NULL
+            SQL);
+        } else {
+            DB::table('face_profiles')
+                ->join('bookings', 'bookings.id', '=', 'face_profiles.booking_id')
+                ->whereNull('face_profiles.guest_name')
+                ->update([
+                    'face_profiles.guest_name' => DB::raw('bookings.customer_name'),
+                    'face_profiles.guest_phone' => DB::raw('bookings.customer_phone'),
+                ]);
+        }
     }
 
     public function down(): void

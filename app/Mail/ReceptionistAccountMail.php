@@ -12,8 +12,7 @@ class ReceptionistAccountMail extends Mailable
 
     public function __construct(
         public string $fullname,
-        public string $username,
-        public string $plainPassword
+        public string $username
     ) {}
 
     public function build()

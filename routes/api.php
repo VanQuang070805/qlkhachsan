@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\IotRoomController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\IotRoomController;
 
 Route::post('/iot/rooms/{roomNumber}/cleaning-request', [IotRoomController::class, 'updateCleaningRequest'])
     ->name('iot.rooms.cleaning-request');

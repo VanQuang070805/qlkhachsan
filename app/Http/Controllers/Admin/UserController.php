@@ -3,19 +3,21 @@
 namespace App\Http\Controllers\Admin;
 use App\Mail\AccountLockedMail;
 use App\Http\Controllers\Controller;
-use App\Models\AdminUser;
+use App\Models\User;
 use App\Mail\ReceptionistAccountMail;
 use App\Mail\AccountUpdatedMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AdminUser::query();
+        $query = User::query();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -48,18 +50,16 @@ class UserController extends Controller
     {
         $request->validate([
             'username' => 'required|string|max:50|unique:users,username',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => ['required', 'confirmed', Password::min(10)->mixedCase()->numbers()],
             'fullname' => 'required|string|max:150',
             'email'    => 'required|email|max:150|unique:users,email',
             'phone'    => 'nullable|string|max:30',
             'role'     => 'required|in:receptionist,admin',
         ]);
 
-        $plainPassword = $request->password;
-
-        $user = AdminUser::create([
+        $user = User::create([
             'username' => $request->username,
-            'password' => Hash::make($plainPassword),
+            'password' => Hash::make($request->password),
             'fullname' => $request->fullname,
             'email'    => $request->email,
             'phone'    => $request->phone,
@@ -69,29 +69,27 @@ class UserController extends Controller
 
         // Gửi mail thông tin cho lễ tân
         if ($user->role === 'receptionist') {
-            Mail::to($user->email)->send(
-                new ReceptionistAccountMail(
-                    $user->fullname,
-                    $user->username,
-                    $plainPassword
-                )
-            );
+            try {
+                Mail::to($user->email)->send(new ReceptionistAccountMail($user->fullname, $user->username));
+            } catch (\Throwable $e) {
+                Log::warning('Internal account notification failed', ['user_id' => $user->id, 'exception' => get_class($e)]);
+            }
         }
 
         return redirect()->route('admin.users.index')
                          ->with('success', 'Tạo tài khoản thành công!');
     }
 
-    public function edit(AdminUser $user)
+    public function edit(User $user)
     {
         return view('admin.users.edit', compact('user'));
     }
 
-    public function update(Request $request, AdminUser $user)
+    public function update(Request $request, User $user)
     {
         $request->validate([
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:6|confirmed',
+            'password' => ['nullable', 'confirmed', Password::min(10)->mixedCase()->numbers()],
             'fullname' => 'required|string|max:150',
             'email'    => ['required', 'email', 'max:150', Rule::unique('users')->ignore($user->id)],
             'phone'    => 'nullable|string|max:30',
@@ -106,35 +104,45 @@ class UserController extends Controller
             'role'     => $request->role,
         ];
 
-        // Lưu password gốc nếu có đổi
-        $plainPassword = null;
+        if ($user->role === 'admin' && $user->verified && $request->role !== 'admin'
+            && User::where('role', 'admin')->where('verified', true)->count() <= 1) {
+            return back()->withInput()->with('error', 'Không thể hạ quyền quản trị viên hoạt động cuối cùng.');
+        }
+
+        $credentialsChanged = !empty($request->password) || $request->role !== $user->role;
         if (!empty($request->password)) {
-            $plainPassword    = $request->password;
-            $data['password'] = Hash::make($plainPassword);
+            $data['password'] = Hash::make($request->password);
         }
 
         $user->update($data);
+        if ($credentialsChanged) {
+            app(\App\Services\SessionRevocationService::class)->revoke($user);
+        }
 
-        // Gửi mail toàn bộ thông tin sau khi sửa
-        Mail::to($user->email)->send(
-            new AccountUpdatedMail(
+        try {
+            Mail::to($user->email)->send(new AccountUpdatedMail(
                 $user->fullname,
                 $user->username,
                 $user->email,
                 $user->phone,
-                $user->role,
-                $plainPassword  // null nếu không đổi mật khẩu
-            )
-        );
+                $user->role
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Account update notification failed', ['user_id' => $user->id, 'exception' => get_class($e)]);
+        }
 
         return redirect()->route('admin.users.index')
                          ->with('success', 'Cập nhật tài khoản thành công!');
     }
 
-    public function destroy(AdminUser $user)
+    public function destroy(User $user)
     {
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Không thể xóa tài khoản đang đăng nhập!');
+        }
+
+        if ($user->role === 'admin' && $user->verified && User::where('role', 'admin')->where('verified', true)->count() <= 1) {
+            return back()->with('error', 'Không thể xóa quản trị viên hoạt động cuối cùng.');
         }
 
         // Kiểm tra xem khách hàng có lịch đặt phòng chưa hoàn thành không (pending, confirmed, checked_in)
@@ -152,7 +160,7 @@ class UserController extends Controller
                          ->with('success', 'Xóa tài khoản thành công!');
     }
 
-    public function toggleVerified(AdminUser $user)
+    public function toggleVerified(User $user)
 {
     if ($user->id === auth()->id()) {
         return response()->json([
@@ -161,16 +169,21 @@ class UserController extends Controller
         ]);
     }
 
+    if ($user->role === 'admin' && $user->verified && User::where('role', 'admin')->where('verified', true)->count() <= 1) {
+        return response()->json(['success' => false, 'message' => 'Không thể khóa quản trị viên hoạt động cuối cùng.'], 409);
+    }
+
     // Toggle trạng thái
     $user->update(['verified' => !$user->verified]);
+    if (!$user->verified) {
+        app(\App\Services\SessionRevocationService::class)->revoke($user);
+    }
 
-    // Gửi mail thông báo
-    Mail::to($user->email)->send(
-        new AccountLockedMail(
-            $user->fullname,
-            !$user->verified  // true = vừa bị khóa, false = vừa được mở
-        )
-    );
+    try {
+        Mail::to($user->email)->send(new AccountLockedMail($user->fullname, !$user->verified));
+    } catch (\Throwable $e) {
+        Log::warning('Account status notification failed', ['user_id' => $user->id, 'exception' => get_class($e)]);
+    }
 
     return response()->json([
         'success'  => true,

@@ -15,8 +15,7 @@ class AccountUpdatedMail extends Mailable
         public string  $username,
         public string  $email,
         public ?string $phone,
-        public string  $role,
-        public ?string $plainPassword = null  // null nếu không đổi mật khẩu
+        public string  $role
     ) {}
 
     public function build()

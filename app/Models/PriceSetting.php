@@ -28,20 +28,8 @@ class PriceSetting extends Model
     public function checkOverlap(string $startDate, string $endDate, ?int $excludeId = null): bool
     {
         $query = self::where('status', 1)
-            ->where(function ($q) use ($startDate, $endDate) {
-                $q->where(function ($sub) use ($startDate) {
-                    $sub->where('start_date', '<=', $startDate)
-                        ->where('end_date', '>=', $startDate);
-                })
-                ->orWhere(function ($sub) use ($endDate) {
-                    $sub->where('start_date', '<=', $endDate)
-                        ->where('end_date', '>=', $endDate);
-                })
-                ->orWhere(function ($sub) use ($startDate, $endDate) {
-                    $sub->where('start_date', '>=', $startDate)
-                        ->where('end_date', '<=', $endDate);
-                });
-            });
+            ->where('start_date', '<=', $endDate)
+            ->where('end_date', '>=', $startDate);
 
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
@@ -55,7 +43,7 @@ class PriceSetting extends Model
      */
     public static function calculateTotalPrice(float $basePrice, string $checkIn, string $checkOut): float
     {
-        $priceSettings = self::where('status', 1)->get();
+        $priceSettings = self::where('status', 1)->orderBy('start_date')->orderBy('id')->get();
         $totalPrice = 0;
         
         $startDate = new \DateTime($checkIn);

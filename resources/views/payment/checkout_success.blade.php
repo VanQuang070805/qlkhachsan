@@ -22,8 +22,8 @@
                 <div>
                     <div class="fw-bold">Thanh toán đã được ghi nhận</div>
                     <div class="text-muted" style="font-size:0.875rem;">
-                        Tổng tiền <strong>{{ number_format($booking->total_price, 0, ',', '.') }} ₫</strong> đã thanh toán đầy đủ.
-                        Phòng đã chuyển sang trạng thái cần dọn dẹp.
+                        Tổng tiền <strong>{{ number_format($booking->total_price, 0, ',', '.') }} đ</strong> đã thanh toán đầy đủ.
+                        Phòng đang chuyển sang trạng thái dọn dẹp.
                     </div>
                 </div>
             </div>
@@ -57,19 +57,19 @@
                 <div style="margin-top:12px;background:#fff;border-radius:8px;padding:14px;border:1px solid #e9ecef;">
                     <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px;">
                         <span style="color:#6c757d;">Tổng tiền phòng</span>
-                        <span>{{ number_format($booking->total_price, 0, ',', '.') }} ₫</span>
+                        <span>{{ number_format($booking->total_price, 0, ',', '.') }} đ</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px;">
                         <span style="color:#28a745;">Đặt cọc trước</span>
-                        <span style="color:#28a745;">{{ number_format($booking->deposit_amount ?? 0, 0, ',', '.') }} ₫</span>
+                        <span style="color:#28a745;">{{ number_format($booking->deposit_amount ?? 0, 0, ',', '.') }} đ</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:8px;">
                         <span style="color:#28a745;">Thanh toán khi trả phòng</span>
-                        <span style="color:#28a745;">{{ number_format($booking->total_price - ($booking->deposit_amount ?? 0), 0, ',', '.') }} ₫</span>
+                        <span style="color:#28a745;">{{ number_format($booking->total_price - ($booking->deposit_amount ?? 0), 0, ',', '.') }} đ</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:800;border-top:2px solid #28a745;padding-top:8px;margin-top:4px;">
                         <span class="text-success">Đã thanh toán đủ</span>
-                        <span class="text-success">{{ number_format($booking->total_price, 0, ',', '.') }} ₫</span>
+                        <span class="text-success">{{ number_format($booking->total_price, 0, ',', '.') }} đ</span>
                     </div>
                 </div>
             </div>
@@ -77,7 +77,7 @@
             {{-- Trạng thái phòng --}}
             <div class="alert alert-info d-flex align-items-center gap-2 mb-4" style="border-radius:10px;font-size:.875rem;">
                 <i class="fa-solid fa-broom text-info"></i>
-                <span>Phòng {{ $booking->rooms->map(fn($r) => $r->room_number)->join(', ') }} đã chuyển sang trạng thái <strong>cần dọn dẹp</strong>.</span>
+                <span>Phòng {{ $booking->rooms->map(fn($r) => $r->room_number)->join(', ') }} đã chuyển sang trạng thái <strong>đang dọn dẹp</strong>.</span>
             </div>
 
             <a href="{{ route('staff.bookings') }}" class="btn btn-primary w-100" style="border-radius:10px;padding:12px;font-weight:700;font-size:1rem;">

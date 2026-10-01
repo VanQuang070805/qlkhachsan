@@ -19,13 +19,14 @@ class VNPayService
         $this->returnUrl  = route('webhook.vnpay.return');
     }
 
-    public function createPaymentUrl(Booking $booking): string
+    public function createPaymentUrl(Booking $booking, ?int $amount = null, string $purpose = 'deposit'): string
     {
+        $amount = $amount ?? (int) $booking->deposit_amount;
         $params = [
             'vnp_Version'    => '2.1.0',
             'vnp_Command'    => 'pay',
             'vnp_TmnCode'    => $this->tmnCode,
-            'vnp_Amount' => (int) ($booking->deposit_amount * 100),
+            'vnp_Amount' => $amount * 100,
             'vnp_CreateDate' => now()->format('YmdHis'),
             'vnp_CurrCode'   => 'VND',
             'vnp_IpAddr'     => request()->ip(),
@@ -33,7 +34,7 @@ class VNPayService
             'vnp_OrderInfo'  => "Thanh toan dat phong {$booking->id}",
             'vnp_OrderType'  => 'other',
             'vnp_ReturnUrl'  => $this->returnUrl,
-            'vnp_TxnRef' => (string) $booking->id,
+            'vnp_TxnRef' => $booking->id . '_' . $purpose . '_' . time(),
         ];
 
         ksort($params);
@@ -45,10 +46,14 @@ class VNPayService
 
     public function verifySecureHash(array $data): bool
     {
+        if ($this->hashSecret === '') {
+            return false;
+        }
+
         $received = $data['vnp_SecureHash'] ?? '';
         unset($data['vnp_SecureHash'], $data['vnp_SecureHashType']);
         ksort($data);
         $query = http_build_query($data);
-        return hash_hmac('sha512', $query, $this->hashSecret) === $received;
+        return hash_equals(hash_hmac('sha512', $query, $this->hashSecret), (string) $received);
     }
 }

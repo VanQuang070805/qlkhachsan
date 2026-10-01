@@ -73,16 +73,16 @@ class IotPageTest extends TestCase
         });
     }
 
-    public function test_guests_are_redirected_to_login(): void
+    public function test_guests_are_redirected_to_internal_login(): void
     {
-        $this->get('/staff/iot')->assertRedirect('/login');
+        $this->get('/staff/iot')->assertRedirect('/internalauth/login');
     }
 
-    public function test_customer_cannot_open_iot_tools(): void
+    public function test_customer_is_redirected_to_internal_login_for_iot_tools(): void
     {
         DB::table('users')->insert(['id' => 1, 'role' => 'customer']);
         $this->withSession(['user_id' => 1, 'auth_user_id' => 1])
-            ->get('/staff/iot')->assertForbidden();
+            ->get('/staff/iot')->assertRedirect('/internalauth/login');
     }
 
     public function test_receptionist_can_open_face_id_tools(): void
@@ -97,7 +97,7 @@ class IotPageTest extends TestCase
     {
         DB::table('users')->insert(['id' => 1, 'role' => 'receptionist', 'verified' => false]);
         $this->withSession(['user_id' => 1, 'auth_user_id' => 1])
-            ->get('/staff/iot')->assertRedirect('/login');
+            ->get('/staff/iot')->assertRedirect('/internalauth/login');
     }
 
     public function test_pi_camera_module_is_shown_without_an_external_stream_link(): void

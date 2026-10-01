@@ -1,35 +1,39 @@
 @extends('layouts.auth')
 
 @section('content')
-<div class="auth-card" data-aos="fade-up" data-aos-duration="1000">
-    <div class="hotel-brand">Royal Hotel</div>
-    <p class="subtitle">Khôi phục mật khẩu tài khoản</p>
+<div class="sana-auth-card">
+    <header class="sana-heading">
+        <h1 class="sana-heading__title">Reset your password</h1>
+        <p class="sana-heading__sub">Enter your email to receive recovery instructions</p>
+    </header>
+
+    @include('auth.partials.form-status')
 
     <form action="{{ route('password.forgot') }}" method="POST" autocomplete="on" novalidate>
-    @csrf
-        <div class="mb-4 text-start">
-            <label for="email" class="form-label" style="font-weight: 600; color: #1e293b; font-size: 0.9rem; margin-bottom: 8px;">Email của bạn</label>
+        @csrf
+        <div class="sana-form-group">
             <input
                 type="email"
-                class="form-control"
+                class="sana-input @error('email') is-invalid @enderror"
                 id="email"
                 name="email"
-                placeholder="Nhập email đã đăng ký..."
+                placeholder="you@example.com"
                 required
                 autocomplete="email"
                 inputmode="email"
-                style="padding-left: 15px;"
+                value="{{ old('email') }}"
             >
+            <p class="field-error" id="email-error" data-error-for="email">
+                @error('email')<i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}@enderror
+            </p>
         </div>
         
-        <div class="d-grid mb-4">
-            <button type="submit" class="btn btn-primary">Gửi Yêu Cầu Đặt Lại</button>
-        </div>
+        <button type="submit" class="sana-submit-btn">Gửi yêu cầu đặt lại</button>
         
-        <div class="text-center">
-            <a href="{{ route('login') }}" style="color: #b08d28; font-weight: 600; text-decoration: none;">Quay lại Đăng Nhập</a>
+        <div class="sana-switch-link" style="margin-top: 20px;">
+            <span>Nhớ lại mật khẩu?</span>
+            <a href="{{ route('login') }}">Quay lại đăng nhập</a>
         </div>
     </form>
 </div>
-
 @endsection

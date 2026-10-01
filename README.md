@@ -1,25 +1,22 @@
-# Royal Hotel — Web máy tính & IoT Raspberry Pi
+# Royal Hotel — Website vận hành, Face ID và Raspberry Pi
 
-Hệ thống dùng webcam máy lễ tân để đăng ký Face ID và Raspberry Pi Camera Module
-Rev 1.3 để nhận diện tại chỗ trên Pi.
+Bản này kết hợp UI/UX Royal Hotel với luồng đặt phòng, thanh toán, Google OAuth,
+chatbot và báo cáo; đồng thời giữ hệ thống Face ID, Raspberry Pi Camera Module,
+servo khóa cửa và công tắc yêu cầu dọn phòng 501.
 
-| Thiết bị | Mã nguồn | Cách chạy |
+| Thành phần | Thư mục | Vai trò |
 |---|---|---|
-| Laptop lễ tân | Laravel ở thư mục gốc (`app`, `resources`, `routes`, `database`) | Chạy `serve82.bat` để tự bật MySQL, Face ID, scheduler và web |
-| Raspberry Pi 4 | `raspberry-pi/` để test camera; `face_recognition/pi/` cho dịch vụ nhận diện | `python main.py` hoặc `python run_recognition.py` |
-| Camera Module Rev 1.3 | Cắm cáp CSI trực tiếp vào Pi | Picamera2, mặc định 640x480 @ 15 FPS |
+| Web Laravel | `app/`, `resources/`, `routes/`, `database/` | Khách hàng, lễ tân, admin và API IoT |
+| Dịch vụ Face ID máy lễ tân | `face_recognition/pc/` | Đăng ký và kiểm tra khuôn mặt |
+| Nhận diện trên Pi | `face_recognition/pi/` | Cache Face ID, camera CSI và servo cửa |
+| Thiết bị phòng | `raspberry-pi/` | Camera và công tắc dọn phòng |
 
-- [Hướng dẫn test trên máy tính](docs/TEST-PC.md)
-- [Lệnh cài và test từng bước trên Pi](docs/TEST-PI.md)
-- [Các file đã sửa và kết quả kiểm thử](docs/CHANGES-IOT.md)
-
-Web local: http://localhost:8000/internalauth/login → **Test khuôn mặt đã đăng ký**. Tài khoản mẫu `reception`, mật khẩu riêng trong `storage/app/private/local-demo-access.txt` của máy đã thiết lập. Khi thêm, sửa, xóa Face ID hoặc trả phòng 501, Laravel gửi thay đổi sang Pi ngay; scheduler do `serve82.bat` bật sẽ tự retry nếu Pi tạm mất mạng.
-
-Kiến trúc đích: laptop đăng ký khách và đồng bộ dữ liệu/quyền → Pi lưu SQLite, tự nhận diện và kiểm tra quyền phòng/thời hạn → GPIO relay. Pi không nhận lệnh OPEN_DOOR từ laptop trong luồng thông thường.
+Thiết lập web bằng `composer install`, `npm install`, `php artisan migrate` và `npm run build`.
+Các biến `FACE_*` và `IOT_*` cần được cấu hình theo `.env.example`.
+Xem thêm [Face ID](docs/FACE-ID-TEST.md), [test PC](docs/TEST-PC.md),
+[test Pi](docs/TEST-PI.md) và [công tắc dọn phòng](docs/CLEANING-SWITCH.md).
 
 ---
-
-Tài liệu framework gốc:
 
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
