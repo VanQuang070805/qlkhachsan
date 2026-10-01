@@ -1111,6 +1111,10 @@
         .catch(error => console.error('Silent board refresh failed:', error));
     }
 
+    window.addEventListener('cleaning-notifications-updated', () => {
+        refreshReceptionBoard({ reselectCurrentRoom: true });
+    });
+
     function toggleMultiSelectMode() {
         const toggle = document.getElementById('multi-select-toggle');
         isMultiSelectMode = toggle.checked;
