@@ -26,13 +26,14 @@ class Clock:
         return self.value
 
 
-def test_unlock_turns_90_degrees_then_returns_and_detaches():
+def test_unlock_turns_180_degrees_then_returns_and_detaches():
     device = FakeServo()
     clock = Clock()
     servo = DoorServo(
         pin=18,
         closed_angle=0,
-        open_angle=90,
+        open_angle=180,
+        move_seconds=0,
         hold_seconds=0,
         cooldown_seconds=8,
         min_pulse_width=0.0005,
@@ -46,7 +47,7 @@ def test_unlock_turns_90_degrees_then_returns_and_detaches():
     assert servo.unlock() is True
     servo.thread.join(timeout=1)
 
-    assert device.angles[:4] == [0, 90, 0, None]
+    assert device.angles[:5] == [0, 180, None, 0, None]
     servo.close()
     assert device.closed is True
 
@@ -57,7 +58,8 @@ def test_unlock_respects_cooldown():
     servo = DoorServo(
         pin=18,
         closed_angle=0,
-        open_angle=90,
+        open_angle=180,
+        move_seconds=0,
         hold_seconds=0,
         cooldown_seconds=8,
         min_pulse_width=0.0005,
@@ -75,3 +77,27 @@ def test_unlock_respects_cooldown():
     assert servo.unlock() is True
     servo.thread.join(timeout=1)
     servo.close()
+
+
+def test_sweeps_smoothly_and_detaches_pwm_while_door_stays_open():
+    device = FakeServo()
+    sleeps = []
+    servo = DoorServo(
+        pin=18,
+        closed_angle=0,
+        open_angle=180,
+        move_seconds=0.06,
+        hold_seconds=3,
+        cooldown_seconds=8,
+        min_pulse_width=0.0005,
+        max_pulse_width=0.0025,
+        detach_after_move=True,
+        device=device,
+        sleep=sleeps.append,
+    )
+
+    assert servo.unlock() is True
+    servo.thread.join(timeout=1)
+
+    assert device.angles[:9] == [0, 60, 120, 180, None, 120, 60, 0, None]
+    assert sleeps[:7] == [0.02, 0.02, 0.02, 3, 0.02, 0.02, 0.02]

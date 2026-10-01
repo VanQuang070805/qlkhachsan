@@ -40,7 +40,8 @@ class PiConfig:
     servo_enabled: bool = False
     servo_gpio_pin: int = 18
     servo_closed_angle: float = 0.0
-    servo_open_angle: float = 90.0
+    servo_open_angle: float = 180.0
+    servo_move_seconds: float = 1.2
     servo_hold_seconds: float = 3.0
     servo_cooldown_seconds: float = 8.0
     servo_min_pulse_width: float = 0.0005
@@ -72,7 +73,8 @@ class PiConfig:
             servo_enabled=os.getenv("SERVO_ENABLED", "false").lower() in {"1", "true", "yes"},
             servo_gpio_pin=int(os.getenv("SERVO_GPIO_PIN", "18")),
             servo_closed_angle=float(os.getenv("SERVO_CLOSED_ANGLE", "0")),
-            servo_open_angle=float(os.getenv("SERVO_OPEN_ANGLE", "90")),
+            servo_open_angle=float(os.getenv("SERVO_OPEN_ANGLE", "180")),
+            servo_move_seconds=float(os.getenv("SERVO_MOVE_SECONDS", "1.2")),
             servo_hold_seconds=float(os.getenv("SERVO_HOLD_SECONDS", "3")),
             servo_cooldown_seconds=float(os.getenv("SERVO_COOLDOWN_SECONDS", "8")),
             servo_min_pulse_width=float(os.getenv("SERVO_MIN_PULSE_WIDTH", "0.0005")),
@@ -103,10 +105,12 @@ class PiConfig:
             raise ValueError("Invalid camera reconnect interval")
         if not 2 <= self.servo_gpio_pin <= 27:
             raise ValueError("SERVO_GPIO_PIN must be a valid BCM GPIO number")
-        if not -90 <= self.servo_closed_angle <= 90 or not -90 <= self.servo_open_angle <= 90:
-            raise ValueError("Servo angles must be between -90 and 90 degrees")
+        if not 0 <= self.servo_closed_angle <= 180 or not 0 <= self.servo_open_angle <= 180:
+            raise ValueError("Servo angles must be between 0 and 180 degrees")
         if self.servo_closed_angle == self.servo_open_angle:
             raise ValueError("Servo open and closed angles must be different")
+        if not 0.1 <= self.servo_move_seconds <= 10:
+            raise ValueError("SERVO_MOVE_SECONDS must be between 0.1 and 10 seconds")
         if not 0.1 <= self.servo_hold_seconds <= 60:
             raise ValueError("SERVO_HOLD_SECONDS must be between 0.1 and 60")
         if not 0 <= self.servo_cooldown_seconds <= 300:

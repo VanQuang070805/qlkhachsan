@@ -15,6 +15,7 @@ class DoorServo:
         pin: int,
         closed_angle: float,
         open_angle: float,
+        move_seconds: float,
         hold_seconds: float,
         cooldown_seconds: float,
         min_pulse_width: float,
@@ -26,6 +27,7 @@ class DoorServo:
     ) -> None:
         self.closed_angle = closed_angle
         self.open_angle = open_angle
+        self.move_seconds = move_seconds
         self.hold_seconds = hold_seconds
         self.cooldown_seconds = cooldown_seconds
         self.detach_after_move = detach_after_move
@@ -44,13 +46,14 @@ class DoorServo:
                 ) from error
             device = AngularServo(
                 pin,
-                min_angle=-90,
-                max_angle=90,
+                min_angle=0,
+                max_angle=180,
                 min_pulse_width=min_pulse_width,
                 max_pulse_width=max_pulse_width,
             )
         self.device = device
         self.device.angle = self.closed_angle
+        self.current_angle = self.closed_angle
 
     def unlock(self) -> bool:
         with self.lock:
@@ -71,9 +74,13 @@ class DoorServo:
     def _open_then_close(self) -> None:
         try:
             LOGGER.info("Door servo opening to %.1f degrees", self.open_angle)
-            self.device.angle = self.open_angle
+            self._move_smoothly(self.open_angle)
+            if self.detach_after_move:
+                # Stop PWM while holding the open position. This avoids the
+                # servo hunting around the target angle under CPU load.
+                self.device.angle = None
             self.sleep(self.hold_seconds)
-            self.device.angle = self.closed_angle
+            self._move_smoothly(self.closed_angle)
             LOGGER.info("Door servo returned to %.1f degrees", self.closed_angle)
             if self.detach_after_move:
                 self.sleep(0.4)
@@ -81,12 +88,29 @@ class DoorServo:
         except Exception:
             LOGGER.exception("Door servo movement failed")
 
+    def _move_smoothly(self, target_angle: float) -> None:
+        start_angle = self.current_angle
+        if target_angle == start_angle:
+            self.device.angle = target_angle
+            return
+
+        # Servo control pulses repeat every ~20 ms. Updating once per pulse
+        # produces a smooth sweep without flooding the GPIO backend.
+        steps = max(1, round(self.move_seconds / 0.02))
+        delay = self.move_seconds / steps
+        distance = target_angle - start_angle
+        for step in range(1, steps + 1):
+            angle = start_angle + distance * step / steps
+            self.device.angle = angle
+            self.current_angle = angle
+            self.sleep(delay)
+
     def close(self) -> None:
         thread = self.thread
         if thread and thread.is_alive():
-            thread.join(timeout=self.hold_seconds + 2)
+            thread.join(timeout=self.hold_seconds + self.move_seconds * 2 + 2)
         try:
-            self.device.angle = self.closed_angle
+            self._move_smoothly(self.closed_angle)
             self.sleep(0.4)
             if self.detach_after_move:
                 self.device.angle = None

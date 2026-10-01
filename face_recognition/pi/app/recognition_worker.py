@@ -50,6 +50,7 @@ class RecognitionWorker:
                     pin=self.config.servo_gpio_pin,
                     closed_angle=self.config.servo_closed_angle,
                     open_angle=self.config.servo_open_angle,
+                    move_seconds=self.config.servo_move_seconds,
                     hold_seconds=self.config.servo_hold_seconds,
                     cooldown_seconds=self.config.servo_cooldown_seconds,
                     min_pulse_width=self.config.servo_min_pulse_width,
@@ -95,14 +96,22 @@ class RecognitionWorker:
                         if matched:
                             result = f"{matched.customer_id}|{matched.name}|{matched.room}"
                             last_label = f"MATCH: {matched.name} | Room {matched.room}"
+                            # Ask the servo to open on every successful match.
+                            # DoorServo rejects requests while it is moving or
+                            # inside its cooldown, preventing overlapping moves
+                            # and GPIO jitter while keeping recognition active.
+                            if servo and servo.unlock():
+                                LOGGER.info(
+                                    "Door unlock triggered for customer_id=%s",
+                                    matched.customer_id,
+                                )
+
                     if result != last_result:
                         if result == "UNKNOWN":
                             LOGGER.info("Recognition: UNKNOWN similarity=%.3f", last_score)
                         else:
                             customer_id, name, room = result.split("|", 2)
                             LOGGER.info("Recognition: customer_id=%s name=%s room=%s similarity=%.3f", customer_id, name, room, last_score)
-                            if servo and servo.unlock():
-                                LOGGER.info("Door unlock triggered for customer_id=%s", customer_id)
                         last_result = result
 
                 if preview_enabled:
