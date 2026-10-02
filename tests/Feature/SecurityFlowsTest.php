@@ -351,6 +351,29 @@ class SecurityFlowsTest extends TestCase
         $this->assertSame(1000000.0, (float) $rooms->firstWhere('room_number', 'OPS-2')['active_total_price']);
     }
 
+    public function test_staff_room_board_marks_cleaning_requests_and_refreshes_after_notification(): void
+    {
+        $type = RoomType::create([
+            'type_name' => 'Cleaning request', 'price' => 250000,
+            'max_adults' => 2, 'max_children' => 1, 'max_guests' => 3,
+        ]);
+        \App\Models\Room::create([
+            'room_number' => 'OPS-CLEAN', 'room_type_id' => $type->id,
+            'floor' => 1, 'status' => 'occupied',
+            'needs_cleaning' => true, 'cleaning_requested_at' => now(),
+        ]);
+
+        $admin = $this->staff('cleaning-board@example.com', 'admin');
+        $response = $this->asStaff($admin)->get(route('staff.bookings'))->assertOk();
+        $html = $response->getContent();
+        preg_match_all('/data-room="([^"]+)"/', $html, $matches);
+        $rooms = collect($matches[1])->map(fn (string $json) => json_decode(html_entity_decode($json, ENT_QUOTES | ENT_HTML5), true));
+
+        $this->assertSame('cleaning', $rooms->firstWhere('room_number', 'OPS-CLEAN')['ui_status']);
+        $response->assertSee('data-status="cleaning"', false)
+            ->assertSee("window.addEventListener('cleaning-notifications-updated'", false);
+    }
+
     public function test_direct_payment_route_enforces_booking_ownership(): void
     {
         $owner = $this->customer('direct-owner@example.com');

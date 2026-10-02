@@ -340,6 +340,15 @@
         box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2) !important;
         transform: translateY(-2px);
     }
+    .room-card[data-status="cleaning"] {
+        background: #fffbeb;
+        border-color: rgba(245, 158, 11, 0.55);
+        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.14);
+    }
+    .room-card[data-status="cleaning"]:hover {
+        border-color: #f59e0b;
+        box-shadow: 0 10px 26px rgba(245, 158, 11, 0.22);
+    }
 
     /* Card Header */
     .room-card-top {
@@ -1530,6 +1539,14 @@
             if (error.name !== 'AbortError') console.error('Silent board refresh failed:', error);
         });
     }
+
+    let cleaningBoardRefreshTimer = null;
+    window.addEventListener('cleaning-notifications-updated', () => {
+        window.clearTimeout(cleaningBoardRefreshTimer);
+        cleaningBoardRefreshTimer = window.setTimeout(() => {
+            refreshReceptionBoard({ reselectCurrentRoom: false });
+        }, 150);
+    });
 
     function toggleMultiSelectMode() {
         const toggle = document.getElementById('multi-select-toggle');
