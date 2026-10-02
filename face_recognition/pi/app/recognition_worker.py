@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
+from pathlib import Path
 
 import cv2
 
@@ -15,6 +17,28 @@ from .pi_camera import PiCamera
 
 
 LOGGER = logging.getLogger("hotel-face-pi.recognition")
+
+
+def configure_preview_environment() -> bool:
+    """Attach a background service to the Pi desktop when Xwayland is ready."""
+    if os.name != "posix":
+        return True
+
+    display = os.environ.get("DISPLAY", ":0")
+    display_number = display.removeprefix(":").split(".", 1)[0]
+    if not display_number.isdigit():
+        return False
+    if not Path(f"/tmp/.X11-unix/X{display_number}").exists():
+        return False
+
+    os.environ.setdefault("DISPLAY", display)
+    xauthority = Path.home() / ".Xauthority"
+    if xauthority.exists():
+        os.environ.setdefault("XAUTHORITY", str(xauthority))
+    runtime_directory = Path(f"/run/user/{os.getuid()}")
+    if runtime_directory.exists():
+        os.environ.setdefault("XDG_RUNTIME_DIR", str(runtime_directory))
+    return True
 
 
 class RecognitionWorker:
@@ -77,7 +101,10 @@ class RecognitionWorker:
         last_label = "UNKNOWN"
         last_box: tuple[int, int, int, int] | None = None
         last_score = 0.0
-        preview_enabled = self.config.show_preview
+        preview_requested = self.config.show_preview
+        preview_enabled = preview_requested and configure_preview_environment()
+        preview_opened = False
+        next_preview_retry = time.monotonic()
         window_name = "Hotel Face ID - Raspberry Pi (Q/Esc to close)"
         try:
             for frame in camera.frames(self.stop_event):
@@ -115,6 +142,13 @@ class RecognitionWorker:
                             LOGGER.info("Recognition: customer_id=%s name=%s room=%s similarity=%.3f", customer_id, name, room, last_score)
                         last_result = result
 
+                now = time.monotonic()
+                if preview_requested and not preview_enabled and now >= next_preview_retry:
+                    preview_enabled = configure_preview_environment()
+                    next_preview_retry = now + 5
+                    if preview_enabled:
+                        LOGGER.info("Camera preview attached to desktop display %s", os.environ.get("DISPLAY"))
+
                 if preview_enabled:
                     preview = frame.copy()
                     color = (0, 190, 0) if last_label.startswith("MATCH:") else (0, 0, 220)
@@ -126,20 +160,21 @@ class RecognitionWorker:
                     cv2.putText(preview, status, (8, 23), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
                     try:
                         cv2.imshow(window_name, preview)
+                        preview_opened = True
                         if cv2.waitKey(1) & 0xFF in (ord("q"), 27):
                             LOGGER.info("Preview closed by user")
                             self.stop_event.set()
                             break
                     except cv2.error:
-                        LOGGER.warning("OpenCV GUI is unavailable; continuing without preview")
+                        LOGGER.warning("OpenCV GUI is unavailable; retrying preview in 5 seconds")
                         preview_enabled = False
-                now = time.monotonic()
+                        next_preview_retry = now + 5
                 if now - last_fps_log >= 5:
                     LOGGER.info("Recognition FPS=%.1f processed=%d cache=%d", frame_count / max(now - started, 0.001), processed, self.cache.size)
                     last_fps_log = now
         finally:
             camera.close()
-            if preview_enabled:
+            if preview_opened:
                 try:
                     cv2.destroyWindow(window_name)
                 except cv2.error:
