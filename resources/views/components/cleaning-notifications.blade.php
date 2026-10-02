@@ -72,7 +72,7 @@
         }
 
         list.innerHTML = data.rooms.map(room => `
-            <a href="${bookingsUrl}#room-card-${room.id}"
+            <a href="${bookingsUrl}?status=cleaning#room-card-${room.id}"
                class="cleaning-notification-item dropdown-item d-flex gap-2 align-items-center px-3 py-2 border-bottom"
                data-room-id="${room.id}">
                 <span class="cleaning-notification-room d-flex align-items-center justify-content-center">
@@ -91,6 +91,9 @@
                 if (!card) return;
                 event.preventDefault();
                 bootstrap.Dropdown.getOrCreateInstance(document.querySelector('.cleaning-bell-button')).hide();
+                const statusFilter = document.getElementById('filter-status');
+                if (statusFilter) statusFilter.value = 'cleaning';
+                if (typeof window.filterRooms === 'function') window.filterRooms();
                 card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 card.click();
             });

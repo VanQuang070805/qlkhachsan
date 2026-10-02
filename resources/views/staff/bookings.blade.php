@@ -299,15 +299,6 @@
         color: #0071e3;
         font-size: 1rem;
     }
-    .floor-counter {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #64748b;
-        background: #f1f5f9;
-        padding: 4px 10px;
-        border-radius: 999px;
-    }
-
     /* =========================================================================
        MACOS CUPERTINO ROOM CARDS
        ========================================================================= */
@@ -619,7 +610,7 @@
             <div class="status-segmented-group" role="tablist" aria-label="Lọc trạng thái phòng">
                 <button type="button" class="legend-badge active-filter" data-status-val="Tất cả" onclick="toggleLegendFilter(this)">
                     <span>Tất cả</span>
-                    <strong>{{ array_sum(array_map('count', $floors)) }}</strong>
+                    <strong id="count-total">{{ array_sum(array_map('count', $floors)) }}</strong>
                 </button>
                 <button type="button" class="legend-badge" data-status-val="available" onclick="toggleLegendFilter(this)">
                     <span class="status-dot dot-available"></span>
@@ -692,7 +683,6 @@
                         <i class="fa-solid fa-layer-group"></i>
                         <span>Tầng {{ $floor }}</span>
                     </h6>
-                    <span class="floor-counter">{{ count($rooms) }} phòng</span>
                 </div>
                 <div class="row g-3">
                     @foreach ($rooms as $room)
@@ -1501,8 +1491,6 @@
         .then(html => {
             const doc = new DOMParser().parseFromString(html, 'text/html');
             const replacements = [
-                ['.legend-row', '.legend-row'],
-                ['.filter-card', '.filter-card'],
                 ['#room-grid-container', '#room-grid-container']
             ];
 
@@ -1510,6 +1498,12 @@
                 const current = document.querySelector(currentSelector);
                 const next = doc.querySelector(nextSelector);
                 if (current && next) current.innerHTML = next.innerHTML;
+            });
+
+            ['count-total', 'count-available', 'count-occupied', 'count-booked', 'count-cleaning'].forEach(id => {
+                const current = document.getElementById(id);
+                const next = doc.getElementById(id);
+                if (current && next) current.textContent = next.textContent;
             });
 
             const searchInput = document.getElementById('search-input');
@@ -2165,7 +2159,8 @@
         if (!selectedRoomId) return;
 
         const currentStatus = selectedRoomData ? (selectedRoomData.ui_status || selectedRoomData.status) : '';
-        if (newStatus === 'available' && (isOccupiedStatus(currentStatus) || parseInt(selectedRoomData.has_active_booking) > 0) && checkoutScope === null) {
+        const isCompletingCleaning = newStatus === 'available' && currentStatus === 'cleaning';
+        if (!isCompletingCleaning && newStatus === 'available' && (isOccupiedStatus(currentStatus) || parseInt(selectedRoomData.has_active_booking) > 0) && checkoutScope === null) {
             const roomCount = parseInt(selectedRoomData.active_booking_room_count) || 0;
             if (roomCount > 1) {
                 openCheckoutScopeModal();
@@ -2176,6 +2171,9 @@
         }
 
         const optimisticCard = document.getElementById(`room-card-${selectedRoomId}`);
+        const optimisticStatus = isCompletingCleaning && selectedRoomData?.status !== 'cleaning'
+            ? selectedRoomData.status
+            : newStatus;
         const optimisticSnapshot = optimisticCard ? {
             status: optimisticCard.dataset.status,
             className: optimisticCard.className,
@@ -2183,10 +2181,10 @@
         } : null;
         const labels = { available: 'Đang trống', occupied: 'Đang lưu trú', cleaning: 'Đang dọn dẹp', maintenance: 'Bảo trì', soon_to_checkin: 'Sắp nhận phòng', soon_to_checkout: 'Sắp trả phòng', booked: 'Đã đặt', overdue: 'Quá giờ trả' };
         if (optimisticCard) {
-            optimisticCard.className = optimisticCard.className.replace(/status-(available|occupied|cleaning)/, `status-${newStatus}`);
-            optimisticCard.dataset.status = newStatus;
+            optimisticCard.className = optimisticCard.className.replace(/status-(available|occupied|cleaning)/, `status-${optimisticStatus}`);
+            optimisticCard.dataset.status = optimisticStatus;
             const label = optimisticCard.querySelector('.room-status-text');
-            if (label) label.textContent = labels[newStatus] || newStatus;
+            if (label) label.textContent = labels[optimisticStatus] || optimisticStatus;
             optimisticCard.classList.add('is-syncing');
         }
         const rollbackOptimisticCard = () => {
@@ -2312,7 +2310,7 @@
         if (typeVal !== 'Tất cả') params.set('type', typeVal);
         if (guestsVal !== 'Tất cả') params.set('guests', guestsVal);
         if (statusVal !== 'Tất cả') params.set('status', statusVal);
-        history.replaceState({ roomFilters: true }, '', `${location.pathname}${params.size ? '?' + params : ''}`);
+        history.replaceState({ roomFilters: true }, '', `${location.pathname}${params.size ? '?' + params : ''}${location.hash}`);
     }
 
     function selectFloorTab(button) {
@@ -2343,6 +2341,17 @@
         filterRooms();
     }
 
+    function focusRoomFromHash() {
+        const match = location.hash.match(/^#room-card-(\d+)$/);
+        if (!match) return;
+        const card = document.getElementById(`room-card-${match[1]}`);
+        if (!card || card.closest('.room-card-wrapper')?.style.display === 'none') return;
+        window.setTimeout(() => {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.click();
+        }, 100);
+    }
+
     function toggleLegendFilter(element) {
         document.getElementById('filter-status').value = element.dataset.statusVal;
         filterRooms();
@@ -2360,6 +2369,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         restoreFiltersFromUrl();
+        focusRoomFromHash();
         const manualBookingInput = document.getElementById('manual-booking-id');
         if (manualBookingInput) {
             manualBookingInput.addEventListener('keydown', (event) => {

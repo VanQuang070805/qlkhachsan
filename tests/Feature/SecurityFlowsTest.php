@@ -357,11 +357,18 @@ class SecurityFlowsTest extends TestCase
             'type_name' => 'Cleaning request', 'price' => 250000,
             'max_adults' => 2, 'max_children' => 1, 'max_guests' => 3,
         ]);
-        \App\Models\Room::create([
+        $room = \App\Models\Room::create([
             'room_number' => 'OPS-CLEAN', 'room_type_id' => $type->id,
             'floor' => 1, 'status' => 'occupied',
             'needs_cleaning' => true, 'cleaning_requested_at' => now(),
         ]);
+        $booking = $this->bookingFor($this->customer('cleaning-stay@example.com'));
+        $booking->update([
+            'status' => 'checked_in',
+            'check_in' => now('Asia/Ho_Chi_Minh')->toDateString(),
+            'check_out' => now('Asia/Ho_Chi_Minh')->addDay()->toDateString(),
+        ]);
+        $booking->rooms()->attach($room->id);
 
         $admin = $this->staff('cleaning-board@example.com', 'admin');
         $response = $this->asStaff($admin)->get(route('staff.bookings'))->assertOk();
@@ -370,8 +377,27 @@ class SecurityFlowsTest extends TestCase
         $rooms = collect($matches[1])->map(fn (string $json) => json_decode(html_entity_decode($json, ENT_QUOTES | ENT_HTML5), true));
 
         $this->assertSame('cleaning', $rooms->firstWhere('room_number', 'OPS-CLEAN')['ui_status']);
+        $this->assertSame(1, (int) $rooms->firstWhere('room_number', 'OPS-CLEAN')['has_active_booking']);
         $response->assertSee('data-status="cleaning"', false)
+            ->assertSee('id="count-cleaning">1', false)
+            ->assertDontSee('class="floor-counter"', false)
+            ->assertSee('const isCompletingCleaning', false)
+            ->assertSee('?status=cleaning#room-card-${room.id}', false)
             ->assertSee("window.addEventListener('cleaning-notifications-updated'", false);
+
+        $this->asStaff($admin)->postJson(route('staff.reception.update-status'), [
+            'room_id' => $room->id,
+            'status' => 'available',
+        ])->assertOk()->assertJson([
+            'success' => true,
+            'new_status' => 'occupied',
+        ]);
+
+        $this->assertDatabaseHas('rooms', [
+            'id' => $room->id,
+            'status' => 'occupied',
+            'needs_cleaning' => false,
+        ]);
     }
 
     public function test_direct_payment_route_enforces_booking_ownership(): void
