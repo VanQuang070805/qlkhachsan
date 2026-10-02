@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
         if (!app()->environment(['local', 'testing'])) {
             throw new \RuntimeException('Demo seeding is restricted to local and testing environments.');
         }
+
+        DB::transaction(fn () => $this->seedDemoData());
+    }
+
+    private function seedDemoData(): void
+    {
         // ======================================
         // USERS
         // ======================================
@@ -177,11 +183,11 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ======================================
-        // PRICE POLICIES
+        // PRICE SETTINGS
         // ======================================
-        DB::table('price_policies')->insert([
-            ['policy_name' => 'Cuối tuần',   'start_date' => '2026-01-01', 'end_date' => '2026-12-31', 'multiplier' => 1.2, 'created_at' => now(), 'updated_at' => now()],
-            ['policy_name' => 'Dịp lễ Tết', 'start_date' => '2026-02-16', 'end_date' => '2026-02-21', 'multiplier' => 1.5, 'created_at' => now(), 'updated_at' => now()],
+        DB::table('price_settings')->insert([
+            // price_settings supports date ranges, not recurring weekdays; avoid applying a weekend rule to every day of 2026.
+            ['name' => 'Dịp lễ Tết', 'start_date' => '2026-02-16', 'end_date' => '2026-02-21', 'adjustment_type' => 'percent', 'adjustment_value' => 50, 'status' => true, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         // ======================================

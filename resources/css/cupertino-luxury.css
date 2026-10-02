@@ -406,32 +406,34 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-spec-card {
-    background: #ffffff;
-    border: 1px solid var(--apple-border);
+    background: #f8fafc !important;
+    border: none !important;
     border-radius: 18px;
     padding: 16px 18px;
     display: flex;
     align-items: center;
     gap: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    box-shadow: none !important;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .aeth-spec-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04) !important;
 }
 
 .aeth-spec-icon-box {
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    background: #eff6ff;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     color: var(--apple-blue);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 19px;
+    font-size: 22px;
     flex-shrink: 0;
 }
 
@@ -507,54 +509,57 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-amenity-card {
-    background: #f8fafc;
-    border: 1px solid rgba(226, 232, 240, 0.7);
-    border-radius: 16px;
-    padding: 16px 12px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 14px 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .aeth-amenity-card:hover {
-    background: #ffffff;
-    border-color: rgba(0, 113, 227, 0.3);
-    box-shadow: 0 6px 18px rgba(0, 113, 227, 0.08);
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     transform: translateY(-2px);
 }
 
 .aeth-amenity-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 9999px;
-    background: #ffffff;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #334155;
-    font-size: 18px;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    transition: all 0.2s ease;
+    color: var(--apple-blue) !important;
+    font-size: 32px !important;
+    margin-bottom: 8px;
+    transition: transform 0.2s ease;
 }
 
 .aeth-amenity-card:hover .aeth-amenity-icon {
-    background: #eff6ff;
-    color: var(--apple-blue);
+    background: transparent !important;
+    color: var(--apple-blue) !important;
+    transform: scale(1.1);
 }
 
 .aeth-amenity-name {
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 600;
     color: #1e293b;
     margin-bottom: 3px;
 }
 
 .aeth-amenity-sub {
-    font-size: 10.5px;
-    color: #94a3b8;
+    font-size: 11px;
+    color: #64748b;
     line-height: 1.3;
 }
 
@@ -675,6 +680,67 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
     text-decoration: line-through;
 }
 
+/* Keep room details compact and give the booking decision more visual weight. */
+.aeth-main-layout {
+    grid-template-columns: minmax(0, 7fr) minmax(360px, 5fr);
+    gap: 24px;
+}
+
+.aeth-section-card {
+    padding: 22px;
+    margin-bottom: 20px;
+}
+
+.aeth-amenity-card {
+    padding: 10px 8px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.aeth-amenity-icon {
+    width: auto !important;
+    height: auto !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 28px !important;
+    margin-bottom: 6px;
+}
+
+.aeth-booking-box {
+    padding: 28px;
+    gap: 22px;
+}
+
+.aeth-rate-price {
+    font-size: clamp(30px, 2.4vw, 36px);
+}
+
+.aeth-date-label {
+    font-size: 11px;
+}
+
+.aeth-date-val {
+    font-size: 15px;
+}
+
+.aeth-date-sub,
+.aeth-stepper-info small {
+    font-size: 12px;
+}
+
+.aeth-stepper-info strong,
+.aeth-breakdown {
+    font-size: 14px;
+}
+
+@media (max-width: 991px) {
+    .aeth-main-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 /* Date Segmented Box */
 .aeth-date-pill-box {
     background: #f8fafc;
@@ -724,24 +790,24 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-date-label {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #94a3b8;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
     display: block;
 }
 
 .aeth-date-val {
-    font-size: 13.5px;
-    font-weight: 700;
+    font-size: 15.5px !important;
+    font-weight: 700 !important;
     color: #0f172a;
-    line-height: 1.2;
+    line-height: 1.25;
 }
 
 .aeth-date-sub {
-    font-size: 11px;
+    font-size: 12px !important;
     color: #64748b;
     margin-top: 2px;
 }
@@ -751,7 +817,7 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
     align-items: center;
     justify-content: space-between;
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: 13px !important;
     color: #64748b;
 }
 
@@ -774,12 +840,13 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 
 .aeth-stepper-info strong {
     display: block;
-    font-size: 13px;
+    font-size: 15px !important;
+    font-weight: 700 !important;
     color: #0f172a;
 }
 
 .aeth-stepper-info small {
-    font-size: 11px;
+    font-size: 12px !important;
     color: #94a3b8;
 }
 
@@ -795,13 +862,13 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-step-btn {
-    width: 26px;
-    height: 26px;
+    width: 28px !important;
+    height: 28px !important;
     border-radius: 9999px;
     border: none;
     background: #f1f5f9;
     color: #334155;
-    font-size: 14px;
+    font-size: 15px !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -824,10 +891,10 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-step-val {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 15px !important;
+    font-weight: 700 !important;
     color: #0f172a;
-    width: 20px;
+    width: 24px !important;
     text-align: center;
 }
 
@@ -836,7 +903,7 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    font-size: 13px;
+    font-size: 14px !important;
     color: #475569;
 }
 
@@ -847,8 +914,10 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-total-box {
-    background: #eff6ff;
-    border: 1px solid rgba(0, 113, 227, 0.15);
+    background: #f8fafc !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
     border-radius: 14px;
     padding: 12px 16px;
     display: flex;
@@ -858,15 +927,15 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-total-box span {
-    font-size: 13px;
-    font-weight: 600;
-    color: #1e3a8a;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
 }
 
 .aeth-total-box strong {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--apple-blue);
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
 }
 
 /* Primary CTA (h-12 / py-3.5 px-6 / rounded-full) */

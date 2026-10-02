@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Services\Chatbot\DifyChatbotService;
 use App\Services\RoyalKnowledgeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,10 @@ use Illuminate\Support\Facades\Validator;
 
 class ChatbotController extends Controller
 {
-    public function __construct(private readonly RoyalKnowledgeService $knowledge) {}
+    public function __construct(
+        private readonly RoyalKnowledgeService $knowledge,
+        private readonly DifyChatbotService $dify,
+    ) {}
 
     public function api(Request $request)
     {
@@ -25,10 +29,22 @@ class ChatbotController extends Controller
             'history.*.content' => ['required_with:history', 'string', 'max:1000'],
         ]);
         $message = trim($validated['message']);
+
+        if ($this->difyConfigured()) {
+            $answer = $this->dify->ask($request, $message);
+            if (! $answer) {
+                return response()->json([
+                    'message' => 'Posh Concierge đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
+                ], 503);
+            }
+
+            return response()->json(['reply' => $answer['reply']]);
+        }
+
         $history = $validated['history'] ?? $request->session()->get('royal_chat_history', []);
 
         if ($this->isFlagged($message)) {
-            $reply = 'Tôi không thể hỗ trợ nội dung này. Tôi vẫn sẵn sàng trò chuyện hoặc giúp bạn chuẩn bị một kỳ nghỉ an toàn tại Royal Hotel.';
+            $reply = 'Tôi không thể hỗ trợ nội dung này. Tôi vẫn sẵn sàng trò chuyện hoặc giúp bạn chuẩn bị một kỳ nghỉ an toàn tại Posh Boutique.';
             $this->rememberConversation($request, $history, $message, $reply);
             return response()->json(['reply' => $reply, 'source' => 'safety', 'sources' => []]);
         }
@@ -62,7 +78,12 @@ class ChatbotController extends Controller
                 if (ob_get_level() > 0) ob_flush();
                 flush();
             }
-            echo 'data: '.json_encode(['done' => true, 'source' => $payload['source'], 'sources' => $payload['sources'] ?? []], JSON_UNESCAPED_UNICODE)."\n\n";
+            $done = ['done' => true];
+            if (isset($payload['source'])) {
+                $done['source'] = $payload['source'];
+                $done['sources'] = $payload['sources'] ?? [];
+            }
+            echo 'data: '.json_encode($done, JSON_UNESCAPED_UNICODE)."\n\n";
             if (ob_get_level() > 0) ob_flush();
             flush();
         }, 200, [
@@ -70,6 +91,109 @@ class ChatbotController extends Controller
             'Cache-Control' => 'no-cache, no-transform',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    public function difyRoomTypes(Request $request)
+    {
+        if ($response = $this->authorizeDifyTool($request)) {
+            return $response;
+        }
+
+        return response()->json(['room_types' => RoomType::query()
+            ->orderBy('price')
+            ->get(['type_name', 'price', 'max_guests'])
+            ->map(fn (RoomType $roomType) => [
+                'type_name' => $roomType->type_name,
+                'price_per_night' => (float) $roomType->price,
+                'max_guests' => (int) $roomType->max_guests,
+            ])
+            ->values()]);
+    }
+
+    public function difySearchRooms(Request $request)
+    {
+        if ($response = $this->authorizeDifyTool($request)) {
+            return $response;
+        }
+
+        $result = $this->searchPublicRooms($request->only(['check_in', 'check_out', 'guests', 'rooms']));
+        if (isset($result['error'])) {
+            return response()->json($result, 422);
+        }
+
+        return response()->json([
+            'check_in' => $result['check_in'],
+            'check_out' => $result['check_out'],
+            'requested_rooms' => $result['requested_rooms'],
+            'room_types' => collect($result['rooms'])->groupBy('room_type')->map(fn ($rooms, $roomType) => [
+                'type_name' => $roomType,
+                'available_rooms' => $rooms->count(),
+                'enough_for_request' => $rooms->count() >= $result['requested_rooms'],
+                'price_per_night' => $rooms->min('price_per_night'),
+                'max_guests' => $rooms->max('max_guests'),
+            ])->values(),
+        ]);
+    }
+
+    private function difyConfigured(): bool
+    {
+        return trim((string) config('services.dify.base_url')) !== ''
+            && trim((string) config('services.dify.api_key')) !== '';
+    }
+
+    private function authorizeDifyTool(Request $request)
+    {
+        if (! config('services.dify.live_tools_enabled')) {
+            return response()->json(['message' => 'Dify tools are not enabled.'], 503);
+        }
+
+        $apiKey = (string) config('services.dify.tool_api_key');
+        if ($apiKey === '') {
+            return response()->json(['message' => 'Dify tools are not configured.'], 503);
+        }
+
+        if (! hash_equals($apiKey, (string) $request->bearerToken())) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+
+        return null;
+    }
+
+    private function searchPublicRooms(array $arguments): array
+    {
+        $validator = Validator::make($arguments, [
+            'check_in' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'check_out' => ['required', 'date_format:Y-m-d', 'after:check_in'],
+            'guests' => ['required', 'integer', 'min:1', 'max:20'],
+            'rooms' => ['sometimes', 'integer', 'min:1', 'max:10'],
+        ]);
+        if ($validator->fails()) {
+            return ['error' => 'Ngày hoặc số khách chưa hợp lệ.'];
+        }
+
+        $data = $validator->validated();
+        $data['rooms'] = (int) ($data['rooms'] ?? 1);
+        if ($data['check_in'] === now()->toDateString() && now()->hour >= 17) {
+            return ['error' => 'Sau 17:00 không thể nhận phòng trong ngày hôm nay.'];
+        }
+
+        $reserved = Booking::reservedRoomIds($data['check_in'], $data['check_out']);
+        $rooms = Room::query()->with('roomType:id,type_name,price,max_guests')
+            ->where('status', 'available')->whereNotIn('id', $reserved)
+            ->whereHas('roomType', fn ($query) => $query->where('max_guests', '>=', (int) ceil($data['guests'] / $data['rooms'])))
+            ->orderBy('room_type_id')->get(['id', 'room_number', 'room_type_id'])
+            ->map(fn (Room $room) => [
+                'room_type' => $room->roomType?->type_name,
+                'price_per_night' => (float) ($room->roomType?->price ?? 0),
+                'max_guests' => $room->roomType?->max_guests,
+            ])->values()->all();
+
+        return [
+            'check_in' => $data['check_in'],
+            'check_out' => $data['check_out'],
+            'requested_rooms' => $data['rooms'],
+            'rooms' => $rooms,
+        ];
     }
 
     private function rememberConversation(Request $request, array $history, string $message, string $reply): void
@@ -106,9 +230,9 @@ class ChatbotController extends Controller
 
         $documents = $this->knowledge->search($message);
         $context = collect($documents)->map(fn (array $document) => "[{$document['source']}]\n{$document['content']}")->implode("\n\n");
-        $system = "Bạn là Royal Concierge, một người đồng hành lịch thiệp và tự nhiên. Hãy trả lời ngôn ngữ của người dùng, ưu tiên tiếng Việt, với giọng điệu ngắn gọn, ấm áp và có mạch hội thoại. "
+        $system = "Bạn là Posh Concierge, một người đồng hành lịch thiệp và tự nhiên. Hãy trả lời ngôn ngữ của người dùng, ưu tiên tiếng Việt, với giọng điệu ngắn gọn, ấm áp và có mạch hội thoại. "
             . "Bạn có thể trò chuyện và trả lời kiến thức phổ thông ngoài chủ đề khách sạn bằng kiến thức của mô hình. Với tin tức hoặc dữ liệu thời gian thực mà không có tool, hãy nói rõ giới hạn thay vì đoán. "
-            . "Riêng thông tin Royal Hotel, chỉ dùng tài liệu truy hồi hoặc tool. Giá, phòng trống và kỳ nghỉ phải lấy bằng tool; không tự đoán. "
+            . "Riêng thông tin Posh Boutique, chỉ dùng tài liệu truy hồi hoặc tool. Giá, phòng trống và kỳ nghỉ phải lấy bằng tool; không tự đoán. "
             . "Không yêu cầu hay lặp lại mật khẩu, OTP, dữ liệu thẻ hoặc khóa bí mật. Khách chỉ được xem kỳ nghỉ của chính phiên đăng nhập. "
             . "Nếu chưa đủ ngày hoặc số khách để tìm phòng, hãy hỏi lại. Không dùng HTML. Khi dùng tài liệu, có thể nhắc tên nguồn tự nhiên.\n\n"
             . "TÀI LIỆU TRUY HỒI:\n" . ($context ?: 'Không có đoạn tài liệu phù hợp; hãy dùng tool hoặc nói rõ giới hạn.');
@@ -338,7 +462,7 @@ class ChatbotController extends Controller
                     $price = is_array($cheapest) ? $cheapest['price'] : $cheapest->price;
                     $formattedPrice = number_format((float)$price, 0, ',', '.');
                     $desc = is_array($cheapest) ? $cheapest['description'] : $cheapest->description;
-                    return "Loại phòng có giá rẻ nhất tại Royal Hotel là <b>{$name}</b> với giá chỉ từ <b>{$formattedPrice} VNĐ/đêm</b> ({$desc}).";
+                    return "Loại phòng có giá rẻ nhất tại Posh Boutique là <b>{$name}</b> với giá chỉ từ <b>{$formattedPrice} VNĐ/đêm</b> ({$desc}).";
                 }
 
                 // Hỏi phòng đắt nhất
@@ -348,11 +472,11 @@ class ChatbotController extends Controller
                     $price = is_array($expensive) ? $expensive['price'] : $expensive->price;
                     $formattedPrice = number_format((float)$price, 0, ',', '.');
                     $desc = is_array($expensive) ? $expensive['description'] : $expensive->description;
-                    return "Loại phòng cao cấp nhất tại Royal Hotel là <b>{$name}</b> với giá từ <b>{$formattedPrice} VNĐ/đêm</b> ({$desc}).";
+                    return "Loại phòng cao cấp nhất tại Posh Boutique là <b>{$name}</b> với giá từ <b>{$formattedPrice} VNĐ/đêm</b> ({$desc}).";
                 }
 
                 // Giá phòng nói chung
-                $response = "Bảng giá phòng hiện tại của Royal Hotel:<br>";
+                $response = "Bảng giá phòng hiện tại của Posh Boutique:<br>";
                 foreach ($roomTypes as $rt) {
                     $rtName = is_array($rt) ? $rt['type_name'] : $rt->type_name;
                     $rtPrice = is_array($rt) ? $rt['price'] : $rt->price;
@@ -398,7 +522,7 @@ class ChatbotController extends Controller
                 }
 
                 // Nếu hỏi loại phòng chung chung
-                $response = "Khách sạn Royal Hotel hiện cung cấp các loại phòng sau:<br>";
+                $response = "Posh Boutique hiện cung cấp các loại phòng sau:<br>";
                 foreach ($roomTypes as $rt) {
                     $rtName = is_array($rt) ? $rt['type_name'] : $rt->type_name;
                     $rtGuests = is_array($rt) ? $rt['max_guests'] : $rt->max_guests;
@@ -415,7 +539,7 @@ class ChatbotController extends Controller
         // 4. Nhóm kịch bản: Hỏi đặt phòng
         $hasBookingKeyword = $this->containsAny($msg, ['đặt phòng', 'đặt lịch', 'book phòng', 'booking', 'dat phong', 'dat lich', 'book phong']);
         if ($hasBookingKeyword) {
-            return "Để đặt phòng tại Royal Hotel, bạn vui lòng làm theo các bước sau:<br>" .
+            return "Để đặt phòng tại Posh Boutique, bạn vui lòng làm theo các bước sau:<br>" .
                    "1. Nhấp vào mục <b>'Tìm phòng trống'</b> trên thanh menu chính.<br>" .
                    "2. Chọn ngày nhận phòng (Check-in), ngày trả phòng (Check-out) và số lượng khách.<br>" .
                    "3. Nhấn 'Tìm kiếm' để hiển thị các phòng còn trống.<br>" .
@@ -426,7 +550,7 @@ class ChatbotController extends Controller
         // 5. Nhóm kịch bản: Hỏi hủy phòng
         $hasCancelKeyword = $this->containsAny($msg, ['hủy', 'hủy phòng', 'cancel', 'huy', 'huy phong']);
         if ($hasCancelKeyword) {
-            return "Quy định hủy phòng tại Royal Hotel:<br>" .
+            return "Quy định hủy phòng tại Posh Boutique:<br>" .
                    "- Bạn có thể tự hủy đặt phòng trực tuyến tại mục <b>Tài khoản -> Đặt phòng của tôi</b> đối với các đơn phòng chưa được xác nhận (trạng thái Chờ xác nhận).<br>" .
                    "- Đối với đơn đã xác nhận hoặc đã thanh toán, vui lòng gửi yêu cầu tại trang <b>Liên hệ</b> để được kiểm tra điều kiện hoàn hủy.";
         }
@@ -443,7 +567,7 @@ class ChatbotController extends Controller
         // 7. Nhóm kịch bản: Hỏi check-in/check-out
         $hasCheckInOutKeyword = $this->containsAny($msg, ['check in', 'nhận phòng', 'check out', 'trả phòng', 'nhan phong', 'tra phong', 'checkin', 'checkout']);
         if ($hasCheckInOutKeyword) {
-            return "Quy định thời gian nhận/trả phòng tại Royal Hotel:<br>" .
+            return "Quy định thời gian nhận/trả phòng tại Posh Boutique:<br>" .
                    "- <b>Thời gian nhận phòng (Check-in):</b> Từ 12:00 đến 17:00.<br>" .
                    "- <b>Thời gian trả phòng (Check-out):</b> Trước 12:00 trưa.<br>" .
                    "- Nếu bạn có nhu cầu nhận phòng sớm hoặc trả phòng muộn, vui lòng liên hệ trước với bộ phận lễ tân để được kiểm tra tình trạng phòng trống và áp dụng mức phụ thu tương ứng.";
@@ -457,11 +581,11 @@ class ChatbotController extends Controller
 
         // 9. Nhóm kịch bản: Chào hỏi cơ bản
         if ($this->containsAny($msg, ['xin chào', 'chào', 'hello', 'hi', 'chao'])) {
-            return "Xin chào! Tôi là trợ lý ảo của Royal Hotel.<br>Tôi có thể giúp bạn tìm hiểu thông tin về giá phòng, đặt phòng, loại phòng, thanh toán, hủy phòng, check-in hoặc check-out. Hãy nhập câu hỏi để tôi hỗ trợ nhé!";
+            return "Xin chào! Tôi là trợ lý ảo của Posh Boutique.<br>Tôi có thể giúp bạn tìm hiểu thông tin về giá phòng, đặt phòng, loại phòng, thanh toán, hủy phòng, check-in hoặc check-out. Hãy nhập câu hỏi để tôi hỗ trợ nhé!";
         }
 
         // 10. Fallback mặc định khi không hiểu (Yêu cầu 4)
-        return "Tôi đang ở chế độ hỗ trợ cơ bản nên chỉ xử lý được thông tin lưu trú. Khi cấu hình mô hình AI, Royal Concierge sẽ có thể trò chuyện tự nhiên hơn và vẫn tra cứu đúng dữ liệu khách sạn.";
+        return "Tôi đang ở chế độ hỗ trợ cơ bản nên chỉ xử lý được thông tin lưu trú. Khi cấu hình mô hình AI, Posh Concierge sẽ có thể trò chuyện tự nhiên hơn và vẫn tra cứu đúng dữ liệu khách sạn.";
     }
 
     private function containsAny(string $haystack, array $needles): bool

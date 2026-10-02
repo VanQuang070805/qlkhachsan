@@ -819,7 +819,7 @@ body { background: var(--cream) !important; }
             <span class="ctrl-dot ctrl-yellow"></span>
             <span class="ctrl-dot ctrl-green"></span>
         </div>
-        <span class="macos-card-title">Tìm kiếm phòng trống — Royal Concierge</span>
+        <span class="macos-card-title">Tìm kiếm phòng trống — Posh Concierge</span>
         <span style="font-size: 11px; color: #64748b;">macOS Finder Mode</span>
     </div>
     <form method="GET" action="{{ route('rooms.search') }}" id="searchForm" novalidate>
@@ -1053,7 +1053,7 @@ body { background: var(--cream) !important; }
                         <span class="ctrl-dot ctrl-yellow"></span>
                         <span class="ctrl-dot ctrl-green"></span>
                     </div>
-                    <span class="macos-card-title"><?= htmlspecialchars($type['type_name']) ?> — Royal Preview</span>
+                    <span class="macos-card-title"><?= htmlspecialchars($type['type_name']) ?> — Posh Preview</span>
                 </div>
 
                 <!-- Header -->

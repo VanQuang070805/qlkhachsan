@@ -1,6 +1,6 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Hồ Sơ Cá Nhân · Royal Hotel')
+@section('title', 'Hồ Sơ Cá Nhân · Posh Boutique')
 @section('page-title', 'Hồ sơ cá nhân')
 
 @section('content')

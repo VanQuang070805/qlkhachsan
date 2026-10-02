@@ -3,7 +3,7 @@
 @section('content')
 <div class="sana-auth-card">
     <header class="sana-heading auth-intro">
-        <h1 class="sana-heading__title">Create your Royal account</h1>
+        <h1 class="sana-heading__title">Create your Posh Boutique account</h1>
         <p class="sana-heading__sub">Begin your quiet luxury journey</p>
     </header>
 
@@ -138,7 +138,7 @@
 
         {{-- Terms Notice --}}
         <p class="sana-terms">
-            Bằng cách tạo tài khoản, bạn đồng ý với <a href="{{ route('contact') }}">Điều khoản dịch vụ</a> và <a href="{{ route('contact') }}">Chính sách bảo mật</a> của Royal Hotel.
+            Bằng cách tạo tài khoản, bạn đồng ý với <a href="{{ route('contact') }}">Điều khoản dịch vụ</a> và <a href="{{ route('contact') }}">Chính sách bảo mật</a> của Posh Boutique.
         </p>
 
         <div class="sana-switch-link" style="margin-top: 14px;">

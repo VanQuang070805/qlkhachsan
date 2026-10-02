@@ -1,6 +1,6 @@
 <?php
 
-$image = static fn (string $id): string => "https://images.unsplash.com/{$id}?auto=format&fit=crop&w=900&h=560&q=82";
+$image = static fn (string $id): string => "https://images.unsplash.com/{$id}?auto=format&fit=crop&w=1200&h=750&q=85";
 
 return array_map($image, [
     'photo-1631049307264-da0ec9d70304', 'photo-1631049552057-403cdb8f0658',
@@ -9,13 +9,13 @@ return array_map($image, [
     'photo-1598928506311-c55ded91a20c', 'photo-1600210492486-724fe5c67fb0',
     'photo-1560448204-e02f11c3d0e2', 'photo-1586023492125-27b2c045efd7',
     'photo-1600607687920-4e2a09cf159d', 'photo-1600566753190-17f0baa2a6c3',
-    'photo-1611892440504-42a792e24d32', 'photo-1600607687939-ce8a6c25118c',
-    'photo-1600210491892-03d54c0aaf87', 'photo-1600607688969-a5bfcd646154',
-    'photo-1616486338812-3dadae4b4ace', 'photo-1615874694520-474822394e73',
+    'photo-1611892440504-42a792e24d32', 'photo-1595526114035-0d45ed16cfbf',
+    'photo-1590490359683-658d3d23f972', 'photo-1600607688969-a5bfcd646154',
+    'photo-1616486338812-3dadae4b4ace', 'photo-1578683010236-d716f9a3f461',
     'photo-1617104678098-de229db51175', 'photo-1616594039964-ae9021a400a0',
-    'photo-1615529328331-f8917597711f', 'photo-1600210491369-e753d80a41f3',
-    'photo-1600585154340-be6161a56a0c', 'photo-1600566753086-00f18fb6b3ea',
-    'photo-1600607688066-890987f18a86', 'photo-1615874959474-d609969a20ed',
-    'photo-1618220179428-22790b461013', 'photo-1616137466211-f939a420be84',
+    'photo-1582719478250-c89cae4dc85b', 'photo-1505693416388-ac5ce068fe85',
+    'photo-1566195992011-5f6b21e539aa', 'photo-1596394516093-501ba68a0ba6',
+    'photo-1613977257363-707ba9348227', 'photo-1615874959474-d609969a20ed',
+    'photo-1512918728675-ed5a9ecdebfd', 'photo-1591088398332-8a7791972843',
     'photo-1600566753051-f0b89df2dd90', 'photo-1600607687644-c7171b42498f',
 ]);

@@ -7,6 +7,8 @@ use Carbon\Carbon;
 
 class Booking extends Model
 {
+    public const PAYMENT_HOLD_MINUTES = 10;
+
     public static function boot()
     {
         parent::boot();
@@ -32,7 +34,7 @@ class Booking extends Model
                     if ($roomTypes->isNotEmpty() && $booking->customer_email) {
                         \Illuminate\Support\Facades\Mail::send('emails.review_request', compact('booking', 'roomTypes'), function ($message) use ($booking) {
                             $message->to($booking->customer_email)
-                                    ->subject('Cảm ơn quý khách và Đánh giá phòng tại Royal Hotel');
+                                    ->subject('Cảm ơn quý khách và Đánh giá phòng tại Posh Boutique');
                         });
                     }
                 } catch (\Throwable $e) {
@@ -111,7 +113,7 @@ class Booking extends Model
             ->where(function ($query) use ($createdColumn) {
                 $query->whereIn('bookings.status', ['confirmed', 'checked_in'])
                     ->orWhere('bookings.payment_status', 'paid')
-                    ->orWhere(fn ($pending) => $pending->where('bookings.status', 'pending')->where($createdColumn, '>=', now()->subMinutes(30)));
+                    ->orWhere(fn ($pending) => $pending->where('bookings.status', 'pending')->where($createdColumn, '>', now()->subMinutes(self::PAYMENT_HOLD_MINUTES)));
             })->pluck('booking_rooms.room_id');
     }
 

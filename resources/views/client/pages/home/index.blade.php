@@ -1,5 +1,5 @@
 @extends('client.layouts.app')
-@section('title', 'Royal Hotel | Lưu trú tinh tế. Nghỉ ngơi an yên.')
+@section('title', 'Posh Boutique')
 @section('content')
 
 {{-- =========================================================================
@@ -14,13 +14,13 @@
     <div class="hero__content">
         {{-- Supaste Signature Dual-Font Headline --}}
         <h1 id="hero-title" class="supaste-hero__headline">
-            <span class="supaste-hero__headline-sans">Stay refined.</span>
+            <span class="supaste-hero__headline-sans">Posh Boutique</span>
             <span class="supaste-hero__headline-serif">Rest effortlessly.</span>
         </h1>
 
         {{-- Subtitle --}}
         <p class="supaste-hero__subtitle">
-            A quiet luxury sanctuary of bespoke suites and thoughtful hospitality, crafted for deep rest and effortless calm at Royal Hotel.
+            A quiet luxury sanctuary of bespoke suites and thoughtful hospitality, crafted for deep rest and effortless calm at Posh Boutique.
         </p>
 
         {{-- Single CTA Button (Filter removed per user request) --}}
@@ -117,7 +117,7 @@
                                     <article class="supaste-room-card" data-room-category="{{ $category }}">
                                         <div class="supaste-room-card__img">
                                             <img src="{{ $room->image ?: config('room_images.' . $room->id . '.0', asset('images/rooms/default.jpg')) }}"
-                                                 alt="{{ $room->type_name }} tại Royal Hotel"
+                                                 alt="{{ $room->type_name }} tại Posh Boutique"
                                                  loading="lazy"
                                                  onerror="this.onerror=null;this.src='{{ asset('images/rooms/default.jpg') }}';">
                                             <span class="supaste-room-card__badge">
@@ -165,9 +165,8 @@
 {{-- =========================================================================
      OFFICIAL PARTNERS & AUTHENTIC PAYMENT LOGOS STRIP (90x90 PILLS)
      ========================================================================= --}}
-<section class="supaste-section" style="padding-top: 140px;" aria-labelledby="partners-title">
+<section class="supaste-section" aria-labelledby="partners-title">
     <div class="supaste-section__header">
-        <p class="supaste-section__eyebrow">ĐỐI TÁC THANH TOÁN &amp; ĐẶT PHÒNG</p>
         <h2 id="partners-title" class="supaste-section__title">Hỗ trợ thanh toán đa nền tảng</h2>
         <p class="supaste-section__desc">
             Tích hợp liền mạch với các ví điện tử hàng đầu, cổng thanh toán ngân hàng bảo mật và các đối tác du lịch quốc tế uy tín.
@@ -316,10 +315,9 @@
      ========================================================================= --}}
 <section class="supaste-section" id="features" aria-labelledby="features-title">
     <div class="supaste-section__header">
-        <p class="supaste-section__eyebrow">ĐẶC QUYỀN NGHỈ DƯỠNG</p>
         <h2 id="features-title" class="supaste-section__title">Thiết kế cho kỳ nghỉ trọn vẹn</h2>
         <p class="supaste-section__desc">
-            Từ không gian phòng tĩnh lặng, ẩm thực phục vụ tận phòng đến các đặc quyền thư giãn cá nhân, Royal Hotel chăm chút từng khoảnh khắc trong kỳ nghỉ của bạn.
+            Từ không gian phòng tĩnh lặng, ẩm thực phục vụ tận phòng đến các đặc quyền thư giãn cá nhân, Posh Boutique chăm chút từng khoảnh khắc trong kỳ nghỉ của bạn.
         </p>
     </div>
 
@@ -385,10 +383,9 @@
      ========================================================================= --}}
 <section class="supaste-section" aria-labelledby="reviews-title">
     <div class="supaste-section__header">
-        <p class="supaste-section__eyebrow">ĐÁNH GIÁ TỪ KHÁCH HÀNG</p>
         <h2 id="reviews-title" class="supaste-section__title">Những chia sẻ chân thực</h2>
         <p class="supaste-section__desc">
-            Lắng nghe cảm nhận từ những vị khách đã dừng chân và tận hưởng kỳ nghỉ dưỡng tại Royal Hotel.
+            Lắng nghe cảm nhận từ những vị khách đã dừng chân và tận hưởng kỳ nghỉ dưỡng tại Posh Boutique.
         </p>
     </div>
 
@@ -404,7 +401,7 @@
                     </blockquote>
                     <footer style="display: flex; flex-direction: column; gap: 2px;">
                         <strong style="color: #0f172a; font-size: 14px;">{{ $review->user?->fullname ?? 'Khách lưu trú' }}</strong>
-                        <span style="color: #64748b; font-size: 12px;">{{ $review->roomType?->type_name ?? 'Royal Hotel' }}</span>
+                        <span style="color: #64748b; font-size: 12px;">{{ $review->roomType?->type_name ?? 'Posh Boutique' }}</span>
                     </footer>
                 </article>
             @endforeach
@@ -422,7 +419,6 @@
 <section class="supaste-pricing-section" aria-labelledby="pricing-title">
     <div class="supaste-pricing-section__inner">
         <div class="supaste-section__header">
-            <p class="supaste-section__eyebrow">BẢNG GIÁ MINH BẠCH</p>
             <h2 id="pricing-title" class="supaste-section__title">Lựa chọn hạng phòng phù hợp</h2>
             <p class="supaste-section__desc">
                 Giá trọn gói niêm yết rõ ràng, không phụ phí ẩn, tích hợp toàn bộ tiện ích nghỉ dưỡng cao cấp.
@@ -506,7 +502,7 @@
 
         <p class="supaste-pricing-section__footer-note">
             <i class="bi bi-shield-check" style="color: #60a5fa; font-size: 15px; vertical-align: -1px; margin-right: 6px;" aria-hidden="true"></i>
-            Cam kết giá minh bạch từ Royal Hotel · Thanh toán bảo mật qua VNPAY / VietQR / Thẻ tín dụng quốc tế · Miễn phí hủy trước 48 giờ
+            Cam kết giá minh bạch từ Posh Boutique · Thanh toán bảo mật qua VNPAY / VietQR / Thẻ tín dụng quốc tế · Miễn phí hủy trước 48 giờ
         </p>
     </div>
 </section>
@@ -516,7 +512,6 @@
      ========================================================================= --}}
 <section class="supaste-section" aria-labelledby="faq-title">
     <div class="supaste-section__header">
-        <p class="supaste-section__eyebrow">CÂU HỎI THƯỜNG GẶP</p>
         <h2 id="faq-title" class="supaste-section__title">Giải đáp mọi thắc mắc</h2>
         <p class="supaste-section__desc">
             Những thông tin cần biết để kỳ nghỉ của bạn diễn ra suôn sẻ và trọn vẹn nhất.
@@ -526,7 +521,7 @@
     <div class="supaste-faq-list">
         <div class="supaste-faq-item">
             <details open>
-                <summary>Giờ nhận phòng (check-in) và trả phòng (check-out) tại Royal Hotel là khi nào?</summary>
+                <summary>Giờ nhận phòng (check-in) và trả phòng (check-out) tại Posh Boutique là khi nào?</summary>
                 <p>Khách sạn nhận phòng từ 14:00 và trả phòng trước 12:00 trưa. Nếu bạn muốn nhận phòng sớm hoặc trả phòng muộn, vui lòng liên hệ trước với bộ phận lễ tân để được hỗ trợ sắp xếp theo tình trạng phòng thực tế.</p>
             </details>
         </div>
@@ -541,14 +536,14 @@
         <div class="supaste-faq-item">
             <details>
                 <summary>Khách sạn hỗ trợ những phương thức thanh toán nào?</summary>
-                <p>Royal Hotel hỗ trợ đa dạng phương thức thanh toán: Ví điện tử (MoMo, ZaloPay), quét mã VietQR ngân hàng, cổng VNPay, thẻ tín dụng quốc tế (Visa, Mastercard, Apple Pay) và thanh toán tiền mặt trực tiếp tại quầy lễ tân.</p>
+                <p>Posh Boutique hỗ trợ thanh toán trực tuyến qua Ví MoMo, ZaloPay, VietQR ngân hàng và cổng VNPay.</p>
             </details>
         </div>
 
         <div class="supaste-faq-item">
             <details>
                 <summary>Khách sạn có cung cấp dịch vụ đưa đón sân bay không?</summary>
-                <p>Có. Royal Hotel cung cấp dịch vụ xe đưa đón cao cấp từ sân bay về khách sạn và ngược lại. Hạng phòng Presidential Suite được miễn phí dịch vụ xe Limousine 2 chiều.</p>
+                <p>Có. Posh Boutique cung cấp dịch vụ xe đưa đón cao cấp từ sân bay về khách sạn và ngược lại. Hạng phòng Presidential Suite được miễn phí dịch vụ xe Limousine 2 chiều.</p>
             </details>
         </div>
 

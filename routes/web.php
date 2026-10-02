@@ -112,16 +112,16 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('reception
 // ============================================================
 Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/iot', [FaceIdController::class, 'index'])->name('iot');
-    Route::post('/face-id/sessions', [FaceIdController::class, 'createSession'])->name('face-id.sessions.create');
-    Route::post('/face-id/sessions/{sessionId}/samples', [FaceIdController::class, 'addSample'])->name('face-id.samples.store');
+    Route::post('/face-id/sessions', [FaceIdController::class, 'createSession'])->middleware('throttle:10,1')->name('face-id.sessions.create');
+    Route::post('/face-id/sessions/{sessionId}/samples', [FaceIdController::class, 'addSample'])->middleware('throttle:30,1')->name('face-id.samples.store');
     Route::delete('/face-id/sessions/{sessionId}', [FaceIdController::class, 'cancelSession'])->name('face-id.sessions.cancel');
-    Route::post('/face-id/recognize', [FaceIdController::class, 'recognize'])->name('face-id.recognize');
+    Route::post('/face-id/recognize', [FaceIdController::class, 'recognize'])->middleware('throttle:12,1')->name('face-id.recognize');
     Route::get('/face-id/profiles', [FaceIdController::class, 'profiles'])->name('face-id.profiles.index');
     Route::patch('/face-id/profiles/{profile}', [FaceIdController::class, 'updateProfile'])->name('face-id.profiles.update');
     Route::delete('/face-id/profiles/{profile}', [FaceIdController::class, 'deleteProfile'])->name('face-id.profiles.delete');
-    Route::get('/face-id/health', [FaceIdController::class, 'health'])->name('face-id.health');
-    Route::post('/face-id/sync', [FaceIdController::class, 'sync'])->name('face-id.sync');
-    Route::post('/face-id/full-sync', [FaceIdController::class, 'fullSync'])->name('face-id.full-sync');
+    Route::get('/face-id/health', [FaceIdController::class, 'health'])->middleware('throttle:30,1')->name('face-id.health');
+    Route::post('/face-id/sync', [FaceIdController::class, 'sync'])->middleware('throttle:5,1')->name('face-id.sync');
+    Route::post('/face-id/full-sync', [FaceIdController::class, 'fullSync'])->middleware('throttle:2,1')->name('face-id.full-sync');
 
     Route::get('/bookings',                           [ReceptionController::class, 'index'])->name('bookings');
     Route::patch('/bookings/{id}/confirm',            [BookingController::class, 'confirm'])->name('bookings.confirm');
@@ -137,6 +137,7 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
     Route::get('/room/{id}/current-booking',          [BookingController::class, 'currentBooking'])->name('room.currentBooking');
     Route::post('/room/{id}/checkin',                 [BookingController::class, 'checkInRoom'])->name('room.checkin');
     Route::post('/room/{id}/status',                  [BookingController::class, 'updateRoomStatus'])->name('room.status');
+    Route::post('/room/{roomId}/cleaning-request/complete', [ReceptionController::class, 'completeCleaningRequest'])->name('room.cleaning.complete');
     Route::post('/bookings/{id}/checkout',            [BookingController::class, 'checkOutRoom'])->name('bookings.checkout-room');
     Route::post('/bookings/{id}/checkout-payment',    [PaymentController::class, 'staffCheckoutPayment'])->name('bookings.checkout-payment');
 

@@ -25,12 +25,46 @@ class LogicRemediationTest extends TestCase
     public function test_expired_hold_cannot_be_revived_by_a_late_gateway_callback(): void
     {
         [$booking] = $this->bookingWithRoom();
-        $booking->forceFill(['created_at' => now()->subMinutes(31)])->saveQuietly();
+        $booking->forceFill(['created_at' => now()->subMinutes(11)])->saveQuietly();
 
         $this->invokeDepositSettlement($booking, 'late-tx');
 
-        $this->assertSame('pending', $booking->fresh()->payment_status);
+        $this->assertSame('failed', $booking->fresh()->payment_status);
+        $this->assertSame('cancelled', $booking->fresh()->status);
         $this->assertDatabaseMissing('payment_logs', ['transaction_id' => 'late-tx', 'status' => 'success']);
+    }
+
+    public function test_expiry_command_cancels_stale_booking_and_fails_its_pending_deposit_log(): void
+    {
+        [$booking] = $this->bookingWithRoom();
+        $booking->forceFill(['created_at' => now()->subMinutes(11)])->saveQuietly();
+        $log = PaymentLog::create([
+            'booking_id' => $booking->id,
+            'gateway' => 'vietqr',
+            'reference_code' => 'KS'.$booking->id.'EXPR',
+            'amount' => $booking->deposit_amount,
+            'purpose' => 'deposit',
+            'status' => 'pending',
+        ]);
+
+        $this->artisan('bookings:expire-pending')->assertExitCode(0);
+
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertSame('failed', $booking->fresh()->payment_status);
+        $this->assertNotNull($booking->fresh()->cancelled_at);
+        $this->assertSame('failed', $log->fresh()->status);
+    }
+
+    public function test_expiry_command_keeps_a_booking_held_during_its_ten_minute_window(): void
+    {
+        [$booking] = $this->bookingWithRoom();
+        $this->travel(9)->minutes();
+
+        $this->artisan('bookings:expire-pending')->assertExitCode(0);
+
+        $this->assertSame('pending', $booking->fresh()->status);
+        $this->assertSame('pending', $booking->fresh()->payment_status);
+        $this->travelBack();
     }
 
     public function test_gateway_callback_cannot_confirm_a_booking_after_its_room_was_sold(): void
@@ -67,6 +101,23 @@ class LogicRemediationTest extends TestCase
         $this->assertSame('sepay-1', $transaction['id']);
         $this->assertSame('pending', $log->fresh()->status);
         $this->assertNull($log->fresh()->transaction_id);
+    }
+
+    public function test_payment_email_uses_cid_images_instead_of_base64_data_uris(): void
+    {
+        $controller = app(PaymentController::class);
+        $method = new \ReflectionMethod($controller, 'buildPaymentEmailHtml');
+        $booking = Booking::make([
+            'check_in' => now()->addDays(3)->toDateString(),
+            'check_out' => now()->addDays(5)->toDateString(),
+            'total_price' => 1000000,
+        ]);
+
+        $html = $method->invoke($controller, $booking, collect(), 'momo', 'test-transaction', 'Posh Boutique', true, true);
+
+        $this->assertStringContainsString('cid:royal-hotel-logo', $html);
+        $this->assertStringContainsString('cid:checkin-qr', $html);
+        $this->assertStringNotContainsString('data:image/png;base64', $html);
     }
 
     public function test_public_login_cannot_create_an_internal_session_even_when_role_is_forged(): void
@@ -254,6 +305,98 @@ class LogicRemediationTest extends TestCase
         } finally {
             $this->travelBack();
         }
+    }
+
+    public function test_customer_checkin_qr_payload_is_scannable_and_uses_the_expected_prefix(): void
+    {
+        [$booking] = $this->bookingWithRoom();
+        $booking->update(['status' => 'confirmed']);
+        $tokens = app(\App\Services\CheckInTokenService::class);
+
+        $payload = $tokens->qrPayload($booking);
+        $this->assertStringStartsWith('ROYAL-CHECKIN:', $payload);
+        $this->assertSame($booking->id, $tokens->bookingId(substr($payload, strlen('ROYAL-CHECKIN:'))));
+    }
+
+    public function test_paid_booking_success_page_renders_a_token_qr_not_a_booking_id_qr(): void
+    {
+        $customer = $this->customer('qr-success@example.com');
+        $booking = $this->booking($customer, 'confirmed', 'paid');
+
+        $this->actingAs($customer)->withSession([
+            'customer_user_id' => $customer->id,
+            'customer_user' => ['id' => $customer->id, 'role' => 'customer', 'verified' => true],
+        ])->get(route('payment.success', $booking->id))
+            ->assertOk()
+            ->assertSee('Mã Check-in')
+            ->assertSee('data:image/png;base64,', false)
+            ->assertDontSee('Booking ID: #');
+    }
+
+    public function test_history_page_shows_zero_reserved_count_and_has_no_pdf_action(): void
+    {
+        $customer = $this->customer('empty-history@example.com');
+        $customerSession = [
+            'customer_user_id' => $customer->id,
+            'customer_user' => ['id' => $customer->id, 'role' => 'customer', 'verified' => true],
+        ];
+
+        $this->actingAs($customer)->withSession($customerSession)->get(route('booking.mine'))
+            ->assertOk()
+            ->assertSee('Lịch Sử Đặt Phòng')
+            ->assertSee('Đã Đặt')
+            ->assertSee('Đã Đặt <span class="badge bg-blue-50 text-primary rounded-pill ms-1">0</span>', false)
+            ->assertDontSee('Xuất PDF');
+    }
+
+    public function test_customer_cannot_select_cash_from_the_online_payment_form(): void
+    {
+        $customer = $this->customer('no-customer-cash@example.com');
+        [$booking] = $this->bookingWithRoom();
+        $booking->update(['user_id' => $customer->id]);
+        $customerSession = [
+            'customer_user_id' => $customer->id,
+            'customer_user' => ['id' => $customer->id, 'role' => 'customer', 'verified' => true],
+        ];
+
+        $this->actingAs($customer)->withSession($customerSession)
+            ->get(route('payment.form', $booking->id))
+            ->assertOk()
+            ->assertDontSee('method_cash')
+            ->assertDontSee('Thanh toán tại quầy');
+
+        $this->actingAs($customer)->withSession($customerSession)->patch(route('payment.update', $booking->id), [
+            'payment_method' => 'cash',
+        ])->assertSessionHasErrors('payment_method');
+
+        $this->assertNull($booking->fresh()->payment_method);
+    }
+
+    public function test_hourly_extension_costs_ten_percent_of_that_room_night_per_hour(): void
+    {
+        $staff = $this->internalUser('hourly-extension@example.com', 'receptionist');
+        $type = RoomType::create([
+            'type_name' => 'Hourly extension', 'price' => 500000,
+            'max_adults' => 2, 'max_children' => 0, 'max_guests' => 2,
+        ]);
+        $room = Room::create([
+            'room_number' => 'EXT'.uniqid(), 'room_type_id' => $type->id,
+            'floor' => 1, 'status' => 'occupied',
+        ]);
+        $booking = $this->booking($this->customer('hourly-guest@example.com'), 'checked_in', 'paid');
+        $booking->rooms()->attach($room->id);
+
+        $this->actingAs($staff)->withSession([
+            'staff_user_id' => $staff->id,
+            'staff_user' => ['id' => $staff->id, 'role' => 'receptionist', 'verified' => true],
+        ])->postJson(route('staff.reception.extend'), [
+            'room_id' => $room->id,
+            'mode' => 'hours',
+            'amount' => 2,
+        ])->assertOk()
+            ->assertJsonPath('hourly_rate', 50000)
+            ->assertJsonPath('added_amount', 100000)
+            ->assertJsonPath('total_price', 1100000);
     }
 
     public function test_repeated_payment_confirmation_is_an_idempotent_success_for_the_same_booking_only(): void

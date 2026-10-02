@@ -1,5 +1,5 @@
 @extends('layouts.dashboard')
-@section('title', 'Hoàn tiền · Royal Hotel')
+@section('title', 'Hoàn tiền · Posh Boutique')
 @section('content')
 @php
     $refunds = collect($cancellations);

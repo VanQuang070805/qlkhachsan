@@ -22,13 +22,14 @@ class RoyalKnowledgeService
             : null;
 
         return collect($chunks)->map(function (array $chunk) use ($query, $queryEmbedding) {
-            $lexical = $this->score($query, $chunk['title'].' '.$chunk['content']);
+            $titleLexical = $this->score($query, $chunk['title']);
+            $contentLexical = $this->score($query, $chunk['content']);
             $semantic = $queryEmbedding && ! empty($chunk['embedding'])
                 ? $this->cosine($queryEmbedding, $chunk['embedding'])
                 : 0.0;
 
             return $chunk + [
-                'score' => round(($semantic * 100) + min($lexical * 8, 40), 4),
+                'score' => round(($semantic * 100) + min($contentLexical * 8, 40) + min($titleLexical * 16, 64), 4),
                 'semantic_score' => round($semantic, 4),
             ];
         })
@@ -93,7 +94,7 @@ class RoyalKnowledgeService
 
                 return collect($chunks)->map(fn (string $content) => [
                     'title' => $title,
-                    'source' => 'Royal Hotel · '.$title,
+                    'source' => 'Posh Boutique · '.$title,
                     'content' => $content,
                 ]);
             });
@@ -123,8 +124,8 @@ class RoyalKnowledgeService
                 $text = collect($result['content'] ?? [])->pluck('text')->filter()->implode("\n");
 
                 return [
-                    'title' => $result['filename'] ?? 'Tài liệu Royal Hotel',
-                    'source' => $result['filename'] ?? 'Royal Hotel knowledge base',
+                    'title' => $result['filename'] ?? 'Tài liệu Posh Boutique',
+                    'source' => $result['filename'] ?? 'Posh Boutique knowledge base',
                     'content' => Str::limit($text, 1600, ''),
                     'score' => (float) ($result['score'] ?? 0),
                 ];

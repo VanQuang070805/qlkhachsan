@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: Royal Hotel public chatbot tools
+  version: 1.0.0
+  description: Read-only public room type pricing and room availability. Contains no staff or booking lookup operations.
+servers:
+  - url: http://host.docker.internal:8001/api
+security:
+  - DifyToolBearer: []
+paths:
+  /chatbot/tools/room-types:
+    post:
+      operationId: getRoomTypes
+      summary: Get public room types and current base prices
+      description: Returns only public room type names, nightly prices, and guest capacity.
+      responses:
+        '200':
+          description: Current public room types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  room_types:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoomType'
+        '401':
+          description: Invalid tool credential
+        '503':
+          description: Tool credential is not configured
+  /chatbot/tools/rooms/search:
+    post:
+      operationId: searchAvailableRooms
+      summary: Search live availability by dates and guest count
+      description: Returns availability counts by room type. Does not return room numbers or IDs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [check_in, check_out, guests]
+              properties:
+                check_in:
+                  type: string
+                  format: date
+                check_out:
+                  type: string
+                  format: date
+                guests:
+                  type: integer
+                  minimum: 1
+                  maximum: 20
+                rooms:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  default: 1
+      responses:
+        '200':
+          description: Availability grouped by public room type
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  check_in:
+                    type: string
+                    format: date
+                  check_out:
+                    type: string
+                    format: date
+                  requested_rooms:
+                    type: integer
+                  room_types:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type_name:
+                          type: string
+                        available_rooms:
+                          type: integer
+                        enough_for_request:
+                          type: boolean
+                        price_per_night:
+                          type: number
+                        max_guests:
+                          type: integer
+        '401':
+          description: Invalid tool credential
+        '422':
+          description: Invalid dates or guest count
+        '503':
+          description: Tool credential is not configured
+components:
+  securitySchemes:
+    DifyToolBearer:
+      type: http
+      scheme: bearer
+  schemas:
+    RoomType:
+      type: object
+      properties:
+        type_name:
+          type: string
+        price_per_night:
+          type: number
+        max_guests:
+          type: integer

@@ -7,6 +7,7 @@ use App\Models\Room;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\PriceSetting;
 
 class BookingController extends Controller
@@ -168,7 +169,11 @@ class BookingController extends Controller
             abort(403);
         }
 
-        return view('booking.success', compact('booking'));
+        $checkin_token = in_array($booking->status, ['confirmed', 'checked_in'], true)
+            ? app(\App\Services\CheckInTokenService::class)->qrPayload($booking)
+            : null;
+
+        return view('booking.success', compact('booking', 'checkin_token'));
     }
 
     /**
@@ -181,7 +186,22 @@ class BookingController extends Controller
             ->orderByDesc((new Booking)->getCreatedAtColumn())
             ->paginate(10);
 
-        return view('booking.my_bookings', compact('bookings'));
+        $bookingCounts = Booking::where('user_id', Auth::id())
+            ->selectRaw(
+                'COUNT(*) AS all_count,
+                 COALESCE(SUM(CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END), 0) AS upcoming_count,
+                 COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) AS completed_count,
+                 COALESCE(SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END), 0) AS cancelled_count',
+                ['pending', 'confirmed', 'checked_in', 'completed', 'cancelled', 'rejected']
+            )->first();
+
+        $checkinTokens = $bookings->getCollection()
+            ->filter(fn (Booking $booking) => in_array($booking->status, ['confirmed', 'checked_in'], true))
+            ->mapWithKeys(fn (Booking $booking) => [
+                $booking->id => app(\App\Services\CheckInTokenService::class)->qrPayload($booking),
+            ]);
+
+        return view('booking.my_bookings', compact('bookings', 'bookingCounts', 'checkinTokens'));
     }
 
     /** Khách đang lưu trú bật/tắt yêu cầu dọn dẹp cho phòng của mình. */
@@ -442,7 +462,8 @@ class BookingController extends Controller
     public function updateRoomStatus(Request $request, int $roomId)
     {
         $room = Room::findOrFail($roomId);
-        $newStatus = $request->input('status');
+        $validated = $request->validate(['status' => ['required', 'in:available,cleaning,maintenance']]);
+        $newStatus = $validated['status'];
 
         $allowed = ['available', 'cleaning', 'maintenance'];
         if (!in_array($newStatus, $allowed)) {
@@ -456,7 +477,12 @@ class BookingController extends Controller
             ], 422);
         }
 
-        if ($room->status === Room::STATUS_OCCUPIED) return response()->json(['success'=>false, 'message'=>'Vui lòng hoàn tất thanh toán trả phòng trước.'], 422);
+        if ($room->status === Room::STATUS_OCCUPIED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vui lòng hoàn tất thanh toán trả phòng trước.',
+            ], 422);
+        }
 
         if ($newStatus === Room::STATUS_AVAILABLE) {
             $room->update([
@@ -480,4 +506,5 @@ class BookingController extends Controller
 
         return response()->json(['success' => true, 'message' => "Phòng {$room->room_number} → {$statusText}."]);
     }
+
 }

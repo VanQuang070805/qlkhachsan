@@ -44,6 +44,14 @@ return [
         'moderation_enabled' => env('ROYAL_AI_MODERATION', true),
     ],
 
+    'dify' => [
+        'base_url' => env('DIFY_BASE_URL'),
+        'api_key' => env('DIFY_API_KEY'),
+        'timeout' => (int) env('DIFY_TIMEOUT', 90),
+        'tool_api_key' => env('DIFY_TOOL_API_KEY'),
+        'live_tools_enabled' => env('DIFY_LIVE_TOOLS_ENABLED', false),
+    ],
+
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
