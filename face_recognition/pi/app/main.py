@@ -8,6 +8,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from .cache import FaceCache
+from .cleaning_switch import CleaningApiClient, CleaningSwitchService
 from .config import PiConfig
 from .database import FaceDatabase, FaceRecord
 from .recognition_worker import RecognitionWorker
@@ -41,6 +42,19 @@ def create_app(config: PiConfig | None = None) -> FastAPI:
     database = FaceDatabase(settings.database_path)
     cache = FaceCache(database)
     worker = RecognitionWorker(settings, cache)
+    cleaning_switch: CleaningSwitchService | None = None
+    if settings.cleaning_switch_enabled:
+        cleaning_switch = CleaningSwitchService(
+            client=CleaningApiClient(
+                base_url=settings.hotel_api_base_url,
+                api_key=settings.iot_device_api_key,
+                room_number=settings.iot_cleaning_room_number,
+                timeout=settings.iot_request_timeout,
+            ),
+            gpio=settings.iot_cleaning_switch_gpio,
+            bounce_time=settings.iot_switch_bounce_time,
+            retry_seconds=settings.iot_retry_seconds,
+        )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -49,7 +63,15 @@ def create_app(config: PiConfig | None = None) -> FastAPI:
         LOGGER.info("Face database initialized; cache_count=%d", count)
         if settings.start_recognition:
             worker.start()
+        if cleaning_switch:
+            try:
+                cleaning_switch.start()
+            except Exception as exc:
+                cleaning_switch.last_error = str(exc)
+                LOGGER.exception("Cleaning switch failed to start; Face ID will continue")
         yield
+        if cleaning_switch:
+            cleaning_switch.stop()
         worker.stop()
 
     app = FastAPI(title="Hotel Face ID Pi API", version="1.0", lifespan=lifespan)
@@ -57,6 +79,7 @@ def create_app(config: PiConfig | None = None) -> FastAPI:
     app.state.database = database
     app.state.cache = cache
     app.state.worker = worker
+    app.state.cleaning_switch = cleaning_switch
 
     def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
         if not x_api_key or not hmac.compare_digest(x_api_key, settings.api_key):
@@ -64,7 +87,15 @@ def create_app(config: PiConfig | None = None) -> FastAPI:
 
     @app.get("/api/health")
     def health(request: Request):
-        return {"status": "ok", "faces": request.app.state.cache.size}
+        switch = request.app.state.cleaning_switch
+        return {
+            "status": "ok",
+            "faces": request.app.state.cache.size,
+            "recognition_running": bool(
+                request.app.state.worker.thread and request.app.state.worker.thread.is_alive()
+            ),
+            "cleaning_switch": switch.health() if switch else {"enabled": False},
+        }
 
     @app.get("/api/faces", dependencies=[Depends(require_api_key)])
     def list_faces(request: Request):

@@ -40,13 +40,22 @@ class PiConfig:
     servo_enabled: bool = False
     servo_gpio_pin: int = 18
     servo_closed_angle: float = 0.0
-    servo_open_angle: float = 180.0
+    servo_open_angle: float = 90.0
     servo_move_seconds: float = 1.2
     servo_hold_seconds: float = 3.0
     servo_cooldown_seconds: float = 8.0
     servo_min_pulse_width: float = 0.0005
     servo_max_pulse_width: float = 0.0025
     servo_detach_after_move: bool = True
+    servo_pwm_backend: str = "pigpio"
+    cleaning_switch_enabled: bool = False
+    hotel_api_base_url: str = ""
+    iot_device_api_key: str = ""
+    iot_cleaning_room_number: str = "501"
+    iot_cleaning_switch_gpio: int = 17
+    iot_switch_bounce_time: float = 0.15
+    iot_request_timeout: float = 5.0
+    iot_retry_seconds: float = 3.0
 
     @classmethod
     def from_env(cls) -> "PiConfig":
@@ -73,13 +82,22 @@ class PiConfig:
             servo_enabled=os.getenv("SERVO_ENABLED", "false").lower() in {"1", "true", "yes"},
             servo_gpio_pin=int(os.getenv("SERVO_GPIO_PIN", "18")),
             servo_closed_angle=float(os.getenv("SERVO_CLOSED_ANGLE", "0")),
-            servo_open_angle=float(os.getenv("SERVO_OPEN_ANGLE", "180")),
+            servo_open_angle=float(os.getenv("SERVO_OPEN_ANGLE", "90")),
             servo_move_seconds=float(os.getenv("SERVO_MOVE_SECONDS", "1.2")),
             servo_hold_seconds=float(os.getenv("SERVO_HOLD_SECONDS", "3")),
             servo_cooldown_seconds=float(os.getenv("SERVO_COOLDOWN_SECONDS", "8")),
             servo_min_pulse_width=float(os.getenv("SERVO_MIN_PULSE_WIDTH", "0.0005")),
             servo_max_pulse_width=float(os.getenv("SERVO_MAX_PULSE_WIDTH", "0.0025")),
             servo_detach_after_move=os.getenv("SERVO_DETACH_AFTER_MOVE", "true").lower() in {"1", "true", "yes"},
+            servo_pwm_backend=os.getenv("SERVO_PWM_BACKEND", "pigpio").strip().lower(),
+            cleaning_switch_enabled=os.getenv("CLEANING_SWITCH_ENABLED", "false").lower() in {"1", "true", "yes"},
+            hotel_api_base_url=os.getenv("HOTEL_API_BASE_URL", "").rstrip("/"),
+            iot_device_api_key=os.getenv("IOT_DEVICE_API_KEY", ""),
+            iot_cleaning_room_number=os.getenv("IOT_CLEANING_ROOM_NUMBER", "501"),
+            iot_cleaning_switch_gpio=int(os.getenv("IOT_CLEANING_SWITCH_GPIO", "17")),
+            iot_switch_bounce_time=float(os.getenv("IOT_SWITCH_BOUNCE_TIME", "0.15")),
+            iot_request_timeout=float(os.getenv("IOT_REQUEST_TIMEOUT", "5")),
+            iot_retry_seconds=float(os.getenv("IOT_RETRY_SECONDS", "3")),
         )
         config.validate()
         return config
@@ -117,3 +135,20 @@ class PiConfig:
             raise ValueError("SERVO_COOLDOWN_SECONDS must be between 0 and 300")
         if not 0.0001 <= self.servo_min_pulse_width < self.servo_max_pulse_width <= 0.003:
             raise ValueError("Servo pulse widths are invalid")
+        if self.servo_pwm_backend not in {"pigpio", "gpiozero"}:
+            raise ValueError("SERVO_PWM_BACKEND must be pigpio or gpiozero")
+        if self.cleaning_switch_enabled:
+            if not self.hotel_api_base_url.startswith(("http://", "https://")):
+                raise ValueError("HOTEL_API_BASE_URL must start with http:// or https://")
+            if not self.iot_device_api_key:
+                raise ValueError("IOT_DEVICE_API_KEY is required when cleaning switch is enabled")
+            if not self.iot_cleaning_room_number:
+                raise ValueError("IOT_CLEANING_ROOM_NUMBER is required")
+            if not 0 <= self.iot_cleaning_switch_gpio <= 27:
+                raise ValueError("IOT_CLEANING_SWITCH_GPIO must be a BCM GPIO number from 0 to 27")
+            if self.servo_enabled and self.iot_cleaning_switch_gpio == self.servo_gpio_pin:
+                raise ValueError("Cleaning switch and servo cannot use the same GPIO pin")
+            if not 0 <= self.iot_switch_bounce_time <= 2:
+                raise ValueError("IOT_SWITCH_BOUNCE_TIME must be between 0 and 2 seconds")
+            if self.iot_request_timeout <= 0 or self.iot_retry_seconds <= 0:
+                raise ValueError("IoT request timeout and retry interval must be positive")

@@ -56,6 +56,7 @@ class RecognitionWorker:
                     min_pulse_width=self.config.servo_min_pulse_width,
                     max_pulse_width=self.config.servo_max_pulse_width,
                     detach_after_move=self.config.servo_detach_after_move,
+                    pwm_backend=self.config.servo_pwm_backend,
                 )
                 LOGGER.info("Door servo ready on BCM GPIO %d", self.config.servo_gpio_pin)
             except Exception:

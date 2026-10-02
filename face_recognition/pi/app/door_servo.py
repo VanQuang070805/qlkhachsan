@@ -9,6 +9,49 @@ from typing import Callable
 LOGGER = logging.getLogger("hotel-face-pi.servo")
 
 
+class PigpioAngularServo:
+    """Angular-servo adapter backed by pigpio's DMA-timed pulses."""
+
+    def __init__(self, pin: int, min_pulse_width: float, max_pulse_width: float) -> None:
+        try:
+            import pigpio
+        except ImportError as error:
+            raise RuntimeError(
+                "pigpio is required for stable servo PWM. Install python3-pigpio."
+            ) from error
+
+        self.pin = pin
+        self.min_microseconds = min_pulse_width * 1_000_000
+        self.max_microseconds = max_pulse_width * 1_000_000
+        self.connection = pigpio.pi()
+        if not self.connection.connected:
+            self.connection.stop()
+            raise RuntimeError(
+                "Cannot connect to pigpiod. Run: sudo systemctl enable --now pigpiod"
+            )
+        self._angle: float | None = None
+
+    @property
+    def angle(self) -> float | None:
+        return self._angle
+
+    @angle.setter
+    def angle(self, value: float | None) -> None:
+        if value is None:
+            self.connection.set_servo_pulsewidth(self.pin, 0)
+            self._angle = None
+            return
+
+        angle = max(0.0, min(180.0, float(value)))
+        pulse = self.min_microseconds + (self.max_microseconds - self.min_microseconds) * angle / 180.0
+        self.connection.set_servo_pulsewidth(self.pin, round(pulse))
+        self._angle = angle
+
+    def close(self) -> None:
+        self.connection.set_servo_pulsewidth(self.pin, 0)
+        self.connection.stop()
+
+
 class DoorServo:
     def __init__(
         self,
@@ -21,6 +64,7 @@ class DoorServo:
         min_pulse_width: float,
         max_pulse_width: float,
         detach_after_move: bool,
+        pwm_backend: str = "pigpio",
         device=None,
         sleep: Callable[[float], None] = time.sleep,
         monotonic: Callable[[], float] = time.monotonic,
@@ -38,19 +82,24 @@ class DoorServo:
         self.last_activation = float("-inf")
 
         if device is None:
-            try:
-                from gpiozero import AngularServo
-            except ImportError as error:
-                raise RuntimeError(
-                    "gpiozero is required for servo control. Install python3-gpiozero."
-                ) from error
-            device = AngularServo(
-                pin,
-                min_angle=0,
-                max_angle=180,
-                min_pulse_width=min_pulse_width,
-                max_pulse_width=max_pulse_width,
-            )
+            if pwm_backend == "pigpio":
+                device = PigpioAngularServo(pin, min_pulse_width, max_pulse_width)
+                LOGGER.info("Servo uses pigpio DMA-timed PWM")
+            else:
+                try:
+                    from gpiozero import AngularServo
+                except ImportError as error:
+                    raise RuntimeError(
+                        "gpiozero is required for servo control. Install python3-gpiozero."
+                    ) from error
+                device = AngularServo(
+                    pin,
+                    min_angle=0,
+                    max_angle=180,
+                    min_pulse_width=min_pulse_width,
+                    max_pulse_width=max_pulse_width,
+                )
+                LOGGER.warning("Servo uses software PWM; pigpio is recommended to prevent jitter")
         self.device = device
         self.device.angle = self.closed_angle
         self.current_angle = self.closed_angle

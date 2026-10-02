@@ -9,9 +9,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pin", type=int, default=18, help="BCM GPIO number")
     parser.add_argument("--closed-angle", type=float, default=0)
-    parser.add_argument("--open-angle", type=float, default=180)
+    parser.add_argument("--open-angle", type=float, default=90)
     parser.add_argument("--move-seconds", type=float, default=1.2)
     parser.add_argument("--hold-seconds", type=float, default=3)
+    parser.add_argument("--pwm-backend", choices=("pigpio", "gpiozero"), default="pigpio")
     args = parser.parse_args()
 
     servo = DoorServo(
@@ -24,6 +25,7 @@ def main() -> int:
         min_pulse_width=0.0005,
         max_pulse_width=0.0025,
         detach_after_move=True,
+        pwm_backend=args.pwm_backend,
     )
     try:
         if not servo.unlock():

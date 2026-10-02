@@ -37,7 +37,12 @@ def payload(customer_id: str = "KH001", version: int = 1) -> dict:
 
 def test_health_is_public_but_face_list_requires_key(tmp_path: Path):
     with TestClient(create_app(settings(tmp_path))) as client:
-        assert client.get("/api/health").json() == {"status": "ok", "faces": 0}
+        assert client.get("/api/health").json() == {
+            "status": "ok",
+            "faces": 0,
+            "recognition_running": False,
+            "cleaning_switch": {"enabled": False},
+        }
         assert client.get("/api/faces").status_code == 401
         assert client.get("/api/faces", headers={"X-API-Key": "wrong"}).status_code == 401
 
@@ -87,3 +92,15 @@ def test_servo_configuration_validation(tmp_path: Path):
         assert "Servo angles" in str(error)
     else:
         raise AssertionError("Invalid servo angle should be rejected")
+
+
+def test_cleaning_switch_configuration_requires_laptop_endpoint(tmp_path: Path):
+    config = settings(tmp_path)
+    object.__setattr__(config, "cleaning_switch_enabled", True)
+
+    try:
+        config.validate()
+    except ValueError as error:
+        assert "HOTEL_API_BASE_URL" in str(error)
+    else:
+        raise AssertionError("Missing Laravel endpoint should be rejected")

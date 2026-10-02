@@ -64,9 +64,13 @@ Module Rev 1.3. Trên PC, sửa `FACE_PI_BASE_URL` trong `.env` thành IP LAN c�
 chạy `php artisan config:clear`.
 
 Servo cửa mặc định dùng BCM GPIO18 (chân vật lý 12), góc đóng 0 và góc mở 90.
-Dùng nguồn 5V rời cho servo, nối chung GND nguồn servo với GND Pi, sau đó đặt
-`SERVO_ENABLED=true` trong `.env`. Chạy `.venv/bin/python test_servo.py`
-trước khi chạy nhận diện. Sơ đồ nối dây đầy đủ nằm trong `docs/TEST-PI.md`.
+Dùng nguồn 5V rời cho servo, nối chung GND nguồn servo với GND Pi. Cài và bật
+`pigpiod` để PWM ổn định khi CPU đang nhận diện khuôn mặt, sau đó đặt
+`SERVO_ENABLED=true` và `SERVO_PWM_BACKEND=pigpio` trong `.env`. Công tắc dọn
+phòng BCM GPIO17 chạy trong cùng tiến trình khi `CLEANING_SWITCH_ENABLED=true`,
+không cần chạy thêm `raspberry-pi/cleaning_switch.py`. Chạy
+`.venv/bin/python test_servo.py` trước khi chạy nhận diện. Sơ đồ nối dây đầy đủ
+nằm trong `docs/TEST-PI.md`.
 
 ## Lệnh test
 

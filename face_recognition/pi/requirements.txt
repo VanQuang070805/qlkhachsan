@@ -1,4 +1,4 @@
-# Install Picamera2, OpenCV, NumPy and gpiozero from Raspberry Pi OS apt packages.
+# Install Picamera2, OpenCV, NumPy, gpiozero and pigpio from Raspberry Pi OS apt packages.
 # Create the venv with --system-site-packages so these modules and the OpenCV
 # GUI needed by SHOW_PREVIEW are available.
 fastapi>=0.115,<1.0

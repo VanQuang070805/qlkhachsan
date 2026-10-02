@@ -93,10 +93,12 @@ nguồn khỏe hơn theo thông số servo lớn; không nối cực dương ngu
 5V của Pi khi Pi đang dùng nguồn riêng. Có thể đặt tụ 470-1000 uF giữa VCC và
 GND gần servo để hạn chế Pi reset do sụt áp.
 
-Cài GPIO Zero và test servo riêng trước:
+Cài GPIO Zero, pigpio và test servo riêng trước. `pigpiod` tạo xung bằng DMA,
+ổn định hơn software PWM khi nhận diện khuôn mặt đang dùng nhiều CPU:
 
 ```bash
-sudo apt install -y python3-gpiozero
+sudo apt install -y python3-gpiozero python3-pigpio pigpio
+sudo systemctl enable --now pigpiod
 cd ~/hotel-face-id
 .venv/bin/python test_servo.py --pin 18 --closed-angle 0 --open-angle 90
 ```
@@ -115,6 +117,14 @@ SERVO_OPEN_ANGLE=90
 SERVO_HOLD_SECONDS=3
 SERVO_COOLDOWN_SECONDS=8
 SERVO_DETACH_AFTER_MOVE=true
+SERVO_PWM_BACKEND=pigpio
+
+CLEANING_SWITCH_ENABLED=true
+HOTEL_API_BASE_URL=http://172.20.10.4:8000
+IOT_DEVICE_API_KEY=phai-giong-IOT_DEVICE_API_KEY-tren-laptop
+IOT_CLEANING_ROOM_NUMBER=501
+IOT_CLEANING_SWITCH_GPIO=17
+IOT_SWITCH_BOUNCE_TIME=0.15
 ```
 
 ## 6. Chạy dịch vụ nhận diện trên Pi
@@ -132,7 +142,10 @@ python3 -m venv --system-site-packages .venv
 `run_recognition.py` khởi động API cổng 8002 và worker đọc Camera Module Rev 1.3.
 `run_api.py` chỉ khởi động API/cache, không mở camera hoặc servo. Khi
 `run_recognition.py` nhận diện đúng khuôn mặt, servo mở một lần, giữ theo
-`SERVO_HOLD_SECONDS`, rồi tự về góc đóng.
+`SERVO_HOLD_SECONDS`, rồi tự về góc đóng. Cùng tiến trình này cũng đọc công tắc
+dọn phòng và tự gửi lại trạng thái mới nhất tới Laravel nếu Wi-Fi tạm thời mất.
+Mở `http://IP_PI:8002/api/health` để xem `recognition_running` và
+`cleaning_switch.last_error`.
 
 ## 7. Xử lý lỗi
 
@@ -147,6 +160,7 @@ python3 -m venv --system-site-packages .venv
 | Servo không quay | Kiểm tra `SERVO_ENABLED=true`, dây signal ở GPIO18 và hai nguồn đã nối chung GND |
 | Pi reset khi servo quay | Dùng nguồn 5V rời đủ dòng cho servo, thêm tụ 470-1000 uF gần servo |
 | Servo rung hoặc sai góc | Chỉnh `SERVO_MIN_PULSE_WIDTH`, `SERVO_MAX_PULSE_WIDTH` hoặc đổi góc mở/đóng |
+| Công tắc không lên laptop | Kiểm tra `cleaning_switch.last_error` tại `/api/health`, IP laptop và `IOT_DEVICE_API_KEY` |
 
 Tài liệu camera chính thức: [Raspberry Pi camera software](https://www.raspberrypi.com/documentation/computers/camera_software.html)
 và [Picamera2 manual](https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf).
