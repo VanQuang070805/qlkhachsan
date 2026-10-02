@@ -28,6 +28,7 @@
         
         <div class="sidebar-section-label">VẬN HÀNH KHÁCH SẠN</div>
         <a class="{{ request()->routeIs('staff.bookings')?'is-active':'' }}" href="{{ route('staff.bookings') }}"><i class="bi bi-calendar2-check"></i><span>Sơ đồ phòng</span></a>
+        <a class="{{ request()->routeIs('staff.iot','staff.face-id.*')?'is-active':'' }}" href="{{ route('staff.iot') }}"><i class="bi bi-person-bounding-box"></i><span>Face ID &amp; IoT</span></a>
         <a class="{{ request()->routeIs('staff.cancellations')?'is-active':'' }}" href="{{ route('staff.cancellations') }}"><i class="bi bi-arrow-counterclockwise"></i><span>Hoàn tiền</span></a>
         
         <div class="sidebar-section-label">QUẢN TRỊ HỆ THỐNG</div>
@@ -37,6 +38,7 @@
     @else
         <div class="sidebar-section-label">QUẦY LỄ TÂN</div>
         <a class="{{ request()->routeIs('staff.bookings')?'is-active':'' }}" href="{{ route('staff.bookings') }}"><i class="bi bi-calendar2-check"></i><span>Sơ đồ phòng</span></a>
+        <a class="{{ request()->routeIs('staff.iot','staff.face-id.*')?'is-active':'' }}" href="{{ route('staff.iot') }}"><i class="bi bi-person-bounding-box"></i><span>Face ID &amp; IoT</span></a>
         <a class="{{ request()->routeIs('staff.cancellations')?'is-active':'' }}" href="{{ route('staff.cancellations') }}"><i class="bi bi-arrow-counterclockwise"></i><span>Xử lý hoàn tiền</span></a>
         
         <div class="sidebar-section-label">TÀI KHOẢN</div>

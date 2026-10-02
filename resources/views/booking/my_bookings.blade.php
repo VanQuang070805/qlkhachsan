@@ -163,6 +163,15 @@
 
                         <div class="d-flex flex-wrap gap-2 justify-content-md-end align-items-center">
                             @if($isUpcoming)
+                                @if($booking->status === 'checked_in')
+                                    @foreach($booking->rooms as $room)
+                                    <label class="cleaning-request-card {{ $room->needs_cleaning ? 'is-requested' : '' }}" style="font-size:12px;font-weight:600;cursor:pointer;background:{{ $room->needs_cleaning ? '#fff7ed' : '#f8fafc' }};color:{{ $room->needs_cleaning ? '#b45309' : '#475569' }};border:1px solid {{ $room->needs_cleaning ? '#fdba74' : '#e2e8f0' }};border-radius:999px;padding:6px 12px;">
+                                        <input class="form-check-input m-0 cleaning-request-toggle" type="checkbox" data-room-number="{{ $room->room_number }}" data-url="{{ route('booking.cleaning-request', [$booking->id, $room->id]) }}" {{ $room->needs_cleaning ? 'checked' : '' }} aria-label="Yêu cầu dọn phòng {{ $room->room_number }}">
+                                        <span data-label>Phòng {{ $room->room_number }} · {{ $room->needs_cleaning ? 'Đã báo dọn' : 'Yêu cầu dọn' }}</span>
+                                    </label>
+                                    @endforeach
+                                @endif
+
                                 {{-- Nút Apple Wallet (Black Pill) --}}
                                 <button type="button" class="btn rounded-pill px-3 py-1.5 text-white d-inline-flex align-items-center gap-1.5 shadow-xs"
                                         style="font-size: 11.5px; font-weight: 600; background: #0f172a; border: 1px solid #1e293b; transition: all 0.2s ease;"
@@ -655,6 +664,42 @@ document.addEventListener('keydown', e => {
         const inp = document.getElementById('bookingSearchInput');
         if (inp) inp.focus();
     }
+});
+
+document.querySelectorAll('.cleaning-request-toggle').forEach(toggle => {
+    toggle.addEventListener('change', async function () {
+        const previous = !this.checked;
+        const card = this.closest('.cleaning-request-card');
+        const label = card?.querySelector('[data-label]');
+        this.disabled = true;
+        try {
+            const response = await fetch(this.dataset.url, {
+                method: 'PATCH',
+                cache: 'no-store',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ needs_cleaning: this.checked })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Không thể cập nhật yêu cầu.');
+            card?.classList.toggle('is-requested', data.needs_cleaning);
+            if (card) {
+                card.style.background = data.needs_cleaning ? '#fff7ed' : '#f8fafc';
+                card.style.color = data.needs_cleaning ? '#b45309' : '#475569';
+                card.style.borderColor = data.needs_cleaning ? '#fdba74' : '#e2e8f0';
+            }
+            if (label) label.textContent = `Phòng ${this.dataset.roomNumber} · ${data.needs_cleaning ? 'Đã báo dọn' : 'Yêu cầu dọn'}`;
+        } catch (error) {
+            this.checked = previous;
+            if (label) label.textContent = error.message;
+        } finally {
+            this.disabled = false;
+        }
+    });
 });
 </script>
 @endsection

@@ -384,6 +384,19 @@
     }
     .badge-status-available .badge-dot { background: #10b981; }
 
+    .room-cleaning-request-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 8px;
+        border: 1px solid #fed7aa;
+        border-radius: 999px;
+        background: #fff7ed;
+        color: #9a3412;
+        font-size: .68rem;
+        font-weight: 650;
+    }
+
     .badge-status-occupied {
         background: #eff6ff;
         color: #1e40af;
@@ -700,6 +713,7 @@
                                  data-type="{{ $room['room_type_id'] }}"
                                  data-guests="{{ $room['max_guests'] }}"
                                  data-status="{{ $uiStatus }}"
+                                 data-needs-cleaning="{{ !empty($room['needs_cleaning']) ? '1' : '0' }}"
                                  data-has-booking="{{ $room['has_today_booking'] ? '1' : '0' }}"
                                  data-search="{{ htmlspecialchars(strtolower($room['room_number'] . ' ' . $room['type_name'] . ' ' . ($room['customer_name'] ?? '') . ' ' . ($room['customer_phone'] ?? ''))) }}"
                                  id="room-card-{{ $room['id'] }}"
@@ -737,6 +751,9 @@
                                             <i class="fa-solid fa-check"></i>
                                             <span>Sẵn sàng</span>
                                         </div>
+                                    @endif
+                                    @if(!empty($room['needs_cleaning']) && $uiStatus !== 'cleaning')
+                                        <span class="room-cleaning-request-tag"><i class="fa-solid fa-bell-concierge"></i>Khách yêu cầu dọn</span>
                                     @endif
                                 </div>
                             </div>
@@ -885,6 +902,10 @@
                 <button class="staff-action-btn staff-action-secondary btn-action" id="btn-action-extend" onclick="openExtendStayModal()">
                     <i class="bi bi-calendar-plus"></i>
                     <span>Gia hạn lưu trú</span>
+                </button>
+                <button class="staff-action-btn staff-action-warning btn-action" id="btn-action-cleaning-request-done" onclick="completeCleaningRequest()">
+                    <i class="bi bi-check2-circle"></i>
+                    <span>Hoàn tất yêu cầu dọn</span>
                 </button>
                 <button class="staff-action-btn staff-action-warning btn-action" id="btn-action-hold" onclick="handleSingleHold()">
                     <i class="bi bi-clock-history"></i>
@@ -1671,12 +1692,14 @@
         const btnOccupied = document.getElementById('btn-action-occupied');
         const btnExtend = document.getElementById('btn-action-extend');
         const btnCleaningDone = document.getElementById('btn-action-cleaning-done');
+        const btnCleaningRequestDone = document.getElementById('btn-action-cleaning-request-done');
         const btnHold = document.getElementById('btn-action-hold');
 
         if (btnAvailable) { btnAvailable.style.display = 'none'; btnAvailable.disabled = false; }
         if (btnOccupied) { btnOccupied.style.display = 'none'; btnOccupied.disabled = false; }
         if (btnExtend) { btnExtend.style.display = 'none'; btnExtend.disabled = false; }
         if (btnCleaningDone) { btnCleaningDone.style.display = 'none'; btnCleaningDone.disabled = false; }
+        if (btnCleaningRequestDone) { btnCleaningRequestDone.style.display = 'none'; btnCleaningRequestDone.disabled = false; }
         if (btnHold) { btnHold.style.display = 'none'; btnHold.disabled = false; }
 
         const isOccupied = isOccupiedStatus(currentStatus) || (selectedRoomData && parseInt(selectedRoomData.has_active_booking) > 0);
@@ -1694,8 +1717,38 @@
                 btnExtend.style.display = 'block';
                 btnExtend.disabled = !(selectedRoomData && parseInt(selectedRoomData.has_active_booking) > 0);
             }
+            if (btnCleaningRequestDone && selectedRoomData?.needs_cleaning) {
+                btnCleaningRequestDone.style.display = 'block';
+            }
         } else if (currentStatus === 'cleaning') {
             if (btnCleaningDone) btnCleaningDone.style.display = 'block';
+        }
+    }
+
+    async function completeCleaningRequest() {
+        if (!selectedRoomId || !selectedRoomData?.needs_cleaning) return;
+        const button = document.getElementById('btn-action-cleaning-request-done');
+        if (button) button.disabled = true;
+        const url = @json(route('staff.room.cleaning.complete', ['roomId' => '__ROOM__']))
+            .replace('__ROOM__', encodeURIComponent(selectedRoomId));
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                },
+                cache: 'no-store',
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể hoàn tất yêu cầu dọn phòng.');
+            showToast(result.message, 'bg-success');
+            await refreshReceptionBoard();
+        } catch (error) {
+            showToast(error.message, 'bg-danger');
+        } finally {
+            if (button) button.disabled = false;
         }
     }
 

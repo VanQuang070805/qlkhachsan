@@ -40,6 +40,7 @@
                 <a href="{{ route('admin.price-settings.index') }}"><i class="bi bi-sliders"></i><span>Điều chỉnh giá<small>Giá theo mùa và sự kiện</small></span></a>
             @endif
             <a href="{{ route('staff.bookings') }}"><i class="bi bi-grid-3x3-gap"></i><span>Sơ đồ phòng<small>Tra cứu và thao tác tại quầy</small></span></a>
+            <a href="{{ route('staff.iot') }}"><i class="bi bi-person-bounding-box"></i><span>Face ID &amp; IoT<small>Nhận diện và thiết bị dọn phòng</small></span></a>
             <a href="{{ route('receptionist.profile') }}"><i class="bi bi-person"></i><span>Hồ sơ cá nhân<small>Thông tin và mật khẩu</small></span></a>
         </div>
     </section>

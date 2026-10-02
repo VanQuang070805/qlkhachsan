@@ -19,7 +19,7 @@ class ReceptionController extends Controller
         $today = now('Asia/Ho_Chi_Minh')->toDateString();
         // Lấy toàn bộ phòng với trạng thái logic tính toán động
         $sql = "
-            SELECT r.id, r.room_number, r.floor, r.status,
+            SELECT r.id, r.room_number, r.floor, r.status, r.needs_cleaning, r.cleaning_requested_at,
                    rt.type_name, rt.max_guests, rt.price, rt.id as room_type_id,
                    (SELECT COUNT(*) 
                     FROM booking_rooms br
@@ -280,6 +280,7 @@ class ReceptionController extends Controller
                 WHERE rta.room_type_id = ?
             ";
             $amenities = array_column(DB::select($amenitiesSql, [$rArray['room_type_id']]), 'amenity_name');
+            $rArray['needs_cleaning'] = (bool) $rArray['needs_cleaning'];
             $rArray['amenities_list'] = implode(', ', $amenities);
             $rArray['image_url'] = $operationImages[$index % max(1, count($operationImages))] ?? asset('images/rooms/default.jpg');
 
@@ -342,7 +343,7 @@ class ReceptionController extends Controller
 
             } elseif ($status === 'available') {
                 // Đã dọn xong: Cập nhật trực tiếp từ cleaning sang available
-                DB::update("UPDATE rooms SET status = 'available' WHERE id = ?", [$roomId]);
+                DB::update("UPDATE rooms SET status = 'available', needs_cleaning = 0, cleaning_requested_at = NULL WHERE id = ?", [$roomId]);
 
                 DB::commit();
                 return response()->json([
@@ -352,7 +353,7 @@ class ReceptionController extends Controller
                 ]);
 
             } elseif ($status === 'cleaning') {
-                DB::update("UPDATE rooms SET status = 'cleaning' WHERE id = ?", [$roomId]);
+                DB::update("UPDATE rooms SET status = 'cleaning', needs_cleaning = 1, cleaning_requested_at = CURRENT_TIMESTAMP WHERE id = ?", [$roomId]);
 
                 DB::commit();
                 return response()->json([
@@ -366,6 +367,47 @@ class ReceptionController extends Controller
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Không thể xử lý lúc này. Vui lòng thử lại.'], 500);
         }
+    }
+
+    public function cleaningNotifications()
+    {
+        $rooms = Room::query()
+            ->select(['id', 'room_number', 'floor', 'status', 'cleaning_requested_at'])
+            ->where('needs_cleaning', true)
+            ->orderByRaw('cleaning_requested_at IS NULL')
+            ->orderBy('cleaning_requested_at')
+            ->get()
+            ->map(fn (Room $room) => [
+                'id' => $room->id,
+                'room_number' => $room->room_number,
+                'floor' => $room->floor,
+                'source' => $room->status === Room::STATUS_OCCUPIED ? 'Khách yêu cầu' : 'Khách đã trả phòng',
+                'requested_at' => optional($room->cleaning_requested_at)->toIso8601String(),
+            ]);
+
+        return response()->json(['count' => $rooms->count(), 'rooms' => $rooms])
+            ->header('Cache-Control', 'private, no-store');
+    }
+
+    public function completeCleaningRequest(int $roomId)
+    {
+        $room = DB::transaction(function () use ($roomId) {
+            $room = Room::query()->lockForUpdate()->findOrFail($roomId);
+            abort_unless(
+                $room->status === Room::STATUS_OCCUPIED && $room->needs_cleaning,
+                409,
+                'Yêu cầu dọn phòng đã được xử lý hoặc phòng không còn khách.'
+            );
+
+            $room->update(['needs_cleaning' => false, 'cleaning_requested_at' => null]);
+            return $room;
+        });
+
+        return response()->json([
+            'success' => true,
+            'status' => $room->status,
+            'message' => "Đã hoàn tất yêu cầu dọn phòng {$room->room_number}.",
+        ]);
     }
 
     /**
@@ -410,7 +452,13 @@ class ReceptionController extends Controller
                 'status'=>$data['walkin_type'] === 'now' ? 'checked_in' : 'confirmed',
             ]);
             $booking->rooms()->attach($rooms->pluck('id'));
-            if ($data['walkin_type'] === 'now') \App\Models\Room::whereIn('id', $rooms->pluck('id'))->update(['status'=>'occupied']);
+            if ($data['walkin_type'] === 'now') {
+                \App\Models\Room::whereIn('id', $rooms->pluck('id'))->update([
+                    'status' => Room::STATUS_OCCUPIED,
+                    'needs_cleaning' => false,
+                    'cleaning_requested_at' => null,
+                ]);
+            }
             return response()->json(['success'=>true, 'message'=>$data['walkin_type'] === 'now' ? 'Nhận phòng thành công.' : 'Giữ chỗ phòng thành công.']);
         });
     }

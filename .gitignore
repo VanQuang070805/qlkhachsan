@@ -34,3 +34,9 @@ Homestead.yaml
 Thumbs.db
 
 /.env.testing
+__pycache__/
+*.py[cod]
+**/.venv/
+**/venv/
+face_recognition/**/models/*.onnx
+face_recognition/**/data/*.sqlite*

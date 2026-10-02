@@ -7,6 +7,7 @@ use App\Models\Room;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\PriceSetting;
 
 class BookingController extends Controller
@@ -203,6 +204,40 @@ class BookingController extends Controller
         return view('booking.my_bookings', compact('bookings', 'bookingCounts', 'checkinTokens'));
     }
 
+    /** An in-house customer may request room cleaning for a room in their active stay. */
+    public function toggleCleaningRequest(Request $request, Booking $booking, Room $room)
+    {
+        $validated = $request->validate(['needs_cleaning' => ['required', 'boolean']]);
+
+        $updated = DB::transaction(function () use ($booking, $room, $validated) {
+            $booking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+            $room = Room::query()->lockForUpdate()->findOrFail($room->id);
+
+            abort_unless((int) $booking->user_id === (int) Auth::id(), 403);
+            abort_unless(
+                $booking->status === 'checked_in'
+                    && $room->status === Room::STATUS_OCCUPIED
+                    && $booking->rooms()->whereKey($room->id)->exists(),
+                422,
+                'Chỉ có thể yêu cầu dọn phòng đang lưu trú.'
+            );
+
+            $needsCleaning = (bool) $validated['needs_cleaning'];
+            $room->update([
+                'needs_cleaning' => $needsCleaning,
+                'cleaning_requested_at' => $needsCleaning ? now() : null,
+            ]);
+
+            return $needsCleaning;
+        });
+
+        return response()->json([
+            'success' => true,
+            'needs_cleaning' => $updated,
+            'message' => $updated ? 'Đã gửi yêu cầu dọn phòng.' : 'Đã hủy yêu cầu dọn phòng.',
+        ]);
+    }
+
     // ──────────────────────────────────────────────────────────
     // STAFF (receptionist / admin)
     // ──────────────────────────────────────────────────────────
@@ -275,7 +310,11 @@ class BookingController extends Controller
 
         // Trả phòng về available (qua dọn dẹp)
         foreach ($booking->rooms as $room) {
-            $room->update(['status' => Room::STATUS_CLEANING]);
+            $room->update([
+                'status' => Room::STATUS_CLEANING,
+                'needs_cleaning' => true,
+                'cleaning_requested_at' => now(),
+            ]);
         }
 
         return back()->with('success', "Check-out thành công cho booking #{$booking->id}. Phòng đã chuyển sang trạng thái dọn dẹp.");
@@ -420,24 +459,31 @@ class BookingController extends Controller
      */
     public function updateRoomStatus(Request $request, int $roomId)
     {
-        $room = Room::findOrFail($roomId);
-        $newStatus = $request->input('status');
+        $validated = $request->validate(['status' => ['required', 'in:available,cleaning,maintenance']]);
+        $newStatus = $validated['status'];
 
         $allowed = ['available', 'cleaning', 'maintenance'];
         if (!in_array($newStatus, $allowed)) {
             return response()->json(['success' => false, 'message' => 'Trạng thái không hợp lệ.']);
         }
 
-        if ($newStatus === Room::STATUS_AVAILABLE && $room->status !== Room::STATUS_CLEANING) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Chỉ phòng đang dọn mới được chuyển sang đang trống bằng nút Đã dọn xong.',
-            ], 422);
-        }
+        $room = DB::transaction(function () use ($roomId, $newStatus) {
+            $room = Room::query()->lockForUpdate()->findOrFail($roomId);
+            if ($room->status === Room::STATUS_OCCUPIED) {
+                abort(422, 'Vui lòng hoàn tất thanh toán trả phòng trước.');
+            }
+            if ($newStatus === Room::STATUS_AVAILABLE && $room->status !== Room::STATUS_CLEANING) {
+                abort(422, 'Chỉ phòng đang dọn mới được chuyển sang đang trống.');
+            }
 
-        if ($room->status === Room::STATUS_OCCUPIED) return response()->json(['success'=>false, 'message'=>'Vui lòng hoàn tất thanh toán trả phòng trước.'], 422);
+            $room->update([
+                'status' => $newStatus,
+                'needs_cleaning' => $newStatus === Room::STATUS_CLEANING,
+                'cleaning_requested_at' => $newStatus === Room::STATUS_CLEANING ? now() : null,
+            ]);
 
-        $room->update(['status' => $newStatus]);
+            return $room;
+        });
 
         $statusText = match($newStatus) {
             'available'   => 'Đang trống',
@@ -447,4 +493,5 @@ class BookingController extends Controller
 
         return response()->json(['success' => true, 'message' => "Phòng {$room->room_number} → {$statusText}."]);
     }
+
 }

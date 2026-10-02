@@ -3,6 +3,12 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\IotRoomController;
+
+Route::middleware('throttle:30,1')->prefix('iot/rooms')->name('iot.rooms.')->group(function () {
+    Route::get('/{roomNumber}/cleaning-request', [IotRoomController::class, 'showCleaningRequest'])->name('cleaning-request.show');
+    Route::post('/{roomNumber}/cleaning-request', [IotRoomController::class, 'updateCleaningRequest'])->name('cleaning-request.update');
+});
 
 // ============================================================
 // WEBHOOK — Nhận callback từ cổng thanh toán

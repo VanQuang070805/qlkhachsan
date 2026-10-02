@@ -507,7 +507,11 @@ class PaymentController extends Controller
                     'payment_method' => $gateway,
                     'late_checkout_fee' => $lateFee,
                 ]);
-                Room::whereIn('id', $roomIds)->update(['status' => Room::STATUS_CLEANING]);
+                Room::whereIn('id', $roomIds)->update([
+                    'status' => Room::STATUS_CLEANING,
+                    'needs_cleaning' => true,
+                    'cleaning_requested_at' => now(),
+                ]);
                 return true;
             });
         } finally {
@@ -846,7 +850,11 @@ HTML;
                     'late_checkout_fee' => $lateFee,
                 ]);
                 foreach ($booking->rooms as $room) {
-                    $room->update(['status' => Room::STATUS_CLEANING]);
+                    $room->update([
+                        'status' => Room::STATUS_CLEANING,
+                        'needs_cleaning' => true,
+                        'cleaning_requested_at' => now(),
+                    ]);
                 }
             });
             return response()->json(['success' => true, 'message' => "Checkout booking #{$booking->id} thành công."]);

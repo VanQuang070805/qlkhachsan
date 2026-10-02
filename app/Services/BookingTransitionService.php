@@ -32,7 +32,11 @@ class BookingTransitionService
             }
 
             $booking->update(['status' => 'checked_in', 'actual_check_in' => now()]);
-            Room::whereIn('id', $roomIds)->update(['status' => Room::STATUS_OCCUPIED]);
+            Room::whereIn('id', $roomIds)->update([
+                'status' => Room::STATUS_OCCUPIED,
+                'needs_cleaning' => false,
+                'cleaning_requested_at' => null,
+            ]);
             return $booking->fresh('rooms');
         });
     }
