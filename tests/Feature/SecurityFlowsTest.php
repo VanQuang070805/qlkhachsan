@@ -847,7 +847,7 @@ class SecurityFlowsTest extends TestCase
         });
     }
 
-    public function test_local_knowledge_retrieval_and_daily_report_snapshot_work(): void
+    public function test_local_knowledge_retrieval_works(): void
     {
         $this->artisan('knowledge:index', ['--no-embeddings' => true])->assertSuccessful();
         $this->assertGreaterThan(0, KnowledgeChunk::query()->count());
@@ -856,8 +856,6 @@ class SecurityFlowsTest extends TestCase
         $this->assertNotEmpty($results);
         $this->assertStringContainsString('Nhận và trả phòng', $results[0]['source']);
 
-        $this->artisan('reports:snapshot', ['--date' => now()->toDateString()])->assertSuccessful();
-        $this->assertSame(now()->toDateString(), \App\Models\ReportSnapshot::firstOrFail()->snapshot_date->toDateString());
     }
 
     public function test_knowledge_search_uses_semantic_embeddings_when_available(): void

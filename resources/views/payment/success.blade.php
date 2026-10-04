@@ -228,8 +228,8 @@
     if (empty($qr_base64) && !empty($checkin_token)) {
         try {
             $qrObj = \Endroid\QrCode\QrCode::create($checkin_token)
-                ->setSize(240)
-                ->setMargin(8);
+                ->setSize(288)
+                ->setMargin(16);
             $writer = new \Endroid\QrCode\Writer\PngWriter();
             $qr_base64 = base64_encode($writer->write($qrObj)->getString());
         } catch (\Throwable $e) {
@@ -348,7 +348,7 @@
                         $standardQr = 'data:image/png;base64,' . $qr_base64;
                     } elseif (!empty($checkin_token)) {
                         try {
-                            $qrObj = \Endroid\QrCode\QrCode::create($checkin_token)->setSize(194)->setMargin(2);
+                            $qrObj = \Endroid\QrCode\QrCode::create($checkin_token)->setSize(288)->setMargin(16);
                             $standardQr = (new \Endroid\QrCode\Writer\SvgWriter())->write($qrObj)->getDataUri();
                         } catch (\Throwable $e) {
                             $standardQr = null;
@@ -356,7 +356,7 @@
                     }
                 @endphp
                 @if($standardQr)
-                    <img src="{{ $standardQr }}" alt="Mã QR Check-in" style="width: 194px; height: 194px; display: block; border-radius: 8px;">
+                    <img src="{{ $standardQr }}" alt="Mã QR Check-in" style="width: min(288px, 72vw); height: auto; display: block; border-radius: 8px;">
                 @else
                     <p class="small text-muted mb-0">Mã check-in chưa khả dụng. Vui lòng liên hệ lễ tân.</p>
                 @endif

@@ -75,6 +75,8 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
     Route::post('/booking',             [BookingController::class, 'store'])->name('booking.store');
     Route::get('/booking/success/{id}', [BookingController::class, 'success'])->name('booking.success');
     Route::get('/my-bookings',          [BookingController::class, 'myBookings'])->name('booking.mine');
+    Route::post('/booking/{booking}/extend', [BookingController::class, 'extendCustomerStay'])
+        ->name('booking.extend');
     Route::patch('/booking/{booking}/rooms/{room}/cleaning-request', [BookingController::class, 'toggleCleaningRequest'])
         ->name('booking.cleaning-request');
     Route::get('/account',               [AuthController::class, 'account'])->name('account.show');
@@ -169,6 +171,8 @@ Route::middleware(['auth.custom', 'role:admin'])->prefix('admin')->name('admin.'
     Route::get('/price-settings/{id}/edit', [AdminController::class, 'priceSettingsEdit'])->name('price-settings.edit');
     Route::put('/price-settings/{id}',      [AdminController::class, 'priceSettingsUpdate'])->name('price-settings.update');
     Route::delete('/price-settings/{id}',   [AdminController::class, 'priceSettingsDelete'])->name('price-settings.delete');
+    Route::patch('/room-types/{roomType}/price', [AdminController::class, 'updateRoomTypePrice'])
+        ->name('room-types.price.update');
 
     // Quản lý người dùng
     Route::resource('users', UserController::class)->except(['show']);

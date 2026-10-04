@@ -204,6 +204,81 @@ class BookingController extends Controller
         return view('booking.my_bookings', compact('bookings', 'bookingCounts', 'checkinTokens'));
     }
 
+    public function extendCustomerStay(Request $request, Booking $booking)
+    {
+        if ((int) $booking->user_id !== (int) Auth::id()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'booking_id' => ['required', 'integer', 'in:'.$booking->id],
+            'days' => ['required', 'integer', 'min:1', 'max:30'],
+        ], [
+            'days.required' => 'Vui lòng nhập số ngày muốn gia hạn.',
+            'days.integer' => 'Số ngày gia hạn phải là số nguyên.',
+            'days.min' => 'Thời gian gia hạn tối thiểu là 1 ngày.',
+            'days.max' => 'Mỗi lần chỉ có thể gia hạn tối đa 30 ngày.',
+        ]);
+
+        $result = DB::transaction(function () use ($booking, $validated): array {
+            $lockedBooking = Booking::with('rooms.roomType')->lockForUpdate()->findOrFail($booking->id);
+
+            if ((int) $lockedBooking->user_id !== (int) Auth::id()) {
+                abort(403);
+            }
+
+            if (! in_array($lockedBooking->status, ['confirmed', 'checked_in'], true)) {
+                return ['error' => 'Chỉ booking đã xác nhận hoặc đang lưu trú mới có thể gia hạn.'];
+            }
+
+            $today = now('Asia/Ho_Chi_Minh')->toDateString();
+            $currentCheckOut = $lockedBooking->check_out->toDateString();
+            if ($currentCheckOut <= $today) {
+                return ['error' => 'Booking đã đến ngày trả phòng nên không thể gia hạn trực tuyến.'];
+            }
+
+            $roomIds = $lockedBooking->rooms->pluck('id');
+            if ($roomIds->isEmpty()) {
+                return ['error' => 'Booking chưa có phòng liên kết để gia hạn.'];
+            }
+
+            Room::whereIn('id', $roomIds)->orderBy('id')->lockForUpdate()->get();
+
+            $newCheckOut = $lockedBooking->check_out->copy()->addDays((int) $validated['days']);
+            $reservedRoomIds = Booking::reservedRoomIds(
+                $currentCheckOut,
+                $newCheckOut->toDateString(),
+                $lockedBooking->id
+            );
+
+            if ($reservedRoomIds->intersect($roomIds)->isNotEmpty()) {
+                return ['error' => 'Không thể gia hạn vì một hoặc nhiều phòng đã có lịch đặt trong thời gian này.'];
+            }
+
+            $extraTotal = $lockedBooking->rooms->sum(fn (Room $room) => PriceSetting::calculateTotalPrice(
+                (float) ($room->roomType?->price ?? 0),
+                $currentCheckOut,
+                $newCheckOut->toDateString()
+            ));
+
+            $lockedBooking->update([
+                'check_out' => $newCheckOut->toDateString(),
+                'total_price' => (float) $lockedBooking->total_price + $extraTotal,
+            ]);
+
+            return [
+                'success' => 'Đã gia hạn lưu trú đến '.$newCheckOut->format('d/m/Y').'. Chi phí bổ sung: '
+                    .number_format($extraTotal, 0, ',', '.').'đ.',
+            ];
+        });
+
+        if (isset($result['error'])) {
+            return back()->withInput($validated)->withErrors(['days' => $result['error']]);
+        }
+
+        return back()->with('success', $result['success']);
+    }
+
     /** An in-house customer may request room cleaning for a room in their active stay. */
     public function toggleCleaningRequest(Request $request, Booking $booking, Room $room)
     {

@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use App\Models\User;
 use App\Models\PriceSetting;
+use App\Models\RoomType;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -106,7 +107,30 @@ class AdminController extends Controller
     public function priceSettings()
     {
         $settings = PriceSetting::all();
-        return view('admin.price_settings.index', compact('settings'));
+        $roomTypes = RoomType::query()->withCount('rooms')->orderBy('type_name')->get();
+
+        return view('admin.price_settings.index', compact('settings', 'roomTypes'));
+    }
+
+    public function updateRoomTypePrice(Request $request, RoomType $roomType)
+    {
+        $validated = $request->validate([
+            'room_type_id' => ['required', 'integer', 'in:'.$roomType->id],
+            'price' => ['required', 'numeric', 'min:1', 'max:9999999999.99'],
+        ], [
+            'price.required' => 'Vui lòng nhập giá phòng.',
+            'price.numeric' => 'Giá phòng phải là một số hợp lệ.',
+            'price.min' => 'Giá phòng phải lớn hơn 0.',
+            'price.max' => 'Giá phòng vượt quá giới hạn lưu trữ.',
+        ]);
+
+        DB::transaction(function () use ($roomType, $validated): void {
+            RoomType::query()->lockForUpdate()->findOrFail($roomType->id)->update([
+                'price' => round((float) $validated['price'], 2),
+            ]);
+        });
+
+        return back()->with('success', 'Đã cập nhật giá nền cho hạng phòng '.$roomType->type_name.'.');
     }
 
     public function priceSettingsCreate()

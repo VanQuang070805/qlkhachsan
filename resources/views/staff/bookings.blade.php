@@ -523,7 +523,6 @@
         height: 70%;
         pointer-events: none;
         box-sizing: border-box;
-        animation: qr-pulse 2s infinite ease-in-out;
     }
     .qr-target-box .corner {
         position: absolute;
@@ -536,10 +535,62 @@
     .qr-target-box .corner.top-right { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 8px; }
     .qr-target-box .corner.bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 8px; }
     .qr-target-box .corner.bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
-    @keyframes qr-pulse {
-        0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.98); }
-        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
-        100% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.98); }
+    .qr-scan-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        max-width: 380px;
+        margin: 0 auto;
+    }
+    .qr-scan-action {
+        min-height: 44px;
+        border: 1px solid rgba(15, 23, 42, 0.18);
+        border-radius: 12px;
+        background: #ffffff;
+        color: #0f172a;
+        font-size: 0.84rem;
+        font-weight: 650;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        cursor: pointer;
+    }
+    .qr-scan-action:hover,
+    .qr-scan-action:focus-visible {
+        border-color: #0f172a;
+        background: #f8fafc;
+    }
+    .qr-scan-action:focus-visible {
+        outline: 3px solid rgba(37, 151, 208, 0.28);
+        outline-offset: 2px;
+    }
+    .qr-scan-action[aria-pressed="true"] {
+        background: #070709;
+        border-color: #070709;
+        color: #ffffff;
+    }
+    .qr-scan-action[hidden] {
+        display: none;
+    }
+    .qr-scan-help {
+        max-width: 380px;
+        margin: 10px auto 0;
+        color: #475569;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        text-align: left;
+    }
+    #qr-scan-status {
+        min-height: 20px;
+        color: #334155;
+        font-size: 0.78rem;
+        margin-top: 8px;
+    }
+    @media (max-width: 420px) {
+        .qr-scan-actions {
+            grid-template-columns: 1fr;
+        }
     }
 
     /* Right Detail Drawer Styling */
@@ -1249,18 +1300,13 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 18px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 20px 50px rgba(0,0,0,0.15); overflow: hidden; background: #ffffff;">
             <div class="modal-header d-flex align-items-center justify-content-between px-4 py-3" style="background: #ffffff; border-bottom: 1px solid rgba(0,0,0,0.06);">
-                <div class="window-controls window-controls--modal d-flex align-items-center gap-1" style="pointer-events: none; margin: 0; padding: 0;" aria-hidden="true">
-                    <span class="ctrl-dot ctrl-red"></span>
-                    <span class="ctrl-dot ctrl-yellow"></span>
-                    <span class="ctrl-dot ctrl-green"></span>
-                </div>
-                <h5 class="modal-title fw-bold text-dark m-0 fs-6 text-center flex-grow-1" id="qrScannerModalLabel" style="color: #0f172a;">Quét QR Phòng</h5>
+                <h5 class="modal-title fw-bold text-dark m-0 fs-6" id="qrScannerModalLabel" style="color: #0f172a;">Quét QR nhận phòng</h5>
                 <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Đóng" onclick="closeQRScanner()" style="font-size: 0.75rem;"></button>
             </div>
             <div class="modal-body p-4 text-center">
                 <div class="mb-3 text-start">
-                    <label class="form-label small fw-bold" style="color: #475569; font-size: 0.82rem;">Chọn Camera:</label>
-                    <select id="qr-camera-select" class="form-select" style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;" onchange="changeCamera(this.value)">
+                    <label for="qr-camera-select" class="form-label small fw-bold" style="color: #475569; font-size: 0.82rem;">Camera</label>
+                    <select id="qr-camera-select" class="form-select" style="min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.85rem;" onchange="changeCamera(this.value)">
                         <option value="">Đang dò tìm camera...</option>
                     </select>
                 </div>
@@ -1275,16 +1321,20 @@
                     </div>
                 </div>
 
-                <p class="small fw-medium mt-2 mb-0" style="color: #64748b;">Vui lòng đặt mã QR phòng vào trong khung hình</p>
-                <div id="qr-scan-error" class="text-danger small mt-1" style="display: none;"></div>
-
-                <div class="mt-3 text-start">
-                    <label class="form-label small fw-bold" style="color: #475569; font-size: 0.82rem;">Không quét được? Nhập mã đặt phòng:</label>
-                    <div class="input-group">
-                        <input type="number" id="manual-booking-id" class="form-control" min="1" placeholder="VD: 12" style="border-radius: 10px 0 0 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
-                        <button type="button" class="btn btn-primary" onclick="submitManualBookingId()" style="border-radius: 0 10px 10px 0;">Tìm</button>
-                    </div>
+                <div class="qr-scan-actions">
+                    <button type="button" id="qr-anti-glare-btn" class="qr-scan-action" aria-pressed="false" hidden onclick="toggleAntiGlare()">
+                        <i class="bi bi-brightness-low" aria-hidden="true"></i>
+                        <span>Giảm chói</span>
+                    </button>
+                    <label for="qr-image-input" class="qr-scan-action">
+                        <i class="bi bi-image" aria-hidden="true"></i>
+                        <span>Dùng ảnh QR</span>
+                    </label>
+                    <input type="file" id="qr-image-input" accept="image/png,image/jpeg,image/webp" hidden>
                 </div>
+                <p class="qr-scan-help">Giữ mã QR phẳng, nghiêng nhẹ để tránh phản sáng. Nếu màn hình khách quá sáng, hãy giảm độ sáng hoặc chọn ảnh QR đã lưu.</p>
+                <div id="qr-scan-status" role="status" aria-live="polite">Căn mã QR vào khung màu xanh.</div>
+                <div id="qr-scan-error" class="text-danger small mt-1" role="alert" style="display: none;"></div>
             </div>
             <div class="modal-footer px-4 py-3" style="background: #f8fafc; border-top: 1px solid rgba(0,0,0,0.06);">
                 <button type="button" class="btn btn-light w-100 fw-medium" data-bs-dismiss="modal" style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); color: #64748b;" onclick="closeQRScanner()">Hủy bỏ</button>
@@ -1298,12 +1348,7 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 18px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 20px 50px rgba(0,0,0,0.15); overflow: hidden; background: #ffffff;">
             <div class="modal-header d-flex align-items-center justify-content-between px-4 py-3" style="background: #ffffff; border-bottom: 1px solid rgba(0,0,0,0.06);">
-                <div class="window-controls window-controls--modal d-flex align-items-center gap-1" style="pointer-events: none; margin: 0; padding: 0;" aria-hidden="true">
-                    <span class="ctrl-dot ctrl-red"></span>
-                    <span class="ctrl-dot ctrl-yellow"></span>
-                    <span class="ctrl-dot ctrl-green"></span>
-                </div>
-                <h5 class="modal-title fw-bold text-dark m-0 fs-6 text-center flex-grow-1" id="qrResultModalLabel" style="color: #0f172a;">Kết quả quét mã QR</h5>
+                <h5 class="modal-title fw-bold text-dark m-0 fs-6" id="qrResultModalLabel" style="color: #0f172a;">Kết quả quét mã QR</h5>
                 <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Đóng" style="font-size: 0.75rem;"></button>
             </div>
             <div class="modal-body p-4">
@@ -2392,27 +2437,30 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         restoreFiltersFromUrl();
-        const manualBookingInput = document.getElementById('manual-booking-id');
-        if (manualBookingInput) {
-            manualBookingInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    submitManualBookingId();
-                }
-            });
-        }
+        focusRoomFromHash();
+        document.getElementById('qr-image-input')?.addEventListener('change', event => {
+            const file = event.target.files?.[0];
+            if (file) scanQrImage(file);
+        });
         document.getElementById('qrScannerModal')?.addEventListener('hidden.bs.modal', stopQRScanner);
     });
     window.addEventListener('popstate', restoreFiltersFromUrl);
 
     let html5QrCode = null;
     let qrCameras = [];
+    let antiGlareEnabled = false;
+    let antiGlareRange = null;
+    let defaultExposure = 0;
 
     function openQRScannerModal() {
         const modal = new bootstrap.Modal(document.getElementById('qrScannerModal'));
         modal.show();
-        
-        document.getElementById('qr-scan-error').style.display = 'none';
+
+        setQrScanError('');
+        setQrScanStatus('Đang tìm camera sau...');
+        const imageInput = document.getElementById('qr-image-input');
+        if (imageInput) imageInput.value = '';
+        resetAntiGlareControl();
         
         Html5Qrcode.getCameras().then(devices => {
             if (devices && devices.length > 0) {
@@ -2425,28 +2473,26 @@
                     option.text = device.label || `Camera ${index + 1}`;
                     selectEl.appendChild(option);
                 });
-                
-                startScanning(devices[0].id);
+
+                const preferredCamera = devices.find(device => /(back|rear|environment|sau)/i.test(device.label))
+                    || devices[devices.length - 1];
+                selectEl.value = preferredCamera.id;
+                startScanning(preferredCamera.id);
             } else {
                 document.getElementById('qr-camera-select').innerHTML = '<option value="">Không tìm thấy camera</option>';
+                setQrScanStatus('Không tìm thấy camera. Bạn có thể dùng ảnh QR đã lưu.');
                 showToast('Không tìm thấy thiết bị camera nào.', 'bg-danger');
             }
         }).catch(err => {
             document.getElementById('qr-camera-select').innerHTML = '<option value="">Không có quyền truy cập camera</option>';
+            setQrScanStatus('Camera chưa được cấp quyền. Bạn có thể dùng ảnh QR đã lưu.');
             showToast('Không thể truy cập camera. Vui lòng cấp quyền.', 'bg-danger');
         });
     }
 
-    function startScanning(cameraId) {
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => {
-                initScanner(cameraId);
-            }).catch(() => {
-                initScanner(cameraId);
-            });
-        } else {
-            initScanner(cameraId);
-        }
+    async function startScanning(cameraId) {
+        await stopQRScanner();
+        initScanner(cameraId);
     }
 
     function initScanner(cameraId) {
@@ -2457,41 +2503,35 @@
                 fps: 10,
                 qrbox: (width, height) => {
                     const minEdge = Math.min(width, height);
-                    const size = Math.floor(minEdge * 0.85);
+                    const size = Math.max(50, Math.floor(minEdge * 0.70));
                     return { width: size, height: size };
                 }
             },
-            (decodedText) => {
-                if (navigator.vibrate) {
-                    navigator.vibrate(100);
-                }
-                
-                stopQRScanner();
-                
-                const modalEl = document.getElementById('qrScannerModal');
-                const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                if (modalInstance) modalInstance.hide();
-                
-                processScannedText(decodedText);
-            },
+            handleDecodedQr,
             () => {
                 // Ignore silent scanning noise
             }
-        ).catch(err => {
-            document.getElementById('qr-scan-error').innerText = "Không thể khởi động camera: " + err;
-            document.getElementById('qr-scan-error').style.display = 'block';
+        ).then(configureCameraForQr).catch(err => {
+            setQrScanError('Không thể khởi động camera. Hãy chọn camera khác hoặc dùng ảnh QR.');
+            setQrScanStatus('Camera chưa sẵn sàng.');
+            console.error(err);
         });
     }
 
     function changeCamera(cameraId) {
         if (cameraId) {
+            resetAntiGlareControl();
             startScanning(cameraId);
         }
     }
 
-    function stopQRScanner() {
+    async function stopQRScanner() {
         if (html5QrCode && html5QrCode.isScanning) {
-            html5QrCode.stop().catch(err => console.error(err));
+            try {
+                await html5QrCode.stop();
+            } catch (err) {
+                console.error(err);
+            }
         }
     }
 
@@ -2499,30 +2539,121 @@
         stopQRScanner();
     }
 
-    function submitManualBookingId() {
-        const input = document.getElementById('manual-booking-id');
-        const bookingId = input ? input.value.trim() : '';
-        if (!bookingId) {
-            showToast('Vui lòng nhập mã đặt phòng.', 'bg-warning text-dark');
+    async function configureCameraForQr() {
+        setQrScanStatus('Căn mã QR vào khung màu xanh.');
+        setQrScanError('');
+
+        try {
+            const capabilities = html5QrCode.getRunningTrackCapabilities();
+            const settings = html5QrCode.getRunningTrackSettings();
+            const advanced = [];
+            if (Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes('continuous')) {
+                advanced.push({ focusMode: 'continuous' });
+            }
+            if (advanced.length > 0) {
+                await html5QrCode.applyVideoConstraints({ advanced });
+            }
+
+            const exposure = capabilities.exposureCompensation;
+            if (exposure && Number.isFinite(exposure.min) && Number.isFinite(exposure.max) && exposure.min < 0) {
+                antiGlareRange = exposure;
+                defaultExposure = Number.isFinite(settings.exposureCompensation) ? settings.exposureCompensation : 0;
+                document.getElementById('qr-anti-glare-btn').hidden = false;
+            }
+        } catch (error) {
+            resetAntiGlareControl();
+        }
+    }
+
+    async function toggleAntiGlare() {
+        if (!html5QrCode?.isScanning || !antiGlareRange) return;
+
+        const button = document.getElementById('qr-anti-glare-btn');
+        const nextEnabled = !antiGlareEnabled;
+        const step = antiGlareRange.step || 0.1;
+        const desired = nextEnabled ? -0.7 : defaultExposure;
+        const clamped = Math.max(antiGlareRange.min, Math.min(antiGlareRange.max, desired));
+        const exposureValue = antiGlareRange.min
+            + Math.round((clamped - antiGlareRange.min) / step) * step;
+
+        try {
+            await html5QrCode.applyVideoConstraints({ advanced: [{ exposureCompensation: exposureValue }] });
+            antiGlareEnabled = nextEnabled;
+            button.setAttribute('aria-pressed', nextEnabled ? 'true' : 'false');
+            button.querySelector('span').textContent = nextEnabled ? 'Đang giảm chói' : 'Giảm chói';
+            setQrScanStatus(nextEnabled
+                ? 'Đã giảm phơi sáng camera. Tiếp tục giữ QR trong khung.'
+                : 'Đã trả camera về độ sáng ban đầu.');
+        } catch (error) {
+            setQrScanError('Camera này không hỗ trợ giảm chói. Hãy nghiêng mã QR hoặc dùng ảnh QR.');
+        }
+    }
+
+    function resetAntiGlareControl() {
+        antiGlareEnabled = false;
+        antiGlareRange = null;
+        defaultExposure = 0;
+        const button = document.getElementById('qr-anti-glare-btn');
+        if (!button) return;
+        button.hidden = true;
+        button.setAttribute('aria-pressed', 'false');
+        button.querySelector('span').textContent = 'Giảm chói';
+    }
+
+    async function scanQrImage(file) {
+        if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) {
+            setQrScanError('Ảnh QR phải là tệp PNG, JPG hoặc WebP không quá 10 MB.');
             return;
         }
-        stopQRScanner();
+
+        setQrScanError('');
+        setQrScanStatus('Đang đọc mã từ ảnh...');
+        await stopQRScanner();
+
+        try {
+            if (!html5QrCode) html5QrCode = new Html5Qrcode('qr-reader');
+            const decodedText = await html5QrCode.scanFile(file, true);
+            await handleDecodedQr(decodedText);
+        } catch (error) {
+            setQrScanError('Không tìm thấy QR hợp lệ trong ảnh. Hãy chọn ảnh rõ, không bị cắt mép.');
+            setQrScanStatus('Chưa đọc được mã QR.');
+            const selectedCamera = document.getElementById('qr-camera-select')?.value;
+            if (selectedCamera) startScanning(selectedCamera);
+        } finally {
+            const input = document.getElementById('qr-image-input');
+            if (input) input.value = '';
+        }
+    }
+
+    async function handleDecodedQr(decodedText) {
+        if (navigator.vibrate) navigator.vibrate(100);
+        await stopQRScanner();
         const modalEl = document.getElementById('qrScannerModal');
         const modalInstance = bootstrap.Modal.getInstance(modalEl);
         if (modalInstance) modalInstance.hide();
-        processScannedText(bookingId);
+        processScannedText(decodedText);
+    }
+
+    function setQrScanStatus(message) {
+        const status = document.getElementById('qr-scan-status');
+        if (status) status.textContent = message;
+    }
+
+    function setQrScanError(message) {
+        const error = document.getElementById('qr-scan-error');
+        if (!error) return;
+        error.textContent = message;
+        error.style.display = message ? 'block' : 'none';
     }
 
     function processScannedText(text) {
         const normalizedText = String(text || '').trim();
-        const token = normalizedText.startsWith('POSH-CHECKIN:') ? normalizedText.slice(13) : (normalizedText.startsWith('ROYAL-CHECKIN:') ? normalizedText.slice(14) : '');
-        
-        if (!token) {
-            showToast('Mã QR không đúng định dạng hóa đơn đặt phòng.', 'bg-danger');
+        if (!/^(ROYAL|POSH)-CHECKIN:/.test(normalizedText)) {
+            showToast('Mã QR không đúng định dạng nhận phòng Royal.', 'bg-danger');
             return;
         }
         
-        fetch(`{{ route('staff.reception.booking-by-scan') }}?token=${encodeURIComponent(token)}`)
+        fetch(`{{ route('staff.reception.booking-by-scan') }}?payload=${encodeURIComponent(normalizedText)}`)
         .then(response => {
             if (!response.ok) {
                 return response.json().then(err => { throw new Error(err.message || 'Lỗi liên kết dữ liệu'); });
@@ -2545,11 +2676,15 @@
         document.getElementById('qr-guest-name').innerText = booking.customer_name;
         document.getElementById('qr-guest-phone').innerText = booking.customer_phone;
         document.getElementById('qr-guest-email').innerText = booking.customer_email || '---';
-        
-        const checkin = new Date(booking.check_in);
-        const checkout = new Date(booking.check_out);
-        document.getElementById('qr-checkin-date').innerText = checkin.toLocaleDateString('vi-VN');
-        document.getElementById('qr-checkout-date').innerText = checkout.toLocaleDateString('vi-VN');
+
+        const checkinDate = String(booking.check_in || '').slice(0, 10);
+        const checkoutDate = String(booking.check_out || '').slice(0, 10);
+        const formatCivilDate = value => {
+            const [year, month, day] = value.split('-');
+            return year && month && day ? `${day}/${month}/${year}` : 'Không xác định';
+        };
+        document.getElementById('qr-checkin-date').innerText = formatCivilDate(checkinDate);
+        document.getElementById('qr-checkout-date').innerText = formatCivilDate(checkoutDate);
         
         document.getElementById('qr-guest-counts').innerText = `${booking.adult_count} Người lớn` + (booking.child_count > 0 ? `, ${booking.child_count} Trẻ em` : '');
         document.getElementById('qr-total-price').innerText = new Intl.NumberFormat('vi-VN').format(booking.total_price) + ' đ';
@@ -2573,8 +2708,14 @@
             roomListContainer.appendChild(span);
         });
         
-        const todayStr = new Date().toLocaleDateString('sv-SE');
-        const isToday = (booking.check_in === todayStr);
+        const todayParts = Object.fromEntries(new Intl.DateTimeFormat('en', {
+            timeZone: 'Asia/Ho_Chi_Minh',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).formatToParts(new Date()).filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+        const todayStr = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+        const isToday = checkinDate === todayStr;
         
         const alertContainer = document.getElementById('qr-status-alert');
         const btnAction = document.getElementById('btn-qr-action');
@@ -2590,7 +2731,7 @@
                 btnAction.onclick = () => performQuickCheckin(checkinToken);
             } else {
                 alertContainer.classList.add('alert-warning');
-                alertContainer.innerHTML = `<i class="fa-solid fa-triangle-exclamation fs-4 text-warning"></i><div>Cảnh báo: Ngày nhận phòng là ${booking.check_in.split('-').reverse().join('/')} (không phải hôm nay).</div>`;
+                alertContainer.innerHTML = `<i class="fa-solid fa-triangle-exclamation fs-4 text-warning"></i><div>Cảnh báo: Ngày nhận phòng là ${formatCivilDate(checkinDate)} (không phải hôm nay).</div>`;
                 btnAction.style.display = 'none';
             }
         } else if (booking.status === 'checked_in') {

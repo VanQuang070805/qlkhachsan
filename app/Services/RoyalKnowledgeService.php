@@ -22,13 +22,14 @@ class RoyalKnowledgeService
             : null;
 
         return collect($chunks)->map(function (array $chunk) use ($query, $queryEmbedding) {
-            $lexical = $this->score($query, $chunk['title'].' '.$chunk['content']);
+            $titleLexical = $this->score($query, $chunk['title']);
+            $contentLexical = $this->score($query, $chunk['content']);
             $semantic = $queryEmbedding && ! empty($chunk['embedding'])
                 ? $this->cosine($queryEmbedding, $chunk['embedding'])
                 : 0.0;
 
             return $chunk + [
-                'score' => round(($semantic * 100) + min($lexical * 8, 40), 4),
+                'score' => round(($semantic * 100) + min($contentLexical * 8, 40) + min($titleLexical * 16, 64), 4),
                 'semantic_score' => round($semantic, 4),
             ];
         })
