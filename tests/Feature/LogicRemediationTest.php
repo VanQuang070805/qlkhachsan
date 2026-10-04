@@ -13,6 +13,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -267,13 +269,18 @@ class LogicRemediationTest extends TestCase
             'staff_user_id' => $staff->id,
             'staff_user' => ['id' => $staff->id, 'role' => 'receptionist', 'verified' => true],
         ];
-        $token = app(\App\Services\CheckInTokenService::class)->issue($booking);
+        $tokens = app(\App\Services\CheckInTokenService::class);
+        $token = $tokens->issue($booking);
+        $qrPayload = \App\Services\CheckInTokenService::QR_PREFIX.$token;
 
         $this->actingAs($staff)->withSession($session)
             ->getJson(route('staff.reception.booking-by-scan', ['booking_id' => $booking->id]))
             ->assertBadRequest();
         $this->actingAs($staff)->withSession($session)
-            ->getJson(route('staff.reception.booking-by-scan', ['token' => $token]))
+            ->getJson(route('staff.reception.booking-by-scan', ['payload' => $token]))
+            ->assertBadRequest();
+        $this->actingAs($staff)->withSession($session)
+            ->getJson(route('staff.reception.booking-by-scan', ['payload' => $qrPayload]))
             ->assertOk()->assertJsonPath('booking.id', $booking->id);
         $this->actingAs($staff)->withSession($session)
             ->postJson(route('staff.reception.quick-checkin'), ['token' => $token])
@@ -314,8 +321,52 @@ class LogicRemediationTest extends TestCase
         $tokens = app(\App\Services\CheckInTokenService::class);
 
         $payload = $tokens->qrPayload($booking);
-        $this->assertStringStartsWith('ROYAL-CHECKIN:', $payload);
-        $this->assertSame($booking->id, $tokens->bookingId(substr($payload, strlen('ROYAL-CHECKIN:'))));
+        $this->assertMatchesRegularExpression(
+            '/^ROYAL-CHECKIN:v1:'.$booking->id.':[A-Za-z0-9]{32}$/',
+            $payload
+        );
+        $token = $tokens->tokenFromQrPayload($payload);
+        $this->assertSame($booking->id, $tokens->bookingId($token));
+
+        $tamperedToken = preg_replace('/^v1:\d+:/', 'v1:'.($booking->id + 1).':', $token);
+        $this->expectException(\RuntimeException::class);
+        $tokens->bookingId($tamperedToken);
+    }
+
+    public function test_legacy_checkin_qr_payload_remains_valid_until_its_original_expiry(): void
+    {
+        [$booking] = $this->bookingWithRoom();
+        $expiresAt = now('Asia/Ho_Chi_Minh')->addDay()->endOfDay();
+        $nonce = \Illuminate\Support\Str::random(40);
+        Cache::put('checkin-token:'.$nonce, true, $expiresAt);
+        $legacyToken = Crypt::encryptString(json_encode([
+            'booking_id' => $booking->id,
+            'purpose' => 'check-in',
+            'nonce' => $nonce,
+            'expires_at' => $expiresAt->timestamp,
+        ], JSON_THROW_ON_ERROR));
+
+        $tokens = app(\App\Services\CheckInTokenService::class);
+        $parsed = $tokens->tokenFromQrPayload('POSH-CHECKIN:'.$legacyToken);
+
+        $this->assertSame($booking->id, $tokens->bookingId($parsed));
+    }
+
+    public function test_staff_qr_scanner_has_anti_glare_and_image_fallback_without_raw_booking_id_lookup(): void
+    {
+        $staff = $this->internalUser('qr-scanner-ui@example.com', 'receptionist');
+        $session = [
+            'staff_user_id' => $staff->id,
+            'staff_user' => ['id' => $staff->id, 'role' => 'receptionist', 'verified' => true],
+        ];
+
+        $this->actingAs($staff)->withSession($session)
+            ->get(route('staff.bookings'))
+            ->assertOk()
+            ->assertSee('Giảm chói')
+            ->assertSee('Dùng ảnh QR')
+            ->assertSee('id="qr-image-input"', false)
+            ->assertDontSee('id="manual-booking-id"', false);
     }
 
     public function test_paid_booking_success_page_renders_a_token_qr_not_a_booking_id_qr(): void

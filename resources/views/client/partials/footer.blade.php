@@ -12,7 +12,7 @@
     </div>
 
     {{-- Honors Badge on Right Edge (1:1 with Supaste W. Honors badge in Image 1) --}}
-    <div class="supaste-footer__honors" title="Posh Boutique — 5-Star Quiet Luxury Stay">
+    <div class="supaste-footer__honors" title="Posh Boutique: 5-Star Quiet Luxury Stay">
         <span class="w-icon">W.</span>
         <span class="v-text">Honors</span>
     </div>

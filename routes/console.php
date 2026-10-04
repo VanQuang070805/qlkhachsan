@@ -10,4 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('reports:snapshot')->dailyAt('00:10')->withoutOverlapping();
 Schedule::command('bookings:expire-pending')->everyMinute()->withoutOverlapping();
+Schedule::command('bookings:expire-no-shows')->everyMinute()->withoutOverlapping();
 Schedule::command('face:sync')->everyMinute()->withoutOverlapping();

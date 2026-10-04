@@ -95,6 +95,160 @@ body.internal-shell[data-theme="dark"]{
   --action-bg:#e6f0f6;--action-fg:#203345;--control-bg:#395065;
   --control-border:#668094;--focus-ring:rgba(167,208,234,.3);
 }
+
+.base-rate-panel {
+    overflow: hidden;
+    border: 1px solid var(--line) !important;
+    border-radius: 14px !important;
+    background: var(--panel);
+}
+
+.base-rate-panel__header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--line);
+}
+
+.base-rate-panel__header h2 {
+    margin: 0 0 6px;
+    font-size: 17px;
+    letter-spacing: -.02em;
+}
+
+.base-rate-panel__header p {
+    max-width: 720px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.55;
+}
+
+.base-rate-table th {
+    color: var(--muted) !important;
+    font-size: 11px !important;
+    letter-spacing: .04em !important;
+    text-transform: uppercase;
+}
+
+.base-rate-table td:first-child strong,
+.base-rate-table td:first-child small {
+    display: block;
+}
+
+.base-rate-table td:first-child strong {
+    color: var(--ink);
+    font-size: 14px;
+}
+
+.base-rate-table td:first-child small {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.base-rate-current {
+    color: var(--ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.base-rate-form {
+    display: grid;
+    grid-template-columns: minmax(210px, 1fr) auto;
+    align-items: end;
+    gap: 10px;
+    max-width: 480px;
+    margin-left: auto;
+}
+
+.base-rate-form > div {
+    display: grid;
+    gap: 6px;
+}
+
+.base-rate-label {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.base-rate-form input {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--control-border, var(--line));
+    border-radius: 8px;
+    background: var(--control-bg, var(--panel));
+    color: var(--ink);
+    padding: 9px 12px;
+    font: 500 13px Inter, sans-serif;
+    font-variant-numeric: tabular-nums;
+}
+
+.base-rate-form .btn {
+    min-height: 44px;
+}
+
+.base-rate-error {
+    color: var(--danger, #a72323);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+@media (max-width: 560px) {
+    .base-rate-panel__header {
+        padding: 18px;
+    }
+
+    .base-rate-table,
+    .base-rate-table tbody,
+    .base-rate-table tr,
+    .base-rate-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .base-rate-table thead {
+        display: none;
+    }
+
+    .base-rate-table tr {
+        padding: 18px;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .base-rate-table tr:last-child {
+        border-bottom: 0;
+    }
+
+    .base-rate-table td {
+        padding: 0 !important;
+        border: 0 !important;
+    }
+
+    .base-rate-table td + td {
+        margin-top: 12px;
+    }
+
+    .base-rate-current::before {
+        content: 'Giá hiện tại';
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .base-rate-form {
+        grid-template-columns: 1fr;
+        max-width: none;
+        margin: 0;
+    }
+
+    .base-rate-form .btn {
+        width: 100%;
+    }
+}
 body.internal-shell[data-theme="dark"] .workspace-sidebar{background:#21364a!important}
 body.internal-shell[data-theme="dark"] :is(.internal-topbar,.command-dialog,.operation-confirm,.modal-content,.dropdown-menu){background:var(--panel)!important;color:var(--ink)!important}
 body.internal-shell[data-theme="dark"] :is(.room-card,.floor-section,.filter-card,.data-panel,.metric,.internal-main .card){background:var(--panel)!important}

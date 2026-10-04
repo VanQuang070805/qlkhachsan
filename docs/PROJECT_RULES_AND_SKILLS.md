@@ -127,15 +127,19 @@ The admin and staff sidebar/header must remain persistent across their pages. Na
 ## 8. Booking, payment and operational logic
 
 - Same-day check-in cannot be selected after 17:00. Communicate that check-in is available from 12:00 to 17:00.
+- Customer check-in QR payloads use `ROYAL-CHECKIN:v1:<booking_id>:<32-character nonce>`. The nonce is an expiring, one-time server-side credential; staff scan endpoints validate the full prefixed payload and never look up a booking from a raw invoice ID. Keep legacy encrypted `ROYAL-CHECKIN:` / `POSH-CHECKIN:` payloads readable only until their original expiry.
 - A booking may reserve capacity greater than the entered guest count. It must reject selected room capacity lower than the guest count with one clear inline/animated notice.
 - Unpaid pending booking holds and deposit payment attempts expire after 10 minutes; expired bookings are cancelled and their rooms released. Laravel's scheduler must run (`php artisan schedule:work` locally, `schedule:run` from the production cron).
 - Checkout late fee starts only after the scheduled checkout time plus one-hour grace and equals 50% of one room-night rate, not 50% of the booking total.
 - Stay extension supports hourly extension at 200,000 VND/hour and daily extension at the normal nightly room price.
+- Customers may extend confirmed or checked-in stays by whole days only before the checkout date. The server must lock the booking and rooms, reject any overlap with an active reservation, and add the date-adjusted room price to the existing booking snapshot.
+- A confirmed booking with no check-in is automatically cancelled when its arrival date has passed or the 17:00 check-in deadline is reached. The scheduler must run for this status to remain current.
 - Customer booking views show one clear booking status, not several overlapping status badges.
 - Payment supports configured online methods and cash where the business flow permits it. Steps before payment may be revisited to edit information safely.
 - Live availability, booking, payment and room status come from transactional database queries/tools, never stale vector-store content.
 - Customer room search and detail must show occupied/reserved rooms as disabled choices, including active unpaid pending holds, without adding per-room availability copy. Refresh the shared booking availability result without cache while the page is visible so cancellation, checkout/cleaning and return-to-available changes propagate promptly; expired 10-minute unpaid holds become selectable again only if the physical room status is `available`.
 - `room_types.price` is the canonical base nightly price for customer quotes, booking totals and staff/admin room data. Admin seasonal price settings remain date-specific adjustments over that base; changes to a booking's stored total remain a historical snapshot.
+- Only admins may update `room_types.price`; changing the base price must not rewrite totals already stored on existing bookings.
 - Use optimistic UI only with rollback on server failure. Debounce or abort superseded searches and keep meaningful filters synchronized with the URL.
 
 ## 9. Backend and security rules

@@ -640,9 +640,11 @@ class ReceptionController extends Controller
      */
     public function getBookingByScan(Request $request)
     {
-        $token = (string) $request->query('token', '');
+        $qrPayload = (string) $request->query('payload', $request->query('token', ''));
         try {
-            $bookingId = app(\App\Services\CheckInTokenService::class)->bookingId($token);
+            $tokens = app(\App\Services\CheckInTokenService::class);
+            $token = $tokens->tokenFromQrPayload($qrPayload);
+            $bookingId = $tokens->bookingId($token);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }

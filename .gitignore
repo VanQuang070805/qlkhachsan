@@ -45,3 +45,4 @@ face_recognition/**/data/*.sqlite*
 **/.env
 raspberry-pi/*report.json
 /storage/app/private/local-demo-access.txt
+/.codex-docx-review

@@ -98,8 +98,11 @@
                 $isCancelled = in_array($booking->status, ['cancelled', 'rejected']);
                 $isCompleted = $booking->status === 'completed';
                 $isUpcoming = in_array($booking->status, ['pending', 'confirmed', 'checked_in']);
+                $canExtend = in_array($booking->status, ['confirmed', 'checked_in'], true)
+                    && $booking->check_out->toDateString() > now('Asia/Ho_Chi_Minh')->toDateString();
                 $checkinToken = $checkinTokens[$booking->id] ?? null;
                 $filterGroup = $isCancelled ? 'cancelled' : ($isCompleted ? 'completed' : 'upcoming');
+                $extensionHasError = (int) old('booking_id') === (int) $booking->id && $errors->has('days');
             @endphp
             <article class="booking-card-horizontal p-4 rounded-4 bg-white border border-slate-200 shadow-xs transition-all {{ $isCancelled ? 'opacity-75' : '' }}"
                      data-status-group="{{ $filterGroup }}"
@@ -140,7 +143,7 @@
                         </h3>
 
                         <div class="text-slate-500 mb-2" style="font-size: 12.5px;">
-                            {{ $roomNames ?: 'Phòng VIP' }} • {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }} ({{ $nights }} đêm)
+                            {{ $roomNames ?: 'Phòng VIP' }} • {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} đến {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }} ({{ $nights }} đêm)
                         </div>
 
                         <div class="d-flex flex-wrap align-items-center gap-2">
@@ -172,6 +175,44 @@
                                     @endforeach
                                 @endif
 
+                                @if($canExtend)
+                                <button type="button"
+                                        class="booking-extension-toggle"
+                                        data-extension-toggle
+                                        aria-expanded="{{ $extensionHasError ? 'true' : 'false' }}"
+                                        aria-controls="booking-extension-{{ $booking->id }}">
+                                    <i class="bi bi-calendar-plus" aria-hidden="true"></i>
+                                    <span>Gia hạn lưu trú</span>
+                                </button>
+                                <div class="booking-extension-panel" id="booking-extension-{{ $booking->id }}" {{ $extensionHasError ? '' : 'hidden' }}>
+                                    <form action="{{ route('booking.extend', $booking) }}" method="POST" class="booking-extension-form">
+                                        @csrf
+                                        <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+                                        <div class="booking-extension-field">
+                                            <label for="extension-days-{{ $booking->id }}">Số ngày gia hạn</label>
+                                            <input type="number"
+                                                   id="extension-days-{{ $booking->id }}"
+                                                   name="days"
+                                                   min="1"
+                                                   max="30"
+                                                   step="1"
+                                                   value="{{ $extensionHasError ? old('days', 1) : 1 }}"
+                                                   required
+                                                   inputmode="numeric"
+                                                   aria-describedby="extension-help-{{ $booking->id }}{{ $extensionHasError ? ' extension-error-'.$booking->id : '' }}"
+                                                   aria-invalid="{{ $extensionHasError ? 'true' : 'false' }}">
+                                        </div>
+                                        <button type="submit" class="booking-extension-submit">Xác nhận gia hạn</button>
+                                    </form>
+                                    <p id="extension-help-{{ $booking->id }}" class="booking-extension-help">
+                                        Ngày trả hiện tại: {{ $booking->check_out->format('d/m/Y') }}. Hệ thống chỉ xác nhận khi phòng chưa có lịch đặt tiếp theo.
+                                    </p>
+                                    @if($extensionHasError)
+                                    <p id="extension-error-{{ $booking->id }}" class="booking-extension-error" role="alert">{{ $errors->first('days') }}</p>
+                                    @endif
+                                </div>
+                                @endif
+
                                 {{-- Nút Apple Wallet (Black Pill) --}}
                                 <button type="button" class="btn rounded-pill px-3 py-1.5 text-white d-inline-flex align-items-center gap-1.5 shadow-xs"
                                         style="font-size: 11.5px; font-weight: 600; background: #0f172a; border: 1px solid #1e293b; transition: all 0.2s ease;"
@@ -184,7 +225,7 @@
                                     $checkinQrDataUri = null;
                                     if ($checkinToken) {
                                         try {
-                                            $qrObj = \Endroid\QrCode\QrCode::create($checkinToken)->setSize(194)->setMargin(2);
+                                            $qrObj = \Endroid\QrCode\QrCode::create($checkinToken)->setSize(288)->setMargin(16);
                                             $checkinQrDataUri = (new \Endroid\QrCode\Writer\SvgWriter())->write($qrObj)->getDataUri();
                                         } catch (\Throwable $e) {
                                             $checkinQrDataUri = null;
@@ -388,7 +429,7 @@
 
         <div style="border: 1px solid #e2e8f0; border-radius: 24px; padding: 20px 16px 16px; background: #f8fafc; margin-bottom: 18px;">
             <div class="p-2.5 bg-white rounded-4 d-inline-block shadow-xs mb-2" style="border: 1px solid #e2e8f0; line-height: 0;">
-                <img id="qrCodeImg" src="" alt="Mã QR Check-in Chuẩn" style="width: 194px; height: 194px; display: block; border-radius: 8px;">
+                <img id="qrCodeImg" src="" alt="Mã QR Check-in Chuẩn" style="width: min(288px, 72vw); height: auto; display: block; border-radius: 8px;">
             </div>
 
             <div style="display: inline-block; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 9999px; padding: 5px 14px; font-size: 12px; font-weight: 600; color: #059669;">
@@ -666,6 +707,28 @@ document.addEventListener('keydown', e => {
         const inp = document.getElementById('bookingSearchInput');
         if (inp) inp.focus();
     }
+});
+
+document.querySelectorAll('[data-extension-toggle]').forEach(button => {
+    const panel = document.getElementById(button.getAttribute('aria-controls'));
+    if (!panel) return;
+
+    button.addEventListener('click', () => {
+        const willOpen = panel.hidden;
+        panel.hidden = !willOpen;
+        button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        if (willOpen) panel.querySelector('input[name="days"]')?.focus();
+    });
+});
+
+document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('[data-extension-toggle][aria-expanded="true"]').forEach(button => {
+        const panel = document.getElementById(button.getAttribute('aria-controls'));
+        if (panel) panel.hidden = true;
+        button.setAttribute('aria-expanded', 'false');
+        button.focus();
+    });
 });
 
 document.querySelectorAll('.cleaning-request-toggle').forEach(toggle => {

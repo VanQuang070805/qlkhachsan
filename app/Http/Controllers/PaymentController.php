@@ -697,7 +697,7 @@ class PaymentController extends Controller
         if ($hasQr) {
             $qrCodeBlock = <<<QR
             <div style="text-align: center; margin: 16px 0 8px 0;">
-                <img src="cid:checkin-qr" width="165" height="165" alt="Mã QR Check-in" style="display:inline-block; border-radius:12px; border:1px solid #cbd5e1; padding:8px; background:#ffffff;">
+                <img src="cid:checkin-qr" width="220" height="220" alt="Mã QR Check-in" style="display:inline-block; border-radius:12px; border:1px solid #cbd5e1; padding:8px; background:#ffffff;">
                 <p style="margin: 8px 0 0 0; font-size: 12px; color: #64748b; font-weight: 500;">Mã QR xác thực làm thủ tục nhận phòng nhanh</p>
             </div>
 QR;
