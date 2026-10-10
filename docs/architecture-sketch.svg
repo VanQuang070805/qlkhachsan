@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1020" role="img" aria-labelledby="diagram-title diagram-desc">
+  <title id="diagram-title">Rosaliza Hotel website architecture</title>
+  <desc id="diagram-desc">Hand-drawn overview of guest, staff, and admin users; the web interface; Laravel web and API routes; shared MySQL data; and payment, email, Dify, and IoT integrations.</desc>
+  <defs>
+    <marker id="blue-arrow" markerWidth="13" markerHeight="13" refX="11" refY="6.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1 Q5 4 11 6.5 Q5 9 1 12" fill="none" stroke="#286db4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="orange-arrow" markerWidth="13" markerHeight="13" refX="11" refY="6.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1 Q5 4 11 6.5 Q5 9 1 12" fill="none" stroke="#b36b31" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="green-arrow" markerWidth="13" markerHeight="13" refX="11" refY="6.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1 Q5 4 11 6.5 Q5 9 1 12" fill="none" stroke="#479566" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      .hand { font-family:'Comic Sans MS','Segoe Print','Trebuchet MS',sans-serif; fill:#272a2d; }
+      .title { font-size:33px; font-weight:700; }
+      .subtitle { font-size:18px; fill:#666a70; }
+      .group { font-size:26px; font-weight:700; }
+      .section { font-size:23px; font-weight:700; }
+      .item { font-size:20px; font-weight:600; }
+      .small { font-size:17px; fill:#5b6269; }
+      .tiny { font-size:15px; fill:#626973; }
+      .route { font-family:Consolas,'Courier New',monospace; font-size:17px; fill:#3b4855; }
+      .path { fill:none; stroke-linecap:round; stroke-linejoin:round; }
+      .divider { fill:none; stroke:#cfd8df; stroke-width:1.7; stroke-linecap:round; }
+      .inner { fill:#fffefa; stroke:#75a0c2; stroke-width:2.2; }
+    </style>
+  </defs>
+  <rect width="1800" height="1020" fill="#fffefa"/>
+  <text x="900" y="62" text-anchor="middle" class="hand title">Rosaliza Hotel · Website Architecture</text>
+  <text x="900" y="95" text-anchor="middle" class="hand subtitle">One web application, shared data, and APIs for integrations</text>
+  <path d="M606 112 Q900 118 1195 112" class="path" stroke="#dedbd4" stroke-width="2"/>
+
+  <!-- Three user groups -->
+  <path d="M32 168 C34 148 48 144 70 146 Q154 139 250 147 C268 149 277 161 277 181 L276 907 C274 929 260 935 240 934 Q152 941 64 934 C43 932 31 922 31 901 Z" fill="#fff9f5" class="path" stroke="#947063" stroke-width="3.2"/>
+  <path d="M38 174 C41 158 53 154 74 155 Q156 148 245 155 C261 158 271 168 271 186 L269 899 C268 918 255 927 238 926 Q155 933 68 926 C49 924 38 916 38 898 Z" class="path" stroke="#c7aa9d" stroke-width="1.3" opacity=".85"/>
+  <text x="153" y="206" text-anchor="middle" class="hand group">Users</text>
+  <circle cx="87" cy="301" r="24" fill="#f1d8e3" stroke="#c24d82" stroke-width="2.5"/>
+  <path d="M49 364 C51 334 66 326 87 326 C109 326 123 337 125 364 Q123 375 113 375 L62 375 Q50 374 49 364 Z" fill="#f1d8e3" stroke="#c24d82" stroke-width="2.5"/>
+  <text x="138" y="341" class="hand item">Guests</text>
+  <path d="M50 402 Q156 408 243 402" class="path" stroke="#e4d4cd" stroke-width="2"/>
+  <circle cx="87" cy="480" r="24" fill="#d6e9fb" stroke="#3078b9" stroke-width="2.5"/>
+  <path d="M49 543 C51 513 66 505 87 505 C109 505 123 516 125 543 Q123 554 113 554 L62 554 Q50 553 49 543 Z" fill="#d6e9fb" stroke="#3078b9" stroke-width="2.5"/>
+  <text x="138" y="520" class="hand item">Staff</text>
+  <path d="M50 580 Q156 585 243 580" class="path" stroke="#e4d4cd" stroke-width="2"/>
+  <circle cx="87" cy="658" r="24" fill="#f9e7b9" stroke="#c78b36" stroke-width="2.5"/>
+  <path d="M49 721 C51 691 66 683 87 683 C109 683 123 694 125 721 Q123 732 113 732 L62 732 Q50 731 49 721 Z" fill="#f9e7b9" stroke="#c78b36" stroke-width="2.5"/>
+  <text x="138" y="698" class="hand item">Admins</text>
+  <text x="153" y="833" text-anchor="middle" class="hand small">Browser</text>
+  <text x="153" y="858" text-anchor="middle" class="hand small">Desktop / mobile</text>
+
+  <!-- Application boundary -->
+  <path d="M309 166 C312 147 330 144 352 146 Q782 137 1211 148 C1233 150 1246 162 1246 184 L1245 909 C1243 931 1230 937 1209 935 Q782 942 348 935 C325 933 310 922 309 901 Z" fill="#fbfff9" class="path" stroke="#47a35e" stroke-width="3.4"/>
+  <path d="M316 173 C321 156 335 154 356 155 Q779 146 1205 156 C1224 157 1238 168 1238 189 L1237 900 C1235 920 1222 928 1204 927 Q779 934 352 927 C332 925 318 916 317 897 Z" class="path" stroke="#b2d9bb" stroke-width="1.4" opacity=".9"/>
+  <text x="777" y="199" text-anchor="middle" class="hand group">Rosaliza Hotel Application</text>
+  <text x="777" y="226" text-anchor="middle" class="hand small">Laravel serves the UI, business logic, and APIs in one system</text>
+
+  <!-- Browser interface -->
+  <path d="M346 264 Q348 247 365 247 L535 249 Q551 250 551 267 L550 683 Q549 700 533 701 L364 700 Q347 699 347 681 Z" class="inner path"/>
+  <text x="449" y="288" text-anchor="middle" class="hand section">Web interface</text>
+  <path d="M379 318 L518 318 L518 395 Q518 406 508 406 L389 406 Q378 406 378 395 Z" fill="#f1f7fd" stroke="#6695bb" stroke-width="2.3"/>
+  <path d="M379 335 Q446 331 518 335" class="path" stroke="#6695bb" stroke-width="2"/>
+  <circle cx="391" cy="326" r="3.5" fill="#d7726c"/><circle cx="403" cy="326" r="3.5" fill="#e0bb58"/><circle cx="415" cy="326" r="3.5" fill="#5fb376"/>
+  <path d="M393 354 Q440 351 497 354 M393 369 Q442 366 479 369 M393 384 Q420 382 459 384" class="path" stroke="#9cbbd3" stroke-width="2.2"/>
+  <text x="369" y="460" class="hand item">Guests</text>
+  <text x="369" y="487" class="hand small">Search and book</text>
+  <path d="M368 511 Q447 514 530 510" class="divider"/>
+  <text x="369" y="549" class="hand item">Staff</text>
+  <text x="369" y="576" class="hand small">Check-in / checkout</text>
+  <path d="M368 600 Q447 604 530 599" class="divider"/>
+  <text x="369" y="640" class="hand item">Admins</text>
+  <text x="369" y="667" class="hand small">Rooms, roles, reports</text>
+
+  <!-- Web routes -->
+  <path d="M583 263 Q587 248 603 248 L861 249 Q877 251 877 268 L876 699 Q874 716 858 716 L602 715 Q585 714 584 698 Z" class="inner path"/>
+  <text x="730" y="288" text-anchor="middle" class="hand section">Web routes</text>
+  <text x="730" y="313" text-anchor="middle" class="hand small">HTML · JSON · access</text>
+  <path d="M602 329 Q729 332 857 329" class="divider"/>
+  <text x="605" y="357" class="hand item">Room search</text>
+  <text x="605" y="383" class="route">GET /rooms/search</text>
+  <path d="M602 399 Q729 402 857 399" class="divider"/>
+  <text x="605" y="427" class="hand item">Booking</text>
+  <text x="605" y="453" class="route">POST /booking</text>
+  <path d="M602 469 Q729 472 857 469" class="divider"/>
+  <text x="605" y="497" class="hand item">Payment / chatbot</text>
+  <text x="605" y="523" class="route">GET /payment/check/{id}</text>
+  <text x="605" y="548" class="route">POST /chatbot/api</text>
+  <path d="M602 566 Q729 569 857 566" class="divider"/>
+  <text x="605" y="594" class="hand item">Operations / admin</text>
+  <text x="605" y="620" class="route">/staff/*  ·  /admin/*</text>
+  <path d="M602 639 Q729 642 857 639" class="divider"/>
+  <text x="605" y="667" class="hand small">Server-side access checks</text>
+
+  <!-- API routes -->
+  <path d="M908 263 Q912 248 928 248 L1187 249 Q1202 251 1202 268 L1201 699 Q1199 716 1184 716 L927 715 Q910 714 909 698 Z" class="inner path"/>
+  <text x="1055" y="288" text-anchor="middle" class="hand section">API routes</text>
+  <text x="1055" y="313" text-anchor="middle" class="hand small">Under /api</text>
+  <path d="M927 335 Q931 327 943 328 L1168 329 Q1181 330 1182 343 L1181 439 Q1179 449 1167 449 L942 448 Q930 447 928 437 Z" fill="#fff9f2" stroke="#dcab7a" stroke-width="2"/>
+  <text x="947" y="357" class="hand item">Payment webhooks</text>
+  <text x="947" y="384" class="route">/webhook/momo</text>
+  <text x="947" y="408" class="route">/webhook/zalopay</text>
+  <text x="947" y="432" class="route">/webhook/vnpay</text>
+  <path d="M927 466 Q931 458 943 459 L1168 460 Q1181 461 1182 474 L1181 566 Q1179 577 1167 577 L942 576 Q930 575 928 564 Z" fill="#f5f7ff" stroke="#879bc8" stroke-width="2"/>
+  <text x="947" y="488" class="hand item">Chatbot tools</text>
+  <text x="947" y="514" class="route">/chatbot/tools/</text>
+  <text x="947" y="539" class="route">room-types</text>
+  <text x="947" y="563" class="route">rooms/search</text>
+  <path d="M927 593 Q931 585 943 586 L1168 587 Q1181 588 1182 601 L1181 691 Q1179 702 1167 702 L942 701 Q930 700 928 689 Z" fill="#f8faf4" stroke="#9dbf8a" stroke-width="2"/>
+  <text x="947" y="615" class="hand item">Device API</text>
+  <text x="947" y="642" class="route">/iot/rooms/{room}/</text>
+  <text x="947" y="667" class="route">cleaning-request</text>
+  <text x="947" y="690" class="hand tiny">GET / POST · device key</text>
+
+  <!-- Business logic, scheduler, and data -->
+  <path d="M346 755 Q350 744 363 744 L533 745 Q550 747 551 760 L550 863 Q548 878 534 879 L363 878 Q347 876 347 861 Z" fill="#fffefa" stroke="#78a0be" stroke-width="2.2"/>
+  <circle cx="386" cy="788" r="19" fill="none" stroke="#367ab1" stroke-width="2.4"/>
+  <path d="M386 773 L386 789 L397 796" class="path" stroke="#367ab1" stroke-width="2.4"/>
+  <text x="416" y="795" class="hand item">Scheduler</text>
+  <text x="367" y="827" class="hand small">Expire holds</text>
+  <text x="367" y="852" class="hand small">No-show · sync</text>
+  <path d="M583 753 Q587 744 602 744 L1183 745 Q1199 747 1200 760 L1199 808 Q1197 824 1182 825 L602 824 Q586 822 584 806 Z" fill="#edf8f0" stroke="#71a986" stroke-width="2.3"/>
+  <text x="892" y="776" text-anchor="middle" class="hand item">Shared business logic</text>
+  <text x="892" y="804" text-anchor="middle" class="hand small">Auth · access control · availability · transactions</text>
+  <path d="M779 846 Q783 834 893 832 Q1006 834 1011 846 L1011 902 Q1007 920 895 922 Q783 919 779 902 Z" fill="#fff0b9" stroke="#aa8a38" stroke-width="2.6"/>
+  <ellipse cx="895" cy="846" rx="116" ry="17" fill="#fff7d4" stroke="#aa8a38" stroke-width="2.6"/>
+
+  <text x="895" y="891" text-anchor="middle" class="hand item">MySQL</text>
+  <text x="895" y="912" text-anchor="middle" class="hand tiny" style="font-size:13px">Shared data</text>
+
+  <!-- External services -->
+  <path d="M1294 167 C1297 149 1312 145 1333 147 Q1540 139 1743 149 C1760 152 1770 164 1770 184 L1769 909 C1767 929 1754 936 1736 934 Q1536 942 1328 934 C1307 932 1295 923 1294 901 Z" fill="#fffaf3" class="path" stroke="#df8b39" stroke-width="3.2"/>
+  <path d="M1301 174 C1304 158 1318 155 1337 156 Q1539 148 1737 157 C1752 159 1763 169 1763 187 L1762 899 C1760 918 1748 927 1733 926 Q1538 934 1332 926 C1314 924 1302 916 1302 898 Z" class="path" stroke="#efc59b" stroke-width="1.3" opacity=".9"/>
+  <text x="1531" y="199" text-anchor="middle" class="hand group">External services</text>
+  <path d="M1321 248 Q1324 237 1338 237 L1725 239 Q1739 241 1740 255 L1739 385 Q1737 399 1722 399 L1337 398 Q1323 396 1322 383 Z" fill="#fffefa" stroke="#d8a676" stroke-width="2"/>
+  <text x="1346" y="276" class="hand section">Payments</text>
+  <text x="1346" y="309" class="hand small">VietQR · SePay reconciliation</text>
+  <text x="1346" y="339" class="hand small">MoMo · ZaloPay · VNPay</text>
+  <text x="1346" y="370" class="hand tiny">IPN / callbacks to payment API</text>
+  <path d="M1321 431 Q1324 420 1338 420 L1725 422 Q1739 424 1740 438 L1739 525 Q1737 539 1722 539 L1337 538 Q1323 536 1322 523 Z" fill="#fffefa" stroke="#d8a676" stroke-width="2"/>
+  <text x="1346" y="460" class="hand section">Identity and email</text>
+  <text x="1346" y="491" class="hand small">Google OAuth · SMTP</text>
+  <text x="1346" y="518" class="hand tiny">Federated sign-in · confirmation mail</text>
+  <path d="M1321 572 Q1324 561 1338 561 L1725 563 Q1739 565 1740 579 L1739 677 Q1737 691 1722 691 L1337 690 Q1323 688 1322 675 Z" fill="#fffefa" stroke="#d8a676" stroke-width="2"/>
+  <text x="1346" y="601" class="hand section">Dify Chatflow</text>
+  <text x="1346" y="632" class="hand small">Chatbot calls room lookup tools</text>
+  <text x="1346" y="659" class="hand tiny">Public room data only</text>
+  <path d="M1321 725 Q1324 714 1338 714 L1725 716 Q1739 718 1740 732 L1739 861 Q1737 875 1722 875 L1337 874 Q1323 872 1322 859 Z" fill="#fffefa" stroke="#d8a676" stroke-width="2"/>
+  <text x="1346" y="754" class="hand section">Devices and Face ID</text>
+  <text x="1346" y="786" class="hand small">IoT sends cleaning requests</text>
+  <text x="1346" y="814" class="hand small">Face ID service syncs profiles</text>
+  <text x="1346" y="844" class="hand tiny">Enabled by configuration</text>
+
+  <!-- Primary flows and integrations; lines avoid data blocks -->
+  <path d="M278 490 Q310 484 344 490" class="path" stroke="#286db4" stroke-width="3" marker-end="url(#blue-arrow)"/>
+  <text x="311" y="471" text-anchor="middle" class="hand tiny">visit</text>
+  <path d="M551 484 Q566 479 581 484" class="path" stroke="#286db4" stroke-width="3" marker-end="url(#blue-arrow)"/>
+  <path d="M731 716 Q727 729 731 742" class="path" stroke="#479566" stroke-width="2.8" marker-end="url(#green-arrow)"/>
+  <path d="M1052 716 Q1055 729 1052 742" class="path" stroke="#479566" stroke-width="2.8" marker-end="url(#green-arrow)"/>
+  <path d="M551 801 Q566 796 581 801" class="path" stroke="#479566" stroke-width="2.6" marker-end="url(#green-arrow)"/>
+  <path d="M895 825 Q894 833 895 839" class="path" stroke="#479566" stroke-width="2.8" marker-end="url(#green-arrow)"/>
+  <path d="M1247 260 Q1281 255 1318 260" class="path" stroke="#286db4" stroke-width="2.7" marker-end="url(#blue-arrow)"/>
+  <text x="1282" y="243" text-anchor="middle" class="hand tiny">call</text>
+  <path d="M1247 480 Q1281 475 1318 480" class="path" stroke="#286db4" stroke-width="2.4" marker-end="url(#blue-arrow)"/>
+  <path d="M1320 348 Q1261 346 1205 378" class="path" stroke="#b36b31" stroke-width="2.9" marker-end="url(#orange-arrow)"/>
+  <text x="1259" y="333" text-anchor="middle" class="hand tiny">IPN</text>
+  <path d="M1247 584 Q1281 580 1318 584" class="path" stroke="#286db4" stroke-width="2.4" marker-end="url(#blue-arrow)"/>
+  <path d="M1320 667 Q1255 645 1205 560" class="path" stroke="#b36b31" stroke-width="2.9" marker-end="url(#orange-arrow)"/>
+  <text x="1266" y="621" text-anchor="middle" class="hand tiny">tool</text>
+  <path d="M1320 789 Q1257 749 1205 647" class="path" stroke="#b36b31" stroke-width="2.9" marker-end="url(#orange-arrow)"/>
+  <text x="1265" y="724" text-anchor="middle" class="hand tiny">IoT</text>
+
+  <text x="900" y="987" text-anchor="middle" class="hand small">Blue: website requests  ·  Orange: external calls  ·  Green: internal data flow</text>
+</svg>
