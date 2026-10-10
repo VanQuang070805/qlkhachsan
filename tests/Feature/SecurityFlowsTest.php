@@ -149,13 +149,13 @@ class SecurityFlowsTest extends TestCase
         $this->asStaff($receptionist)->get(route('receptionist.profile'))->assertOk();
     }
 
-    public function test_receptionist_cannot_open_admin_reports(): void
+    public function test_receptionist_cannot_open_admin_reports_without_report_permission(): void
     {
         $receptionist = $this->staff('restricted@example.com', 'receptionist');
 
         $this->asStaff($receptionist)
             ->get(route('admin.reports'))
-            ->assertRedirect(route('staff.bookings'));
+            ->assertRedirect(route('receptionist.profile'));
     }
 
     public function test_secure_requests_receive_hsts_header(): void
@@ -775,7 +775,7 @@ class SecurityFlowsTest extends TestCase
         $this->postJson(route('chatbot.api'), ['message' => 'Giá phòng hiện tại?'])
             ->assertOk()
             ->assertJsonPath('source', 'hotel')
-            ->assertJsonFragment(['reply' => "Bảng giá phòng hiện tại của Posh Boutique:\n- Phòng Kiểm Thử: 765.000 VNĐ/đêm (Tối đa 3 người)\n\nBạn có thể nhấn vào mục 'Tìm phòng trống' trên thanh menu để chọn ngày và đặt phòng nhé."]);
+            ->assertJsonFragment(['reply' => "Bảng giá phòng hiện tại của Rosaliza Hotel:\n- Phòng Kiểm Thử: 765.000 VNĐ/đêm (Tối đa 3 người)\n\nBạn có thể nhấn vào mục 'Tìm phòng trống' trên thanh menu để chọn ngày và đặt phòng nhé."]);
     }
 
     public function test_chatbot_has_a_dedicated_per_ip_rate_limit(): void

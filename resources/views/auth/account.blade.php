@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Thông tin cá nhân · Posh Boutique')
+@section('title', 'Thông tin cá nhân · Rosaliza Hotel')
 
 @section('content')
 <section class="commerce-page account-profile" aria-labelledby="account-title">
@@ -47,7 +47,7 @@
             <div style="padding: 28px 28px;">
                 <div class="account-profile__form-head"><div><p class="editorial-eyebrow">Contact profile</p><h2>Your details</h2></div><i class="bi bi-person-lines-fill" aria-hidden="true"></i></div>
                 @foreach([['fullname','Họ và tên','text','Nguyễn Văn A'],['email','Email','email','you@example.com'],['phone','Số điện thoại','tel','0912345678']] as [$name,$label,$type,$placeholder])
-                <label class="account-field"><span>{{ $label }}</span><input type="{{ $type }}" name="{{ $name }}" value="{{ old($name,$user->$name) }}" placeholder="{{ $placeholder }}" @if($name==='phone') inputmode="numeric" maxlength="10" @endif required>@error($name)<small><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}</small>@enderror</label>
+                <label class="account-field"><span>{{ $label }}</span><input type="{{ $type }}" name="{{ $name }}" value="{{ old($name,$user->$name) }}" placeholder="{{ $placeholder }}" @if($name==='phone') inputmode="numeric" pattern="0[0-9]{9}" maxlength="10" data-digits-only @endif required>@error($name)<small><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}</small>@enderror</label>
                 @endforeach
                 <button class="button" type="submit">Lưu thay đổi</button>
                 <a class="account-password-link" href="{{ route('password.forgot') }}"><i class="bi bi-envelope-lock"></i><span><strong>Đổi hoặc quên mật khẩu</strong><small>Nhận mã xác minh qua email {{ $user->email }}</small></span><i class="bi bi-arrow-right"></i></a>

@@ -1,78 +1,17 @@
 @extends('layouts.admin')
-@section('title','Điều chỉnh giá · Posh Boutique')
+@section('title','Điều chỉnh giá · Rosaliza Hotel')
 @section('page-title','Chiến lược giá')
 @section('content')
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h1 class="h3 fw-bold mb-1" style="color: #0f172a; letter-spacing: -0.03em;">Quản lý giá phòng</h1>
-        <p class="text-muted small mb-0" style="color: #64748b;">Cập nhật giá nền theo hạng phòng và mức điều chỉnh theo thời gian.</p>
+        <p class="text-muted small mb-0" style="color: #64748b;">Quản lý chính sách và lịch điều chỉnh giá theo thời gian.</p>
     </div>
     <a class="btn btn-dark d-inline-flex align-items-center gap-2 px-3 py-2 fw-medium" href="{{ route('admin.price-settings.create') }}" style="border-radius: 999px; background: #070709; font-size: 0.82rem; border: none;">
         <i class="bi bi-plus-lg"></i>
         <span>Thêm chính sách</span>
     </a>
 </div>
-
-<section class="card border-0 mb-4 pricing-panel base-rate-panel">
-    <header class="base-rate-panel__header">
-        <div>
-            <h2>Giá nền theo hạng phòng</h2>
-            <p>Giá mới áp dụng cho báo giá và phần lưu trú gia hạn sau khi lưu. Booking đã chốt giữ nguyên tổng tiền cũ.</p>
-        </div>
-    </header>
-    <div class="table-responsive">
-        <table class="table align-middle m-0 base-rate-table">
-            <thead>
-                <tr>
-                    <th>Hạng phòng</th>
-                    <th>Giá hiện tại</th>
-                    <th>Cập nhật giá nền</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($roomTypes as $roomType)
-                @php($priceHasError = (int) old('room_type_id') === (int) $roomType->id && $errors->has('price'))
-                <tr>
-                    <td>
-                        <strong>{{ $roomType->type_name }}</strong>
-                        <small>{{ $roomType->rooms_count }} phòng</small>
-                    </td>
-                    <td class="base-rate-current">{{ number_format((float) $roomType->price, 0, ',', '.') }}đ / đêm</td>
-                    <td>
-                        <form action="{{ route('admin.room-types.price.update', $roomType) }}" method="POST" class="base-rate-form">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="room_type_id" value="{{ $roomType->id }}">
-                            <div>
-                                <label class="base-rate-label" for="room-price-{{ $roomType->id }}">Giá mới cho {{ $roomType->type_name }}</label>
-                                <input type="number"
-                                       id="room-price-{{ $roomType->id }}"
-                                       name="price"
-                                       min="1"
-                                       max="9999999999.99"
-                                       step="1"
-                                       value="{{ $priceHasError ? old('price') : number_format((float) $roomType->price, 0, '.', '') }}"
-                                       required
-                                       inputmode="decimal"
-                                       aria-invalid="{{ $priceHasError ? 'true' : 'false' }}"
-                                       @if($priceHasError) aria-describedby="room-price-error-{{ $roomType->id }}" @endif>
-                                @if($priceHasError)
-                                <span id="room-price-error-{{ $roomType->id }}" class="base-rate-error" role="alert">{{ $errors->first('price') }}</span>
-                                @endif
-                            </div>
-                            <button type="submit" class="btn btn-primary">Lưu giá</button>
-                        </form>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="3" class="empty-state">Chưa có hạng phòng để điều chỉnh giá.</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</section>
 
 <div class="row g-3 mb-4">
     <div class="col-md-4">

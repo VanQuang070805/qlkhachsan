@@ -1,5 +1,5 @@
 @extends('client.layouts.app')
-@section('title', 'Posh Boutique')
+@section('title', 'Rosaliza Hotel')
 @section('content')
 
 {{-- =========================================================================
@@ -14,13 +14,13 @@
     <div class="hero__content">
         {{-- Supaste Signature Dual-Font Headline --}}
         <h1 id="hero-title" class="supaste-hero__headline">
-            <span class="supaste-hero__headline-sans">Posh Boutique</span>
+            <span class="supaste-hero__headline-sans">Rosaliza Hotel</span>
             <span class="supaste-hero__headline-serif">Rest effortlessly.</span>
         </h1>
 
         {{-- Subtitle --}}
         <p class="supaste-hero__subtitle">
-            A quiet luxury sanctuary of bespoke suites and thoughtful hospitality, crafted for deep rest and effortless calm at Posh Boutique.
+            A quiet luxury sanctuary of bespoke suites and thoughtful hospitality, crafted for deep rest and effortless calm at Rosaliza Hotel.
         </p>
 
         {{-- Single CTA Button (Filter removed per user request) --}}
@@ -39,118 +39,7 @@
             </div>
         </div>
 
-        {{-- Mac Showcase Window with Dynamic Island Notch --}}
-        {{-- Mac Showcase Window with Dynamic Island Notch (1:1 Supaste Clone) --}}
-        <div class="supaste-window" aria-label="Giao diện xem trước phòng nghỉ">
-            {{-- Window Topbar: Left Wing on Glass, Center Dynamic Island Notch, Right Wing on Glass --}}
-            <div class="supaste-window__header">
-                {{-- Left Wing: macOS Traffic Lights (Close / Minimize / Zoom) --}}
-                <div class="supaste-window__wing supaste-window__wing--left">
-                    <div class="window-controls" aria-hidden="true">
-                        <span class="ctrl-dot ctrl-red"></span>
-                        <span class="ctrl-dot ctrl-yellow"></span>
-                        <span class="ctrl-dot ctrl-green"></span>
-                    </div>
-                </div>
 
-                {{-- Center Dynamic Island Notch (hanging down from top edge) --}}
-                <div class="supaste-notch">
-                    {{-- Concave corner fillet left --}}
-                    <div class="supaste-notch__fillet supaste-notch__fillet--left" aria-hidden="true"></div>
-
-                    {{-- Notch Core --}}
-                    <div class="supaste-notch__core">
-                        {{-- Row 1: Search & macOS 3 Icon Buttons --}}
-                        <div class="supaste-notch__top">
-                            <div class="supaste-notch__search">
-                                <i class="bi bi-search" aria-hidden="true"></i>
-                                <span class="supaste-notch__search-text">Tìm kiếm hạng phòng...</span>
-                            </div>
-                            <div class="supaste-notch__actions" aria-label="Tiện ích macOS">
-                                <button type="button" class="macos-icon-btn" title="Hạng phòng yêu thích" aria-label="Yêu thích">
-                                    <i class="bi bi-star"></i>
-                                </button>
-                                <button type="button" class="macos-icon-btn" title="Chế độ xem lưới" aria-label="Xem lưới">
-                                    <i class="bi bi-grid-fill"></i>
-                                </button>
-                                <button type="button" class="macos-icon-btn" title="Chia sẻ bộ sưu tập" aria-label="Chia sẻ">
-                                    <i class="bi bi-box-arrow-up"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        {{-- Row 2: Filter Tabs with Counters --}}
-                        <div class="supaste-notch__tabs" role="tablist" id="shelf-filter-tabs">
-                            <button type="button" class="tab is-active" role="tab" data-filter="all">Tất cả <span class="tab-count">3</span></button>
-                            <button type="button" class="tab" role="tab" data-filter="deluxe">Deluxe <span class="tab-count">1</span></button>
-                            <button type="button" class="tab" role="tab" data-filter="suite">Suite <span class="tab-count">1</span></button>
-                            <button type="button" class="tab" role="tab" data-filter="presidential">Presidential <span class="tab-count">1</span></button>
-                        </div>
-
-                        {{-- Row 3: Exactly 3 Most Beautiful Rooms --}}
-                        @php
-                            $allRooms = isset($roomTypes) && $roomTypes->isNotEmpty() ? $roomTypes : (isset($featuredRooms) ? $featuredRooms : collect());
-                            $topThreeRooms = collect();
-                            $deluxe = $allRooms->first(fn($r) => !str_contains(mb_strtolower($r->type_name), 'vip') && !str_contains(mb_strtolower($r->type_name), 'suite') && !str_contains(mb_strtolower($r->type_name), 'gia đình'));
-                            $suite = $allRooms->first(fn($r) => str_contains(mb_strtolower($r->type_name), 'suite') || str_contains(mb_strtolower($r->type_name), 'gia đình') || str_contains(mb_strtolower($r->type_name), 'triple'));
-                            $vip = $allRooms->first(fn($r) => str_contains(mb_strtolower($r->type_name), 'vip') || str_contains(mb_strtolower($r->type_name), 'presidential'));
-                            if ($deluxe) $topThreeRooms->push($deluxe);
-                            if ($suite) $topThreeRooms->push($suite);
-                            if ($vip) $topThreeRooms->push($vip);
-                            if ($topThreeRooms->count() < 3) {
-                                $topThreeRooms = $allRooms->take(3);
-                            }
-                        @endphp
-                        @if($topThreeRooms->isNotEmpty())
-                            <div class="supaste-shelf__cards" id="shelf-cards-container">
-                                @foreach($topThreeRooms as $room)
-                                    @php
-                                        $nameLower = mb_strtolower($room->type_name);
-                                        if (str_contains($nameLower, 'vip') || str_contains($nameLower, 'presidential')) {
-                                            $category = 'presidential';
-                                        } elseif (str_contains($nameLower, 'triple') || str_contains($nameLower, 'gia đình') || str_contains($nameLower, 'suite')) {
-                                            $category = 'suite';
-                                        } else {
-                                            $category = 'deluxe';
-                                        }
-                                    @endphp
-                                    <article class="supaste-room-card" data-room-category="{{ $category }}">
-                                        <div class="supaste-room-card__img">
-                                            <img src="{{ $room->image ?: config('room_images.' . $room->id . '.0', asset('images/rooms/default.jpg')) }}"
-                                                 alt="{{ $room->type_name }} tại Posh Boutique"
-                                                 loading="lazy"
-                                                 onerror="this.onerror=null;this.src='{{ asset('images/rooms/default.jpg') }}';">
-                                            <span class="supaste-room-card__badge">
-                                                {{ $room->available_count ?? 2 }} phòng trống
-                                            </span>
-                                        </div>
-                                        <div class="supaste-room-card__info">
-                                            <h4>{{ $room->type_name }}</h4>
-                                            <p>{{ number_format((float) $room->price, 0, ',', '.') }} đ <small>/ đêm</small></p>
-                                            <a href="{{ route('rooms.detail', $room->id) }}" class="supaste-card-btn">
-                                                Xem chi tiết phòng →
-                                            </a>
-                                        </div>
-                                    </article>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-
-                    {{-- Concave corner fillet right --}}
-                    <div class="supaste-notch__fillet supaste-notch__fillet--right" aria-hidden="true"></div>
-                </div>
-
-                {{-- Right Wing --}}
-                <div class="supaste-window__wing supaste-window__wing--right">
-                    <div class="supaste-window__status">
-                        <i class="bi bi-search" aria-hidden="true"></i>
-                        <i class="bi bi-wifi" aria-hidden="true"></i>
-                        <span class="status-time">09:41</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     {{-- 3D Landscape Layer: Foreground Hill (In FRONT of the Glass Window, z-index: 4) --}}
@@ -317,7 +206,7 @@
     <div class="supaste-section__header">
         <h2 id="features-title" class="supaste-section__title">Thiết kế cho kỳ nghỉ trọn vẹn</h2>
         <p class="supaste-section__desc">
-            Từ không gian phòng tĩnh lặng, ẩm thực phục vụ tận phòng đến các đặc quyền thư giãn cá nhân, Posh Boutique chăm chút từng khoảnh khắc trong kỳ nghỉ của bạn.
+            Từ không gian phòng tĩnh lặng, ẩm thực phục vụ tận phòng đến các đặc quyền thư giãn cá nhân, Rosaliza Hotel chăm chút từng khoảnh khắc trong kỳ nghỉ của bạn.
         </p>
     </div>
 
@@ -385,7 +274,7 @@
     <div class="supaste-section__header">
         <h2 id="reviews-title" class="supaste-section__title">Những chia sẻ chân thực</h2>
         <p class="supaste-section__desc">
-            Lắng nghe cảm nhận từ những vị khách đã dừng chân và tận hưởng kỳ nghỉ dưỡng tại Posh Boutique.
+            Lắng nghe cảm nhận từ những vị khách đã dừng chân và tận hưởng kỳ nghỉ dưỡng tại Rosaliza Hotel.
         </p>
     </div>
 
@@ -401,7 +290,7 @@
                     </blockquote>
                     <footer style="display: flex; flex-direction: column; gap: 2px;">
                         <strong style="color: #0f172a; font-size: 14px;">{{ $review->user?->fullname ?? 'Khách lưu trú' }}</strong>
-                        <span style="color: #64748b; font-size: 12px;">{{ $review->roomType?->type_name ?? 'Posh Boutique' }}</span>
+                        <span style="color: #64748b; font-size: 12px;">{{ $review->roomType?->type_name ?? 'Rosaliza Hotel' }}</span>
                     </footer>
                 </article>
             @endforeach
@@ -431,15 +320,15 @@
             $presidentialType = isset($roomTypes) ? ($roomTypes->firstWhere('id', 5) ?? $roomTypes->last()) : null;
 
             $deluxeName = $deluxeType ? $deluxeType->type_name : 'Phòng Đôi Tiêu Chuẩn';
-            $deluxePrice = $deluxeType ? number_format((float)$deluxeType->price, 0, ',', '.') : '650.000';
+            $deluxePrice = $deluxeType ? number_format((float)$deluxeType->price, 0, ',', '.') : '20.000';
             $deluxeUrl = $deluxeType ? route('rooms.detail', $deluxeType->id) : route('rooms.index');
 
             $suiteName = $suiteType ? $suiteType->type_name : 'Phòng Gia Đình';
-            $suitePrice = $suiteType ? number_format((float)$suiteType->price, 0, ',', '.') : '1.200.000';
+            $suitePrice = $suiteType ? number_format((float)$suiteType->price, 0, ',', '.') : '100.000';
             $suiteUrl = $suiteType ? route('rooms.detail', $suiteType->id) : route('rooms.index');
 
             $presidentialName = $presidentialType ? $presidentialType->type_name : 'Phòng VIP';
-            $presidentialPrice = $presidentialType ? number_format((float)$presidentialType->price, 0, ',', '.') : '4.000.000';
+            $presidentialPrice = $presidentialType ? number_format((float)$presidentialType->price, 0, ',', '.') : '100.000';
             $presidentialUrl = $presidentialType ? route('rooms.detail', $presidentialType->id) : route('rooms.index');
         @endphp
 
@@ -502,7 +391,7 @@
 
         <p class="supaste-pricing-section__footer-note">
             <i class="bi bi-shield-check" style="color: #60a5fa; font-size: 15px; vertical-align: -1px; margin-right: 6px;" aria-hidden="true"></i>
-            Cam kết giá minh bạch từ Posh Boutique · Thanh toán bảo mật qua VNPAY / VietQR / Thẻ tín dụng quốc tế · Miễn phí hủy trước 48 giờ
+            Cam kết giá minh bạch từ Rosaliza Hotel · Thanh toán bảo mật qua VNPAY / VietQR / Thẻ tín dụng quốc tế · Miễn phí hủy trước 48 giờ
         </p>
     </div>
 </section>
@@ -521,8 +410,8 @@
     <div class="supaste-faq-list">
         <div class="supaste-faq-item">
             <details open>
-                <summary>Giờ nhận phòng (check-in) và trả phòng (check-out) tại Posh Boutique là khi nào?</summary>
-                <p>Khách sạn nhận phòng từ 14:00 và trả phòng trước 12:00 trưa. Nếu bạn muốn nhận phòng sớm hoặc trả phòng muộn, vui lòng liên hệ trước với bộ phận lễ tân để được hỗ trợ sắp xếp theo tình trạng phòng thực tế.</p>
+                <summary>Giờ nhận phòng (check-in) và trả phòng (check-out) tại Rosaliza Hotel là khi nào?</summary>
+                <p>Khách sạn nhận phòng từ 12:00 đến trước 16:00 và trả phòng trước 12:00 trưa. Nếu muốn trả phòng muộn, vui lòng liên hệ lễ tân để được hỗ trợ theo tình trạng phòng thực tế.</p>
             </details>
         </div>
 
@@ -536,14 +425,14 @@
         <div class="supaste-faq-item">
             <details>
                 <summary>Khách sạn hỗ trợ những phương thức thanh toán nào?</summary>
-                <p>Posh Boutique hỗ trợ thanh toán trực tuyến qua Ví MoMo, ZaloPay, VietQR ngân hàng và cổng VNPay.</p>
+                <p>Rosaliza Hotel hỗ trợ thanh toán trực tuyến qua Ví MoMo, ZaloPay, VietQR ngân hàng và cổng VNPay.</p>
             </details>
         </div>
 
         <div class="supaste-faq-item">
             <details>
                 <summary>Khách sạn có cung cấp dịch vụ đưa đón sân bay không?</summary>
-                <p>Có. Posh Boutique cung cấp dịch vụ xe đưa đón cao cấp từ sân bay về khách sạn và ngược lại. Hạng phòng Presidential Suite được miễn phí dịch vụ xe Limousine 2 chiều.</p>
+                <p>Có. Rosaliza Hotel cung cấp dịch vụ xe đưa đón cao cấp từ sân bay về khách sạn và ngược lại. Hạng phòng Presidential Suite được miễn phí dịch vụ xe Limousine 2 chiều.</p>
             </details>
         </div>
 

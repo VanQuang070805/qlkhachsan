@@ -1,12 +1,11 @@
 @extends('layouts.dashboard')
-@section('title', 'Sơ đồ phòng · Posh Boutique')
+@section('title', 'Sơ đồ phòng · Rosaliza Hotel')
 @section('page-title', 'Sơ đồ phòng')
 
 @section('content')
 @php
-    // Extract unique floors, types, and counts
     $allFloors = array_keys($floors);
-    sort($allFloors);
+    sort($allFloors, SORT_NUMERIC);
 
     $uniqueTypes = [];
     $uniqueCapacities = [];
@@ -24,7 +23,6 @@
             
             $uiStatus = match(true) {
                                 $room['status'] === 'available' && (int) $room['has_today_booking'] > 0 => 'booked',
-                                in_array($room['status'], ['occupied', 'soon_to_checkout']) && (int) ($room['is_checkout_today'] ?? 0) > 0 => 'soon_to_checkout',
                                 default => $room['status'],
                             };
             if (isset($counts[$uiStatus])) {
@@ -311,8 +309,32 @@
     /* =========================================================================
        MACOS CUPERTINO ROOM CARDS
        ========================================================================= */
+    .rooms-five-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    @media (max-width: 1399.98px) {
+        .rooms-five-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 991.98px) {
+        .rooms-five-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 575.98px) {
+        .rooms-five-grid {
+            grid-template-columns: 1fr;
+        }
+    }
     .room-card-wrapper {
         margin-bottom: 14px;
+        width: 100%;
+        min-width: 0;
     }
     .room-card {
         background: #ffffff;
@@ -418,19 +440,19 @@
     }
     .badge-status-cleaning .badge-dot { background: #f59e0b; }
 
-    .badge-status-booked, .badge-status-soon_to_checkin {
+    .badge-status-booked {
         background: #f5f3ff;
         color: #5b21b6;
         border: 1px solid rgba(139, 92, 246, 0.22);
     }
-    .badge-status-booked .badge-dot, .badge-status-soon_to_checkin .badge-dot { background: #8b5cf6; }
+    .badge-status-booked .badge-dot { background: #8b5cf6; }
 
-    .badge-status-overdue, .badge-status-soon_to_checkout {
+    .badge-status-overdue {
         background: #fef2f2;
         color: #991b1b;
         border: 1px solid rgba(239, 68, 68, 0.22);
     }
-    .badge-status-overdue .badge-dot, .badge-status-soon_to_checkout .badge-dot { background: #ef4444; }
+    .badge-status-overdue .badge-dot { background: #ef4444; }
 
     .badge-status-maintenance {
         background: #f1f5f9;
@@ -641,22 +663,31 @@
             </div>
 
             <div class="operations-quick-actions">
-                <button type="button" class="action-pill-btn btn-obsidian" onclick="openQRScannerModal()">
-                    <i class="fa-solid fa-qrcode"></i> Quét mã QR
-                </button>
-                <button type="button" class="action-pill-btn btn-white" onclick="openWalkinCheckinModal('now')">
-                    <i class="fa-solid fa-user-plus text-primary"></i> Khách vãng lai
-                </button>
-                <button type="button" class="action-pill-btn btn-white" id="multi-select-btn" onclick="document.getElementById('multi-select-toggle').click()">
-                    <input class="form-check-input me-1" type="checkbox" id="multi-select-toggle" onchange="toggleMultiSelectMode()" style="cursor: pointer;">
-                    <span>Chọn nhiều</span>
-                </button>
-                <a href="{{ route('staff.cancellations') }}" class="action-pill-btn btn-white">
-                    <i class="fa-solid fa-arrow-rotate-left text-secondary"></i> Hoàn tiền
-                    @if(($pendingRefunds ?? 0) > 0)
-                        <span class="action-badge">{{ $pendingRefunds }}</span>
-                    @endif
-                </a>
+                @if($permissions['bp_checkin_checkout'])
+                    <button type="button" id="open-qr-scanner-btn" class="action-pill-btn btn-obsidian" onclick="openQRScannerModal()">
+                        <i class="fa-solid fa-qrcode"></i> Quét mã QR
+                    </button>
+                @endif
+                @if($permissions['bp_create_booking'] && !$permissions['bp_checkin_checkout'])
+                    <button type="button" class="action-pill-btn btn-white" onclick="openWalkinCheckinModal('hold')">
+                        <i class="fa-solid fa-user-plus text-primary"></i>
+                        Tạo đặt phòng
+                    </button>
+                @endif
+                @if($permissions['bp_create_booking'])
+                    <button type="button" class="action-pill-btn btn-white" id="multi-select-btn" onclick="document.getElementById('multi-select-toggle').click()">
+                        <input class="form-check-input me-1" type="checkbox" id="multi-select-toggle" onchange="toggleMultiSelectMode()" style="cursor: pointer;">
+                        <span>Chọn nhiều</span>
+                    </button>
+                @endif
+                @if($permissions['tn_refund'])
+                    <a href="{{ route('staff.cancellations') }}" class="action-pill-btn btn-white">
+                        <i class="fa-solid fa-arrow-rotate-left text-secondary"></i> Hủy phòng &amp; hoàn tiền
+                        @if(($pendingRefunds ?? 0) > 0)
+                            <span class="action-badge">{{ $pendingRefunds }}</span>
+                        @endif
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -740,14 +771,12 @@
                     </h6>
                     <span class="floor-counter">{{ count($rooms) }} phòng</span>
                 </div>
-                <div class="row g-3">
+                <div class="rooms-five-grid">
                     @foreach ($rooms as $room)
                         @php
                             $uiStatus = $room['status'] === 'available' && (int) $room['has_today_booking'] > 0 ? 'booked' : $room['status'];
                             [$statusText, $icon, $badgeClass] = match ($uiStatus) {
-                                'soon_to_checkin' => ['Sắp nhận', 'fa-clock', 'badge-status-soon_to_checkin'],
                                 'occupied' => ['Đang ở', 'fa-user-check', 'badge-status-occupied'],
-                                'soon_to_checkout' => ['Sắp trả', 'fa-right-from-bracket', 'badge-status-soon_to_checkout'],
                                 'cleaning' => ['Đang dọn', 'fa-broom', 'badge-status-cleaning'],
                                 'maintenance' => ['Bảo trì', 'fa-screwdriver-wrench', 'badge-status-maintenance'],
                                 'booked' => ['Đã đặt', 'fa-calendar-check', 'badge-status-booked'],
@@ -758,7 +787,7 @@
                             $room['ui_status'] = $uiStatus;
                             $room['status_text'] = $statusText;
                         @endphp
-                        <div class="col-6 col-sm-6 col-md-4 col-xl-2 col-xxl-2 room-card-wrapper">
+                        <div class="room-card-wrapper">
                             <div class="room-card" role="button" tabindex="0" aria-label="Phòng {{ $room['room_number'] }}" onkeydown="if(event.key === 'Enter' || event.key === ' '){event.preventDefault();selectRoom(this)}"
                                  data-floor="{{ $room['floor'] }}"
                                  data-type="{{ $room['room_type_id'] }}"
@@ -837,7 +866,7 @@
     <!-- Single room details -->
     <div id="single-room-container" style="display: block; width: 100%;">
         <div class="position-relative overflow-hidden mb-3" style="border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.06); background: #f8fafc;">
-            <img src="" class="detail-img w-100" id="detail-img" alt="Room Image" style="height: 145px; object-fit: cover; display: block;">
+            <img src="" class="detail-img w-100" id="detail-img" alt="Room Image" style="height: 145px; object-fit: cover; display: block;" onerror="this.onerror=null;this.src='{{ asset('images/rooms/default.jpg') }}';">
         </div>
 
         <!-- Room Specs Card -->
@@ -933,37 +962,43 @@
         </div>
 
         <!-- Operational Business Buttons -->
+        @if($permissions['bp_checkin_checkout'] || $permissions['bp_extend_stay'] || $permissions['bp_clean_status'])
         <div class="mt-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <span class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 0.06em;">Nghiệp vụ phòng</span>
             </div>
             <div class="d-flex flex-column gap-2">
-                <button class="staff-action-btn staff-action-primary btn-action" id="btn-action-occupied" onclick="handleSingleCheckin()">
-                    <i class="bi bi-box-arrow-in-right"></i>
-                    <span>Check-in (Nhận phòng)</span>
-                </button>
-                <button class="staff-action-btn staff-action-success btn-action" id="btn-action-available" onclick="triggerStatusUpdate('available')">
-                    <i class="bi bi-box-arrow-left"></i>
-                    <span>Trả phòng</span>
-                </button>
-                <button class="staff-action-btn staff-action-done btn-action" id="btn-action-cleaning-done" onclick="triggerStatusUpdate('available')">
-                    <i class="bi bi-check2-circle"></i>
-                    <span>Đã dọn dẹp xong</span>
-                </button>
-                <button class="staff-action-btn staff-action-secondary btn-action" id="btn-action-extend" onclick="openExtendStayModal()">
-                    <i class="bi bi-calendar-plus"></i>
-                    <span>Gia hạn lưu trú</span>
-                </button>
-                <button class="staff-action-btn staff-action-warning btn-action" id="btn-action-cleaning-request-done" onclick="completeCleaningRequest()">
-                    <i class="bi bi-check2-circle"></i>
-                    <span>Hoàn tất yêu cầu dọn</span>
-                </button>
-                <button class="staff-action-btn staff-action-warning btn-action" id="btn-action-hold" onclick="handleSingleHold()">
-                    <i class="bi bi-clock-history"></i>
-                    <span>Giữ chỗ phòng</span>
-                </button>
+                @if($permissions['bp_checkin_checkout'])
+                    <button class="staff-action-btn staff-action-primary btn-action" id="btn-action-occupied" onclick="handleSingleCheckin()">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>Check-in (Nhận phòng)</span>
+                    </button>
+                @endif
+                @if($permissions['bp_checkin_checkout'] && $permissions['tn_collect_payment'])
+                    <button class="staff-action-btn staff-action-success btn-action" id="btn-action-available" onclick="triggerStatusUpdate('available')">
+                        <i class="bi bi-box-arrow-left"></i>
+                        <span>Trả phòng</span>
+                    </button>
+                @endif
+                @if($permissions['bp_clean_status'])
+                    <button class="staff-action-btn staff-action-done btn-action" id="btn-action-cleaning-done" onclick="triggerStatusUpdate('available')">
+                        <i class="bi bi-check2-circle"></i>
+                        <span>Đã dọn dẹp xong</span>
+                    </button>
+                    <button class="staff-action-btn staff-action-warning btn-action" id="btn-action-cleaning-request-done" onclick="completeCleaningRequest()">
+                        <i class="bi bi-check2-circle"></i>
+                        <span>Hoàn tất yêu cầu dọn</span>
+                    </button>
+                @endif
+                @if($permissions['bp_extend_stay'])
+                    <button class="staff-action-btn staff-action-secondary btn-action" id="btn-action-extend" onclick="openExtendStayModal()">
+                        <i class="bi bi-calendar-plus"></i>
+                        <span>Gia hạn lưu trú</span>
+                    </button>
+                @endif
             </div>
         </div>
+        @endif
         <div style="height: 28px; flex-shrink: 0;" aria-hidden="true"></div>
     </div>
 
@@ -971,7 +1006,7 @@
     <div id="multi-room-container" style="display: none; flex-direction: column; width: 100%; height: 100%;">
         <div class="p-3 mb-3 d-flex align-items-center gap-2" style="background: #f0f7ff; border: 1px solid rgba(0,113,227,0.15); border-radius: 12px; font-size: 0.82rem; color: #0071e3;">
             <i class="bi bi-info-circle-fill flex-shrink-0 fs-5"></i>
-            <span>Đang ở chế độ chọn nhiều phòng cho khách vãng lai.</span>
+            <span>Đang chọn nhiều phòng để tạo đặt phòng tại quầy.</span>
         </div>
         
         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -983,11 +1018,8 @@
         </div>
 
         <div class="d-flex flex-column gap-2 mt-auto">
-            <button class="staff-action-btn staff-action-primary py-2.5" onclick="openWalkinCheckinModal('now')">
-                <i class="bi bi-person-check-fill me-2"></i>Check-in Khách Vãng Lai
-            </button>
-            <button class="staff-action-btn staff-action-warning py-2.5" id="btn-multi-hold" onclick="openWalkinCheckinModal('hold')">
-                <i class="bi bi-clock me-2"></i>Giữ Chỗ Các Phòng
+            <button class="staff-action-btn staff-action-primary py-2.5" onclick="openWalkinCheckinModal('hold')">
+                <i class="bi bi-calendar-plus me-2"></i>Tạo đặt phòng tại quầy
             </button>
         </div>
     </div>
@@ -1157,8 +1189,8 @@
                 </div>
                 <div class="mb-3">
                     <label for="extend-amount" class="form-label fw-semibold" id="extend-amount-label" style="color: #334155; font-size: 0.85rem;">Số giờ gia hạn</label>
-                    <input type="number" id="extend-amount" class="form-control" min="1" max="12" value="1" required style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
-                    <div class="form-text" id="extend-help" style="color: #64748b; font-size: 0.8rem;">Tối đa 12 giờ. Mỗi giờ tính 10% giá một đêm.</div>
+                    <input type="number" id="extend-amount" class="form-control" inputmode="numeric" step="1" min="1" max="12" value="1" required style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
+                    <div class="form-text" id="extend-help" style="color: #64748b; font-size: 0.8rem;">Tính 10% giá đêm/giờ đến 18:00; vượt mốc này hệ thống tính thành một đêm.</div>
                 </div>
                 <div class="p-3 rounded d-flex align-items-center gap-2" style="background: #f0f9ff; border: 1px solid #e0f2fe; color: #0369a1; font-size: 0.84rem; border-radius: 10px;">
                     <i class="fa-solid fa-circle-info flex-shrink-0"></i>
@@ -1202,7 +1234,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold" style="color: #334155; font-size: 0.85rem;">Số điện thoại <span class="text-danger">*</span></label>
-                        <input type="tel" id="walkin-phone" class="form-control" placeholder="0901234567" required style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
+                        <input type="tel" id="walkin-phone" class="form-control" inputmode="numeric" pattern="0[0-9]{9}" maxlength="10" data-digits-only placeholder="0901234567" required style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold" style="color: #334155; font-size: 0.85rem;">Email (Không bắt buộc)</label>
@@ -1211,11 +1243,11 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6 col-6">
                             <label class="form-label fw-semibold" style="color: #334155; font-size: 0.85rem;">Số người lớn <span class="text-danger">*</span></label>
-                            <input type="number" id="walkin-adults" class="form-control" value="1" min="1" required style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
+                            <input type="number" id="walkin-adults" class="form-control" inputmode="numeric" step="1" value="1" min="1" required style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
                         </div>
                         <div class="col-md-6 col-6">
                             <label class="form-label fw-semibold" style="color: #334155; font-size: 0.85rem;">Số trẻ em</label>
-                            <input type="number" id="walkin-children" class="form-control" value="0" min="0" style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
+                            <input type="number" id="walkin-children" class="form-control" inputmode="numeric" step="1" value="0" min="0" style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.12); font-size: 0.9rem;">
                         </div>
                     </div>
                     <div class="mb-2">
@@ -1433,6 +1465,7 @@
     // Laravel Base URL & CSRF Token
     const BASE_URL = "{{ url('/') }}";
     const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const INTERNAL_CAPABILITIES = @json($permissions);
 
     let selectedRoomId = null;
     let selectedRoomData = null;
@@ -1441,7 +1474,7 @@
     let selectedRoomIds = [];
     let selectedRoomsData = [];
     function isOccupiedStatus(status) {
-        return ['occupied', 'soon_to_checkout', 'overdue'].includes(status);
+        return ['occupied', 'overdue'].includes(status);
     }
 
 
@@ -1451,14 +1484,7 @@
         window.animateInternalRoomLayout ? window.animateInternalRoomLayout(mutate) : mutate();
     }
 
-    const roomImages = {
-        'Phòng Đơn Tiêu Chuẩn': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80',
-        'Phòng Đôi Tiêu Chuẩn': 'https://images.unsplash.com/photo-1631049552057-403cdb8f0658?w=600&q=80',
-        'Phòng Triple': 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600&q=80',
-        'Phòng Gia Đình': 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=600&q=80',
-        'Phòng VIP': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600&q=80'
-    };
-    const defaultImg = 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=600&q=80';
+    const defaultImg = @json(asset('images/rooms/default.jpg'));
 
     function formatDateVi(value) {
         if (!value) return '---';
@@ -1481,6 +1507,9 @@
 
     function refreshReceptionBoard({ reselectCurrentRoom = true } = {}) {
         const previousSelectedRoomId = selectedRoomId;
+        const focusedRoomCardId = document.activeElement?.classList?.contains('room-card')
+            ? document.activeElement.id
+            : null;
         const previousFilters = {
             search: document.getElementById('search-input')?.value || '',
             floor: document.getElementById('filter-floor')?.value || 'Tất cả',
@@ -1493,6 +1522,7 @@
         boardRefreshController = new AbortController();
 
         return fetch(window.location.href, {
+            cache: 'no-store',
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             signal: boardRefreshController.signal
         })
@@ -1531,7 +1561,12 @@
 
             if (reselectCurrentRoom && previousSelectedRoomId && !isMultiSelectMode) {
                 const card = document.getElementById(`room-card-${previousSelectedRoomId}`);
-                if (card) card.click();
+                if (card && card.style.display !== 'none') {
+                    card.click();
+                    if (focusedRoomCardId) card.focus({ preventScroll: true });
+                } else {
+                    closeDetailPanel();
+                }
             }
         })
         .catch(error => {
@@ -1540,7 +1575,9 @@
     }
 
     function toggleMultiSelectMode() {
+        if (!INTERNAL_CAPABILITIES.bp_create_booking) return;
         const toggle = document.getElementById('multi-select-toggle');
+        if (!toggle) return;
         isMultiSelectMode = toggle.checked;
 
         closeDetailPanel();
@@ -1578,12 +1615,6 @@
                 document.getElementById('room-detail-panel').classList.add('is-open');
                 document.getElementById('single-room-container').style.display = 'none';
                 document.getElementById('multi-room-container').style.display = 'flex';
-
-                const btnMultiHold = document.getElementById('btn-multi-hold');
-                if (btnMultiHold) {
-                    btnMultiHold.style.display = 'block';
-                    btnMultiHold.disabled = false;
-                }
 
                 document.getElementById('detail-title').innerText = 'Đặt nhiều phòng';
                 document.getElementById('multi-room-count').innerText = selectedRoomIds.length;
@@ -1625,15 +1656,15 @@
             document.getElementById('detail-capacity').innerText = roomData.max_guests + ' người';
             document.getElementById('detail-price').innerText = new Intl.NumberFormat('vi-VN').format(roomData.price) + ' đ / đêm';
             document.getElementById('detail-amenities').innerText = roomData.amenities_list || 'Không có';
-            document.getElementById('detail-img').src = roomData.image_url || roomImages[roomData.type_name] || defaultImg;
+            document.getElementById('detail-img').src = roomData.image_url || defaultImg;
+            document.getElementById('detail-img').alt = roomData.type_name || ('Phòng ' + roomData.room_number);
+            document.getElementById('detail-capacity').innerText = `${roomData.max_guests} khách tối đa (${roomData.max_adults} người lớn, ${roomData.max_children} trẻ em)`;
 
             let badgeClass = 'bg-secondary';
             let statusText = '';
                 switch(roomData.ui_status || roomData.status) {
                 case 'available': badgeClass = 'bg-success'; statusText = 'Đang trống'; break;
-                case 'soon_to_checkin': badgeClass = 'bg-info'; statusText = 'Sắp nhận phòng'; break;
                 case 'occupied': badgeClass = 'bg-primary'; statusText = 'Đang lưu trú'; break;
-                case 'soon_to_checkout': badgeClass = 'bg-info'; statusText = 'Sắp trả phòng'; break;
                 case 'cleaning': badgeClass = 'bg-warning text-dark'; statusText = 'Đang dọn dẹp'; break;
                 case 'maintenance': badgeClass = 'bg-danger'; statusText = 'Bảo trì'; break;
                 case 'booked': badgeClass = 'bg-warning text-dark'; statusText = 'Đã đặt'; break;
@@ -1738,24 +1769,20 @@
         const btnExtend = document.getElementById('btn-action-extend');
         const btnCleaningDone = document.getElementById('btn-action-cleaning-done');
         const btnCleaningRequestDone = document.getElementById('btn-action-cleaning-request-done');
-        const btnHold = document.getElementById('btn-action-hold');
 
         if (btnAvailable) { btnAvailable.style.display = 'none'; btnAvailable.disabled = false; }
         if (btnOccupied) { btnOccupied.style.display = 'none'; btnOccupied.disabled = false; }
         if (btnExtend) { btnExtend.style.display = 'none'; btnExtend.disabled = false; }
         if (btnCleaningDone) { btnCleaningDone.style.display = 'none'; btnCleaningDone.disabled = false; }
         if (btnCleaningRequestDone) { btnCleaningRequestDone.style.display = 'none'; btnCleaningRequestDone.disabled = false; }
-        if (btnHold) { btnHold.style.display = 'none'; btnHold.disabled = false; }
 
         const isOccupied = isOccupiedStatus(currentStatus) || (selectedRoomData && parseInt(selectedRoomData.has_active_booking) > 0);
 
-        if (currentStatus === 'available' || currentStatus === 'soon_to_checkin' || currentStatus === 'booked') {
-            if (btnOccupied) btnOccupied.style.display = 'block';
-            if (btnHold) {
-                btnHold.style.display = 'block';
-                const hasBookingToday = selectedRoomData && parseInt(selectedRoomData.has_today_booking) > 0;
-                btnHold.disabled = hasBookingToday;
-            }
+        if (currentStatus === 'available' || currentStatus === 'booked') {
+            const hasTodayBooking = selectedRoomData && parseInt(selectedRoomData.has_today_booking) > 0;
+            const canCheckInSelectedRoom = INTERNAL_CAPABILITIES.bp_checkin_checkout
+                && (hasTodayBooking || INTERNAL_CAPABILITIES.bp_create_booking);
+            if (btnOccupied && canCheckInSelectedRoom) btnOccupied.style.display = 'block';
         } else if (isOccupied) {
             if (btnAvailable) btnAvailable.style.display = 'block';
             if (btnExtend) {
@@ -1771,6 +1798,7 @@
     }
 
     async function completeCleaningRequest() {
+        if (!INTERNAL_CAPABILITIES.bp_clean_status) return;
         if (!selectedRoomId || !selectedRoomData?.needs_cleaning) return;
         const button = document.getElementById('btn-action-cleaning-request-done');
         if (button) button.disabled = true;
@@ -1798,6 +1826,7 @@
     }
 
     function openExtendStayModal() {
+        if (!INTERNAL_CAPABILITIES.bp_extend_stay) return;
         if (!selectedRoomData) return;
 
         const currentStatus = selectedRoomData.ui_status || selectedRoomData.status;
@@ -1824,11 +1853,12 @@
         const mode = document.getElementById('extend-mode').value;
         const amount = document.getElementById('extend-amount');
         document.getElementById('extend-amount-label').textContent = mode === 'hours' ? 'Số giờ gia hạn' : 'Số ngày gia hạn';
-        document.getElementById('extend-help').textContent = mode === 'hours' ? 'Tối đa 12 giờ. Mỗi giờ tính 10% giá một đêm.' : 'Từ 1 đến 30 ngày, tính theo giá phòng hiện tại.';
+        document.getElementById('extend-help').textContent = mode === 'hours' ? 'Tính 10% giá đêm/giờ đến 18:00; vượt mốc này hệ thống tính thành một đêm.' : 'Từ 1 đến 30 ngày, tính theo giá phòng hiện tại.';
         amount.max = mode === 'hours' ? 12 : 30;
     }
 
     function submitExtendStay() {
+        if (!INTERNAL_CAPABILITIES.bp_extend_stay) return;
         if (!selectedRoomId) return;
 
         const mode = document.getElementById('extend-mode').value;
@@ -1871,6 +1901,7 @@
     }
 
     function handleSingleCheckin() {
+        if (!INTERNAL_CAPABILITIES.bp_checkin_checkout) return;
         if (!selectedRoomData) return;
         
         if (parseInt(selectedRoomData.has_today_booking) > 0) {
@@ -1905,16 +1936,47 @@
         }
     }
 
-    function handleSingleHold() {
-        if (!selectedRoomData) return;
-        openWalkinCheckinModal('hold');
-    }
-
     function confirmPrebookCheckin() {
-        triggerStatusUpdate('occupied');
+        if (!INTERNAL_CAPABILITIES.bp_checkin_checkout) return;
+        checkInSelectedRoom();
     }
 
-    function openWalkinCheckinModal(type = 'now') {
+    async function checkInSelectedRoom() {
+        if (!INTERNAL_CAPABILITIES.bp_checkin_checkout || !selectedRoomId) return;
+
+        const url = @json(route('staff.room.checkin', ['id' => '__ROOM__']))
+            .replace('__ROOM__', encodeURIComponent(selectedRoomId));
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                },
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                showToast(data.message || 'Không thể nhận phòng.', 'bg-danger');
+                return;
+            }
+
+            const modalEl = document.getElementById('prebookCheckinModal');
+            const modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+            modal?.hide();
+            showToast(data.message, 'bg-success');
+            refreshReceptionBoard();
+        } catch (error) {
+            console.error(error);
+            showToast('Lỗi hệ thống khi nhận phòng.', 'bg-danger');
+        }
+    }
+
+    function openWalkinCheckinModal(walkinType = null) {
+        if (!INTERNAL_CAPABILITIES.bp_create_booking) return;
+        walkinType = walkinType === 'now' && !INTERNAL_CAPABILITIES.bp_checkin_checkout
+            ? 'hold'
+            : (walkinType || (INTERNAL_CAPABILITIES.bp_checkin_checkout ? 'now' : 'hold'));
+
         let rooms = [];
         if (isMultiSelectMode) {
             rooms = [...selectedRoomsData];
@@ -1929,20 +1991,17 @@
 
         const occupied = rooms.some(r => r.ui_status !== 'available');
         if (occupied) {
-            showToast('Chỉ có thể đặt hoặc giữ chỗ cho phòng đang trống.', 'bg-danger');
+            showToast('Chỉ có thể check-in phòng đang trống.', 'bg-danger');
             return;
         }
 
         const titleEl = document.getElementById('walkinCheckinModalTitle');
         const roomsLabelEl = document.getElementById('modal-rooms-label');
-        if (type === 'hold') {
-            if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-clock me-2 text-warning"></i>Giữ Chỗ Phòng';
-            if (roomsLabelEl) roomsLabelEl.innerText = 'Các phòng giữ chỗ:';
-        } else {
-            if (titleEl) titleEl.innerHTML = '<i class="fa-solid fa-user-plus me-2"></i>Check-in Khách Vãng Lai';
-            if (roomsLabelEl) roomsLabelEl.innerText = 'Các phòng Check-in:';
-        }
-        document.getElementById('walkin-type').value = type;
+        if (titleEl) titleEl.innerHTML = walkinType === 'now'
+            ? '<i class="fa-solid fa-user-plus me-2"></i>Check-in Khách Vãng Lai'
+            : '<i class="fa-solid fa-calendar-plus me-2"></i>Tạo đặt phòng tại quầy';
+        if (roomsLabelEl) roomsLabelEl.innerText = walkinType === 'now' ? 'Các phòng Check-in:' : 'Các phòng đặt:';
+        document.getElementById('walkin-type').value = walkinType;
 
         const listEl = document.getElementById('modal-rooms-list');
         listEl.innerHTML = '';
@@ -1969,10 +2028,12 @@
     }
 
     function submitWalkinCheckin() {
+        if (!INTERNAL_CAPABILITIES.bp_create_booking) return;
         const name = document.getElementById('walkin-name').value.trim();
         const phone = document.getElementById('walkin-phone').value.trim();
         const email = document.getElementById('walkin-email').value.trim();
         const walkinType = document.getElementById('walkin-type').value;
+        if (walkinType === 'now' && !INTERNAL_CAPABILITIES.bp_checkin_checkout) return;
         const adults = parseInt(document.getElementById('walkin-adults').value) || 1;
         const children = parseInt(document.getElementById('walkin-children').value) || 0;
         const checkout = document.getElementById('walkin-checkout').value;
@@ -2033,6 +2094,7 @@
     }
 
     function openCheckoutScopeModal() {
+        if (!INTERNAL_CAPABILITIES.bp_checkin_checkout || !INTERNAL_CAPABILITIES.tn_collect_payment) return;
         if (!selectedRoomData) return;
         document.getElementById('checkout-room-label').innerText = 'Phòng ' + selectedRoomData.room_number;
         const modal = new bootstrap.Modal(document.getElementById('checkoutScopeModal'));
@@ -2040,6 +2102,7 @@
     }
 
     function submitCheckout(scope) {
+        if (!INTERNAL_CAPABILITIES.bp_checkin_checkout || !INTERNAL_CAPABILITIES.tn_collect_payment) return;
         const modalEl = document.getElementById('checkoutScopeModal');
         const modal = bootstrap.Modal.getInstance(modalEl);
         if (modal) modal.hide();
@@ -2071,6 +2134,7 @@
     }
 
     function openCheckoutPaymentModal() {
+        if (!INTERNAL_CAPABILITIES.bp_checkin_checkout || !INTERNAL_CAPABILITIES.tn_collect_payment) return;
         if (!selectedRoomData) return;
         if (parseInt(selectedRoomData.has_active_booking) <= 0) {
             // Không có booking hoạt động, chuyển thẳng sang dọn dẹp
@@ -2082,8 +2146,13 @@
         const paid = Number(selectedRoomData.active_paid_amount || 0);
 
         const now = new Date();
-        const lateDeadline = selectedRoomData.active_check_out
-            ? new Date(`${selectedRoomData.active_check_out}T13:00:00+07:00`)
+        const scheduledCheckoutAt = selectedRoomData.active_scheduled_checkout_at
+            ? new Date(selectedRoomData.active_scheduled_checkout_at)
+            : selectedRoomData.active_check_out
+                ? new Date('' + selectedRoomData.active_check_out + 'T12:00:00+07:00')
+                : null;
+        const lateDeadline = scheduledCheckoutAt
+            ? new Date(scheduledCheckoutAt.getTime() + 60 * 60 * 1000)
             : null;
         const nightRate = Number(selectedRoomData.active_room_price_per_night || 0);
         const lateFee = lateDeadline && now > lateDeadline && nightRate > 0
@@ -2126,6 +2195,7 @@
     }
 
     function submitCheckoutPayment() {
+        if (!INTERNAL_CAPABILITIES.bp_checkin_checkout || !INTERNAL_CAPABILITIES.tn_collect_payment) return;
         if (!selectedRoomData) return;
         const bookingId = selectedRoomData.active_booking_id;
         if (!bookingId) return;
@@ -2178,7 +2248,17 @@
         if (!selectedRoomId) return;
 
         const currentStatus = selectedRoomData ? (selectedRoomData.ui_status || selectedRoomData.status) : '';
-        if (newStatus === 'available' && (isOccupiedStatus(currentStatus) || parseInt(selectedRoomData.has_active_booking) > 0) && checkoutScope === null) {
+        const isCheckout = newStatus === 'available'
+            && (isOccupiedStatus(currentStatus) || parseInt(selectedRoomData?.has_active_booking) > 0);
+        const isPartialCheckout = newStatus === 'cleaning' && checkoutScope === 'room';
+        if (newStatus === 'occupied' && !INTERNAL_CAPABILITIES.bp_checkin_checkout) return;
+        if (newStatus === 'cleaning' && !isPartialCheckout && !INTERNAL_CAPABILITIES.bp_clean_status) return;
+        if (isPartialCheckout
+            && (!INTERNAL_CAPABILITIES.bp_checkin_checkout || !INTERNAL_CAPABILITIES.tn_collect_payment)) return;
+        if (newStatus === 'available' && isCheckout
+            && (!INTERNAL_CAPABILITIES.bp_checkin_checkout || !INTERNAL_CAPABILITIES.tn_collect_payment)) return;
+        if (newStatus === 'available' && !isCheckout && !INTERNAL_CAPABILITIES.bp_clean_status) return;
+        if (newStatus === 'available' && (isOccupiedStatus(currentStatus) || parseInt(selectedRoomData?.has_active_booking) > 0) && checkoutScope === null) {
             const roomCount = parseInt(selectedRoomData.active_booking_room_count) || 0;
             if (roomCount > 1) {
                 openCheckoutScopeModal();
@@ -2194,7 +2274,7 @@
             className: optimisticCard.className,
             label: optimisticCard.querySelector('.room-status-text')?.textContent
         } : null;
-        const labels = { available: 'Đang trống', occupied: 'Đang lưu trú', cleaning: 'Đang dọn dẹp', maintenance: 'Bảo trì', soon_to_checkin: 'Sắp nhận phòng', soon_to_checkout: 'Sắp trả phòng', booked: 'Đã đặt', overdue: 'Quá giờ trả' };
+        const labels = { available: 'Đang trống', occupied: 'Đang lưu trú', cleaning: 'Đang dọn dẹp', maintenance: 'Bảo trì', booked: 'Đã đặt', overdue: 'Quá giờ trả' };
         if (optimisticCard) {
             optimisticCard.className = optimisticCard.className.replace(/status-(available|occupied|cleaning)/, `status-${newStatus}`);
             optimisticCard.dataset.status = newStatus;
@@ -2379,7 +2459,7 @@
         });
         
         document.querySelectorAll('.floor-section').forEach(section => {
-            const visibleRooms = section.querySelectorAll('.room-card-wrapper[style="display: block;"]');
+            const visibleRooms = Array.from(section.querySelectorAll('.room-card-wrapper')).filter(el => el.style.display !== 'none');
             section.style.display = visibleRooms.length === 0 ? 'none' : 'block';
         });
 
@@ -2438,6 +2518,15 @@
     window.addEventListener('DOMContentLoaded', () => {
         restoreFiltersFromUrl();
         focusRoomFromHash();
+        const syncRoomBoardWhenSafe = () => {
+            const activeField = document.activeElement?.matches('input, select, textarea, [contenteditable="true"]');
+            if (document.hidden || isMultiSelectMode || activeField || document.querySelector('.modal.show')) return;
+            refreshReceptionBoard();
+        };
+        window.setInterval(syncRoomBoardWhenSafe, 15000);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) syncRoomBoardWhenSafe();
+        });
         document.getElementById('qr-image-input')?.addEventListener('change', event => {
             const file = event.target.files?.[0];
             if (file) scanQrImage(file);
@@ -2453,6 +2542,7 @@
     let defaultExposure = 0;
 
     function openQRScannerModal() {
+        if (!INTERNAL_CAPABILITIES.bp_checkin_checkout) return;
         const modal = new bootstrap.Modal(document.getElementById('qrScannerModal'));
         modal.show();
 
@@ -2648,7 +2738,7 @@
 
     function processScannedText(text) {
         const normalizedText = String(text || '').trim();
-        if (!/^(ROYAL|POSH)-CHECKIN:/.test(normalizedText)) {
+        if (!/^(ROYAL|POSH|ROSA)-CHECKIN:/.test(normalizedText)) {
             showToast('Mã QR không đúng định dạng nhận phòng Royal.', 'bg-danger');
             return;
         }

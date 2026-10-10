@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 class ReceptionUserController extends Controller
 {
@@ -38,12 +37,10 @@ class ReceptionUserController extends Controller
         $request->validate([
             'fullname' => 'required|string|max:150',
             'email'    => ['required', 'email', 'max:150', Rule::unique('users')->ignore($user->id)],
-            'phone'    => 'nullable|string|max:30',
+            'phone'    => ['nullable', 'regex:/^[0-9]{7,15}$/'],
+        ], [
+            'phone.regex' => 'Số điện thoại chỉ được chứa 7–15 chữ số.',
         ]);
-
-        if ($request->email !== mb_strtolower($user->email)) {
-            return back()->withInput()->withErrors(['email' => 'Đổi email nội bộ cần quản trị viên xác minh.']);
-        }
 
         $user->update([
             'fullname' => $request->fullname,
@@ -70,7 +67,7 @@ class ReceptionUserController extends Controller
 
         $request->validate([
             'current_password' => 'required',
-            'new_password'     => ['required', 'confirmed', Password::min(10)->mixedCase()->numbers()],
+            'new_password'     => ['required', 'confirmed', 'string', 'min:6'],
         ]);
 
         $valid = Hash::check($request->current_password, $user->password);

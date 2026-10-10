@@ -15,13 +15,11 @@ class InternalAuthController extends Controller
     {
         // Nếu đã đăng nhập nhân viên thì chuyển hướng đến trang phù hợp
         if (session('staff_user')) {
-            $user = session('staff_user');
-            $redirect = match ($user['role'] ?? 'customer') {
-                'admin' => route('admin.dashboard'),
-                'receptionist' => route('staff.bookings'),
-                default => route('home'),
-            };
-            return redirect($redirect);
+            $userId = session('staff_user_id') ?: session('auth_user_id');
+            $user = $userId ? User::find($userId) : null;
+            if ($user && in_array($user->role, ['admin', 'receptionist'], true)) {
+                return redirect($this->internalLandingRoute($user));
+            }
         }
 
         return view('auth.internal_login');
@@ -87,11 +85,7 @@ class InternalAuthController extends Controller
             'user'          => $userData,
         ]);
 
-        $redirect = match ($user->role) {
-            'admin'        => route('admin.dashboard'),
-            'receptionist' => route('staff.bookings'),
-            default        => route('home'),
-        };
+        $redirect = $this->internalLandingRoute($user);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -101,6 +95,27 @@ class InternalAuthController extends Controller
         }
 
         return redirect($redirect);
+    }
+
+    private function internalLandingRoute(User $user): string
+    {
+        if ($user->isAdmin()) {
+            return route('admin.dashboard');
+        }
+
+        if ($user->hasInternalPermission('rp_view_reports')) {
+            return route('admin.reports');
+        }
+
+        if ($user->hasInternalPermission('bp_view_schedule')) {
+            return route('staff.bookings');
+        }
+
+        if ($user->hasInternalPermission('tn_refund')) {
+            return route('staff.cancellations');
+        }
+
+        return route('receptionist.profile');
     }
 
     /**

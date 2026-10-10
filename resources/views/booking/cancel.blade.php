@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Hủy phòng · POSH BOUTIQUE')
+@section('title', 'Hủy phòng · Rosaliza Hotel')
 
 @section('content')
 <section class="commerce-page booking-cancel-container" aria-labelledby="cancel-title" style="padding-top: 20px; padding-bottom: 80px;">
@@ -31,7 +31,7 @@
                         <div class="col-6">
                             <span class="text-slate-400 d-block" style="font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Phòng đã chọn</span>
                             <strong class="text-slate-900 mt-1 d-block" style="font-size: 14.5px;">
-                                {{ $booking->rooms->map(fn($r) => 'Phòng '.$r->room_number)->join(', ') ?: 'Phòng VIP Royal' }}
+                                {{ $booking->rooms->map(fn($r) => 'Phòng '.$r->room_number)->join(', ') ?: 'Chưa gán số phòng' }}
                             </strong>
                         </div>
                         <div class="col-6">

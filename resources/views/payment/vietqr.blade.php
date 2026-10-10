@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Quét QR Thanh Toán · Posh Boutique')
+@section('title', 'Quét QR Thanh Toán · Rosaliza Hotel')
 
 @section('content')
 @php
@@ -48,7 +48,7 @@
                 <div style="padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     @if(!empty($qrData['qr_url']))
                         <div style="background: #ffffff; padding: 12px; border-radius: 18px; border: 2px solid #e2e8f0; box-shadow: 0 8px 24px rgba(0, 113, 227, 0.12); display: flex; align-items: center; justify-content: center; margin: 0 auto;">
-                            <img src="{{ $qrData['qr_url'] }}"
+                            <img id="vietQrImage" src="{{ $qrData['qr_url'] }}"
                                  alt="VietQR Code"
                                  style="width: 250px; height: 250px; max-width: 100%; border-radius: 10px; display: block; margin: 0 auto; object-fit: contain;">
                         </div>
@@ -72,7 +72,7 @@
 
                     {{-- Countdown Timer: 10 phút --}}
                     <div style="width: 100%; background: #fefce8; border: 1px solid #fef08a; padding: 11px 16px; border-radius: 12px; margin-top: 14px; font-size: 13.5px; color: #854d0e; text-align: center; font-weight: 500;">
-                        <i class="bi bi-clock-history me-1.5 text-amber-600"></i> Mã hết hạn sau <strong id="countdown" class="font-monospace" style="font-weight: 800; font-size: 15px; color: #713f12;">10:00</strong>
+                        <i class="bi bi-arrow-repeat me-1.5 text-amber-600"></i> Làm mới mã QR sau <strong id="countdown" class="font-monospace" style="font-weight: 800; font-size: 15px; color: #713f12;">10:00</strong>
                     </div>
 
                     {{-- Polling Status --}}
@@ -157,7 +157,7 @@
         {{-- Footer Note --}}
         <div class="alert alert-light border mt-4 text-center rounded-4 shadow-xs" style="font-size: 12.5px; color: #64748b;">
             <i class="bi bi-shield-lock-fill text-primary me-1"></i>
-            Hệ thống thanh toán bảo mật liên kết Napas 24/7. Nếu sau 10 phút chưa nhận được email xác nhận, vui lòng liên hệ hotline <strong>1900 8899</strong> để được hỗ trợ.
+            Mã QR được làm mới tự động khi quý khách vẫn ở màn hình này. Nếu rời trang, booking chưa thanh toán sẽ bị hủy.
         </div>
 
     </div>
@@ -166,7 +166,6 @@
 
 @push('scripts')
 <script>
-    // ── Copy Reference Code ──────────────────────────────
     function copyRefCode() {
         const code = document.getElementById('refCodeText').innerText.trim();
         navigator.clipboard.writeText(code).then(() => {
@@ -176,46 +175,148 @@
         });
     }
 
-    // ── Countdown 10 phút (600s) ──────────────────────────
-    const timerKey = 'vietqr_timer_{{ $booking->id }}';
-    if (!localStorage.getItem(timerKey)) {
-        localStorage.setItem(timerKey, Date.now().toString());
-    }
-    let time = Math.max(0, 600 - Math.floor((Date.now() - parseInt(localStorage.getItem(timerKey))) / 1000));
-
     const countdownEl = document.getElementById('countdown');
-    const fmt = t => Math.floor(t/60) + ':' + (t%60 < 10 ? '0' : '') + (t%60);
-    countdownEl.textContent = fmt(time);
+    const pollStatus = document.getElementById('pollStatus');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const keepAliveUrl = @json(route('payment.keep-alive', $booking->id));
+    const cancelUrl = @json(route('payment.cancel-pending', $booking->id));
+    const historyUrl = @json(route('booking.mine'));
+    const paymentCheckUrl = @json(route('payment.check', $booking->id));
+    let secondsToRefresh = 600;
+    let requestPending = false;
+    let leaving = false;
+    let paid = false;
 
-    const countdownTimer = setInterval(function () {
-        time--;
-        if (time <= 0) {
-            clearInterval(countdownTimer);
-            clearInterval(pollTimer);
-            localStorage.removeItem(timerKey);
-            document.getElementById('pollStatus').innerHTML =
-                '<div class="alert alert-danger mt-2 py-2">⚠️ Mã QR đã hết hiệu lực. <button class="btn btn-sm btn-primary ms-2" onclick="location.reload()">Tạo lại mã</button></div>';
-            countdownEl.textContent = '0:00';
-            return;
+    const formatTime = seconds => Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+    const stopTimers = () => {
+        clearInterval(countdownTimer);
+        clearInterval(pollTimer);
+        clearInterval(heartbeatTimer);
+    };
+
+    async function keepPaymentAlive(refreshQr = false) {
+        if (requestPending || leaving || paid) return false;
+        requestPending = true;
+        try {
+            const response = await fetch(keepAliveUrl, {
+                method: 'POST',
+                cache: 'no-store',
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await response.json();
+            if (data.status === 'paid') {
+                paid = true;
+                stopTimers();
+                window.location.assign(data.redirect_url);
+                return false;
+            }
+            if (!response.ok || data.status !== 'pending') {
+                stopTimers();
+                pollStatus.innerHTML = '<span class="text-danger fw-semibold">Booking đã hết hạn hoặc đã bị hủy. <a href="' + historyUrl + '">Quay lại lịch sử đặt phòng</a></span>';
+                return false;
+            }
+            if (refreshQr && data.qr?.qr_url) {
+                const image = document.getElementById('vietQrImage');
+                if (image) image.src = data.qr.qr_url + (data.qr.qr_url.includes('?') ? '&' : '?') + '_refresh=' + Date.now();
+                const reference = document.getElementById('refCodeText');
+                if (reference && data.qr.reference_code) reference.textContent = data.qr.reference_code;
+                pollStatus.innerHTML = '<span class="spinner-border spinner-border-sm text-primary" role="status"></span><span> Mã QR đã được làm mới, đang chờ xác nhận thanh toán...</span>';
+            }
+            return true;
+        } catch (_) {
+            pollStatus.innerHTML = '<span class="text-warning">Đang kết nối lại để giữ booking. Vui lòng giữ trang này mở.</span>';
+            return false;
+        } finally {
+            requestPending = false;
         }
-        countdownEl.textContent = fmt(time);
+    }
+
+    const countdownTimer = setInterval(async () => {
+        secondsToRefresh--;
+        if (secondsToRefresh <= 0) {
+            secondsToRefresh = await keepPaymentAlive(true) ? 600 : 10;
+        }
+        countdownEl.textContent = formatTime(secondsToRefresh);
     }, 1000);
 
-    // ── Polling mỗi 5 giây ────────────────────────────────
-    const pollTimer = setInterval(function () {
-        fetch('{{ route('payment.check', $booking->id) }}')
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'paid') {
-                    clearInterval(pollTimer);
-                    clearInterval(countdownTimer);
-                    localStorage.removeItem(timerKey);
-                    document.getElementById('pollStatus').innerHTML =
-                        '<span class="text-success fw-bold">✅ Thanh toán thành công! Đang chuyển trang...</span>';
-                    window.location.href = data.redirect_url;
-                }
-            })
-            .catch(() => {});
+    const heartbeatTimer = setInterval(() => keepPaymentAlive(false), 60000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') keepPaymentAlive(false);
+    });
+
+    const pollTimer = setInterval(async () => {
+        if (leaving || paid) return;
+        try {
+            const response = await fetch(paymentCheckUrl, { cache: 'no-store', headers: { 'Accept': 'application/json' } });
+            const data = await response.json();
+            if (data.status === 'paid') {
+                paid = true;
+                stopTimers();
+                pollStatus.innerHTML = '<span class="text-success fw-bold">✅ Thanh toán thành công! Đang chuyển trang...</span>';
+                window.location.assign(data.redirect_url);
+            } else if (data.status === 'expired') {
+                stopTimers();
+                pollStatus.innerHTML = '<span class="text-danger fw-semibold">Booking đã hết hạn hoặc đã bị hủy. <a href="' + historyUrl + '">Quay lại lịch sử đặt phòng</a></span>';
+            }
+        } catch (_) {}
     }, 5000);
+
+    async function cancelBeforeLeaving(destination, form = null) {
+        if (leaving) return;
+        leaving = true;
+        try {
+            const response = await fetch(cancelUrl, {
+                method: 'POST',
+                cache: 'no-store',
+                keepalive: true,
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error('Không thể hủy booking lúc này.');
+            stopTimers();
+            if (data.status === 'paid') paid = true;
+            if (data.status === 'paid') window.location.assign(data.redirect_url);
+            else if (form) form.submit();
+            else window.location.assign(destination);
+        } catch (_) {
+            leaving = false;
+            pollStatus.innerHTML = '<span class="text-danger fw-semibold">Chưa xác nhận được việc hủy booking. Trang vẫn được giữ để quý khách thử lại.</span>';
+        }
+    }
+
+    document.addEventListener('click', event => {
+        const link = event.target.closest('a[href]');
+        if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target === '_blank' || link.hasAttribute('download')) return;
+        const destination = new URL(link.href, window.location.href);
+        if (destination.href === window.location.href) return;
+        event.preventDefault();
+        if (window.confirm('Nếu rời màn hình thanh toán, booking chưa thanh toán và giữ phòng sẽ bị hủy. Bạn có muốn tiếp tục?')) {
+            cancelBeforeLeaving(destination.href);
+        }
+    });
+
+    document.addEventListener('submit', event => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement) || form.target === '_blank') return;
+        event.preventDefault();
+        if (window.confirm('Nếu rời màn hình thanh toán, booking chưa thanh toán và giữ phòng sẽ bị hủy. Bạn có muốn tiếp tục?')) {
+            cancelBeforeLeaving(form.action || window.location.href, form);
+        }
+    });
+
+    history.pushState({ paymentGuard: true }, '', window.location.href);
+    window.addEventListener('popstate', () => {
+        history.pushState({ paymentGuard: true }, '', window.location.href);
+        if (window.confirm('Nếu quay lại, booking chưa thanh toán và giữ phòng sẽ bị hủy. Bạn có muốn tiếp tục?')) {
+            cancelBeforeLeaving(historyUrl);
+        }
+    });
+
+    window.addEventListener('beforeunload', event => {
+        if (!leaving && !paid) {
+            event.preventDefault();
+            event.returnValue = '';
+        }
+    });
 </script>
 @endpush

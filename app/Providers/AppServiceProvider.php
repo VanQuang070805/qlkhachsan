@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if (! $this->app->environment('testing') && config('session.driver') !== 'database') {
-            throw new \RuntimeException('Posh Boutique requires SESSION_DRIVER=database so password changes can revoke every active session.');
+            throw new \RuntimeException('Rosaliza Hotel requires SESSION_DRIVER=database so password changes can revoke every active session.');
         }
 
         RateLimiter::for('internal-login', function (Request $request) {

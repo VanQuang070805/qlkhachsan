@@ -7,8 +7,9 @@
     $children = (int)($children ?? 0);
     $nights = (int)($nights ?? 1);
     $firstRoom = $rooms->first();
-    $roomTypeName = $firstRoom?->roomType?->type_name ?? 'Grand Ocean Panorama Suite';
-    $roomImage = !empty($firstRoom?->roomType?->image) ? asset($firstRoom->roomType->image) : asset('images/rooms/1.jpg');
+    $roomTypeNames = $rooms->map(fn ($room) => $room->roomType?->type_name)->filter()->unique()->values();
+    $roomTypeName = $roomTypeNames->join(' · ') ?: 'Hạng phòng đang được cập nhật';
+    $roomImage = $firstRoom?->roomType?->image_url ?? asset('images/rooms/default.jpg');
 @endphp
 
 <div class="aeth-canvas">
@@ -46,7 +47,7 @@
                     <div class="d-flex align-items-center gap-2 mb-1">
                         <i class="bi bi-shield-lock-fill text-primary" style="font-size: 15px;"></i>
                         <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--apple-blue);">
-                            BẢO MẬT APPLE PAY &amp; TLS 256-BIT
+                            BẢO MẬT GIAO DỊCH &amp; XÁC THỰC AN TOÀN
                         </span>
                     </div>
                     <h1 style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.025em; margin-bottom: 24px;">
@@ -108,9 +109,9 @@
                                         <span>🇻🇳</span>
                                         <span>+84</span>
                                     </div>
-                                    <input type="tel" name="customer_phone" id="customerPhone" class="aeth-input aeth-input--phone"
+                                    <input type="tel" name="customer_phone" id="customerPhone" class="aeth-input aeth-input--phone" inputmode="numeric" pattern="0[0-9]{9}" data-digits-only
                                            value="{{ old('customer_phone', $user->phone ?? session('user.phone', '')) }}"
-                                           placeholder="0918849283" maxlength="11" required>
+                                           placeholder="0918849283" maxlength="10" required>
                                 </div>
                                 @error('customer_phone')
                                 <small class="text-danger mt-1 d-block" style="font-size: 12px;">{{ $message }}</small>
@@ -133,7 +134,7 @@
                                         <i class="bi bi-clock-history"></i>
                                     </div>
                                     <div>
-                                        <strong style="display: block; font-size: 15px; font-weight: 700; color: #0f172a;">14:00 - 15:00</strong>
+                                    <strong style="display: block; font-size: 15px; font-weight: 700; color: #0f172a;">14:00</strong>
                                         <span class="text-slate-500" style="font-size: 12px;">Khung giờ nhận phòng tiêu chuẩn trong ngày</span>
                                     </div>
                                 </div>
@@ -159,18 +160,22 @@
                         <div style="position:relative; width:100%; height:180px; border-radius:18px; overflow:hidden; border:1px solid #e2e8f0;">
                             <img src="{{ $roomImage }}" alt="{{ $roomTypeName }}" style="width:100%; height:100%; object-fit:cover;">
                             <span style="position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.92); backdrop-filter:blur(8px); padding:4px 10px; border-radius:999px; font-size:10.5px; font-weight:700; color:var(--apple-blue); box-shadow:0 2px 6px rgba(0,0,0,0.06);">
-                                HẠNG THƯỢNG HẠNG
+                                {{ $rooms->count() > 1 ? $rooms->count() . ' PHÒNG ĐÃ CHỌN' : mb_strtoupper($roomTypeName) }}
                             </span>
+                            @if($rooms->count() === 1 && $firstRoom?->roomType)
                             <span style="position:absolute; bottom:12px; right:12px; background:rgba(15,23,42,0.8); backdrop-filter:blur(6px); padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; color:#fff;">
-                                145 m²
+                                Tối đa {{ $firstRoom->roomType->max_adults }} người lớn · {{ $firstRoom->roomType->max_children }} trẻ em
                             </span>
+                            @endif
                         </div>
 
                         {{-- Tên phòng & Dải thông số --}}
                         <div>
-                            <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">{{ $roomTypeName }}</h2>
+                            <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">
+                                {{ $roomTypeName }}
+                            </h2>
                             <div class="d-flex flex-wrap align-items-center gap-2 text-slate-500" style="font-size: 12px; font-weight: 500;">
-                                <span><i class="bi bi-calendar-event text-primary me-1"></i>{{ date('d', strtotime($checkIn)) }} - {{ date('d Thm', strtotime($checkOut)) }}</span>
+                                <span><i class="bi bi-door-closed text-primary me-1"></i>Phòng {{ $rooms->pluck('room_number')->join(', ') }}</span>
                                 <span>•</span>
                                 <span><i class="bi bi-moon-stars text-primary me-1"></i>{{ $nights }} đêm</span>
                                 <span>•</span>
@@ -178,19 +183,66 @@
                             </div>
                         </div>
 
-                        {{-- 3 Đặc quyền độc bản đính kèm --}}
-                        <div style="background:#f8fafc; border:1px solid #f1f5f9; border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:6px;">
-                            <div class="d-flex align-items-center gap-2" style="font-size:12px; color:#334155;">
-                                <i class="bi bi-check-circle-fill text-emerald-600"></i>
-                                <span>Buffet sáng cao cấp tại Terrace Horizon</span>
+                        {{-- Thông tin đặt phòng khách đã chọn ở trang trước --}}
+                        <div class="booking-selected-specs" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:13px 15px; display:flex; flex-direction:column; gap:9px;">
+                            {{-- 1. Thời gian lưu trú (Ngày nhận - trả phòng) --}}
+                            <div class="d-flex align-items-center justify-content-between" style="font-size:12.5px;">
+                                <span class="text-slate-600 d-inline-flex align-items-center gap-1.5">
+                                    <i class="bi bi-calendar3 text-primary"></i>
+                                    <span>Thời gian:</span>
+                                </span>
+                                <span class="fw-semibold text-slate-800 text-end">
+                                    {{ \Carbon\Carbon::parse($checkIn)->format('d/m/Y') }} – {{ \Carbon\Carbon::parse($checkOut)->format('d/m/Y') }}
+                                    <span class="text-slate-500 fw-normal">({{ $nights }} đêm)</span>
+                                </span>
                             </div>
-                            <div class="d-flex align-items-center gap-2" style="font-size:12px; color:#334155;">
-                                <i class="bi bi-check-circle-fill text-emerald-600"></i>
-                                <span>Đưa đón sân bay VIP chuyên cơ/Mercedes</span>
+
+                            {{-- 2. Số lượng phòng --}}
+                            <div class="d-flex align-items-center justify-content-between" style="font-size:12.5px; border-top:1px dashed #e2e8f0; padding-top:8px;">
+                                <span class="text-slate-600 d-inline-flex align-items-center gap-1.5">
+                                    <i class="bi bi-door-open text-primary"></i>
+                                    <span>Số lượng phòng:</span>
+                                </span>
+                                <span class="fw-bold text-slate-800 text-end">
+                                    <span class="badge bg-white text-slate-800 border border-slate-200 px-2 py-0.5 rounded-pill" style="font-size:11.5px;">
+                                        {{ $rooms->count() }} phòng
+                                    </span>
+                                </span>
                             </div>
-                            <div class="d-flex align-items-center gap-2" style="font-size:12px; color:#334155;">
-                                <i class="bi bi-check-circle-fill text-emerald-600"></i>
-                                <span>60 phút trị liệu Signature Spa đôi</span>
+                            @if($rooms->count() > 1)
+                                <div style="border-top:1px dashed #e2e8f0; padding-top:8px; display:grid; gap:6px;">
+                                    @foreach($rooms as $selectedRoom)
+                                        <div class="d-flex justify-content-between gap-2" style="font-size:12px;">
+                                            <span class="text-slate-600">Phòng {{ $selectedRoom->room_number }}</span>
+                                            <span class="fw-semibold text-slate-800 text-end">{{ $selectedRoom->roomType?->type_name ?? 'Hạng phòng đang cập nhật' }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            {{-- 3. Phòng bao nhiêu (Số phòng cụ thể) --}}
+                            <div class="d-flex align-items-center justify-content-between" style="font-size:12.5px; border-top:1px dashed #e2e8f0; padding-top:8px;">
+                                <span class="text-slate-600 d-inline-flex align-items-center gap-1.5">
+                                    <i class="bi bi-key text-primary"></i>
+                                    <span>Phòng đã chọn:</span>
+                                </span>
+                                <span class="fw-bold text-primary text-end">
+                                    Phòng {{ $rooms->pluck('room_number')->join(', ') }}
+                                </span>
+                            </div>
+
+                            {{-- 4. Số lượng người (Khách) --}}
+                            <div class="d-flex align-items-center justify-content-between" style="font-size:12.5px; border-top:1px dashed #e2e8f0; padding-top:8px;">
+                                <span class="text-slate-600 d-inline-flex align-items-center gap-1.5">
+                                    <i class="bi bi-people text-primary"></i>
+                                    <span>Số lượng khách:</span>
+                                </span>
+                                <span class="fw-semibold text-slate-800 text-end">
+                                    {{ $adults + $children }} khách
+                                    <span class="text-slate-500 fw-normal" style="font-size:11.5px;">
+                                        ({{ $adults }} lớn{{ $children > 0 ? ', ' . $children . ' trẻ' : '' }})
+                                    </span>
+                                </span>
                             </div>
                         </div>
 
@@ -218,7 +270,7 @@
                                 <i class="bi bi-arrow-right"></i>
                             </button>
                             <p class="text-center text-muted mt-2 mb-0" style="font-size: 11.5px;">
-                                <i class="bi bi-shield-check text-emerald-600 me-1"></i> Bảo mật giao dịch chuẩn Apple Pay &amp; PCI-DSS
+                                <i class="bi bi-shield-check text-emerald-600 me-1"></i> Bảo mật giao dịch &amp; thanh toán an toàn
                             </p>
                         </div>
 

@@ -1,6 +1,6 @@
 ## Hạng phòng và sức chứa
 
-Thông tin dưới đây được đối chiếu với danh mục hạng phòng công khai của Posh Boutique ngày 30/09/2026. Sức chứa tối đa là tổng số khách theo danh mục; không suy diễn về diện tích, loại giường, tầm nhìn, tiện ích hoặc đặc quyền nếu chưa có thông tin xác nhận.
+Thông tin dưới đây được đối chiếu với danh mục hạng phòng công khai của Rosaliza Hotel ngày 30/09/2026. Sức chứa tối đa là tổng số khách theo danh mục; không suy diễn về diện tích, loại giường, tầm nhìn, tiện ích hoặc đặc quyền nếu chưa có thông tin xác nhận.
 
 - **Phòng Đơn Tiêu Chuẩn**: dành cho 1 khách; tối đa 1 khách.
 - **Phòng Đôi Tiêu Chuẩn**: dành cho 2 người lớn và 1 trẻ em; tối đa 3 khách.

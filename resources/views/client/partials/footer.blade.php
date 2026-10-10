@@ -1,4 +1,4 @@
-<footer class="site-footer supaste-footer" aria-label="Chân trang Posh Boutique">
+<footer class="site-footer supaste-footer" aria-label="Chân trang Rosaliza Hotel">
     {{-- Top Inverted Notch / Tongue dipping from white content above --}}
     <div class="supaste-footer__tongue-wrap" aria-hidden="true">
         <div class="supaste-footer__tongue">
@@ -12,7 +12,7 @@
     </div>
 
     {{-- Honors Badge on Right Edge (1:1 with Supaste W. Honors badge in Image 1) --}}
-    <div class="supaste-footer__honors" title="Posh Boutique: 5-Star Quiet Luxury Stay">
+    <div class="supaste-footer__honors" title="Rosaliza Hotel: 5-Star Quiet Luxury Stay">
         <span class="w-icon">W.</span>
         <span class="v-text">Honors</span>
     </div>
@@ -20,18 +20,17 @@
     <div class="supaste-footer__container">
         {{-- Left Column: Brand, Headline, Desc, CTA, Copyright, Team --}}
         <div class="supaste-footer__left">
-            <a href="{{ route('home') }}" class="supaste-footer__brand" aria-label="Về trang chủ Posh Boutique">
-                <img src="{{ asset('aura-logo-white.png') }}" alt="Posh Boutique Logo" class="supaste-footer__logo-img">
-                <span class="supaste-footer__brand-title">Posh Boutique</span>
+            <a href="{{ route('home') }}" class="supaste-footer__brand" aria-label="Về trang chủ Rosa Hotel">
+                <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosa Hotel" class="supaste-footer__logo-img">
             </a>
 
             <div class="supaste-footer__headline">
-                <span class="supaste-footer__headline-sans">Posh Boutique</span>
+                <span class="supaste-footer__headline-sans">Rosa Hotel</span>
                 <span class="supaste-footer__headline-serif">Rest effortlessly.</span>
             </div>
 
             <p class="supaste-footer__desc">
-                Posh Boutique mang đến không gian nghỉ dưỡng tĩnh lặng và tinh tế, nơi mỗi dịch vụ được chăm chút tỉ mỉ cho kỳ nghỉ đáng nhớ của bạn.
+                Rosaliza Hotel mang đến không gian nghỉ dưỡng tĩnh lặng và tinh tế, nơi mỗi dịch vụ được chăm chút tỉ mỉ cho kỳ nghỉ đáng nhớ của bạn.
             </p>
 
             <a href="{{ route('rooms.index') }}" class="supaste-footer-btn">
@@ -40,12 +39,12 @@
             </a>
 
             <div class="supaste-footer__copyright">
-                © {{ date('Y') }} Posh Boutique - All rights reserved
+                © {{ date('Y') }} Rosaliza Hotel - All rights reserved
             </div>
 
             <div class="supaste-footer__credit">
                 <span>Built with 💙 by</span>
-                <span>Posh Boutique Team</span>
+                <span>Rosaliza Hotel Team</span>
             </div>
         </div>
 
@@ -65,7 +64,7 @@
         <div class="supaste-footer__col">
             <h6>Navigation</h6>
             <nav class="supaste-footer__nav" aria-label="Điều hướng chính sách">
-                <a href="{{ route('contact') }}">Về Posh &amp; Liên hệ</a>
+                <a href="{{ route('contact') }}">Giới thiệu &amp; Liên hệ</a>
                 @if(session('user_id'))
                     <a href="{{ route('booking.mine') }}">Lịch sử đặt phòng</a>
                 @else
@@ -82,7 +81,7 @@
             <h6>Hạng phòng &amp; Dịch vụ</h6>
             <nav class="supaste-footer__nav" aria-label="Hạng phòng và dịch vụ cao cấp">
                 <a href="{{ route('rooms.index') }}">Deluxe Queen Suite</a>
-                <a href="{{ route('rooms.index') }}">Posh Executive Suite</a>
+                <a href="{{ route('rooms.index') }}">Executive Suite</a>
                 <a href="{{ route('rooms.index') }}">Presidential Suite</a>
                 <a href="{{ route('contact') }}">In-room Dining 24/7</a>
                 <a href="{{ route('contact') }}">Spa &amp; Hồ bơi vô cực</a>

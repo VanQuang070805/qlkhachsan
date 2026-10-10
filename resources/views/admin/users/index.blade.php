@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title','Người dùng · Posh Boutique')
+@section('title','Người dùng · Rosaliza Hotel')
 @section('page-title','Quản lý người dùng')
 @section('content')
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -23,9 +23,9 @@
             <span>Vai trò</span>
             <select name="role" class="report-select-pill">
                 <option value="">Mọi vai trò</option>
-                <option value="admin" @selected(request('role')==='admin')>Quản trị viên</option>
-                <option value="receptionist" @selected(request('role')==='receptionist')>Lễ tân</option>
-                <option value="customer" @selected(request('role')==='customer')>Khách hàng</option>
+                @foreach($roles as $role)
+                    <option value="{{ $role->slug }}" @selected(request('role') === $role->slug)>{{ $role->name }}</option>
+                @endforeach
             </select>
         </label>
         <label class="report-filter-field">
@@ -153,7 +153,7 @@
                     {{-- Subtitle / description --}}
                     <div class="mb-3.5 pb-2 border-bottom" style="border-color: rgba(0,0,0,0.05) !important;">
                         <p class="text-muted small mb-0" style="color: #64748b; font-size: 0.84rem;">
-                            Tạo tài khoản phân quyền quản trị hoặc lễ tân vận hành khách sạn Posh Boutique.
+                            Tạo tài khoản phân quyền quản trị hoặc lễ tân vận hành khách sạn Rosaliza Hotel.
                         </p>
                     </div>
 
@@ -193,7 +193,7 @@
                             </label>
                             <input type="email" name="email"
                                    class="form-control @error('email') is-invalid @enderror"
-                                   value="{{ old('email') }}" placeholder="an.nguyen@royalhotel.vn" required
+                                   value="{{ old('email') }}" placeholder="an.nguyen@rosalizahotel.vn" required
                                    style="border-radius: 10px; font-size: 0.86rem; border: 1px solid rgba(0,0,0,0.12); height: 42px; background: #ffffff; color: #0f172a;">
                             @error('email')
                                 <div class="invalid-feedback d-block small mt-1">{{ $message }}</div>
@@ -205,7 +205,7 @@
                             <label class="form-label text-dark small fw-semibold mb-1" style="font-size: 0.8rem; color: #1e293b;">
                                 Số điện thoại
                             </label>
-                            <input type="text" name="phone"
+                            <input type="tel" name="phone" inputmode="numeric" pattern="[0-9]{7,15}" maxlength="15" data-digits-only
                                    class="form-control @error('phone') is-invalid @enderror"
                                    value="{{ old('phone') }}" placeholder="09xxxxxxxx"
                                    style="border-radius: 10px; font-size: 0.86rem; border: 1px solid rgba(0,0,0,0.12); height: 42px; background: #ffffff; color: #0f172a;">
@@ -254,8 +254,9 @@
                                 Phân quyền vai trò <span class="text-danger">*</span>
                             </label>
                             <select name="role" class="form-select @error('role') is-invalid @enderror" style="border-radius: 10px; font-size: 0.86rem; border: 1px solid rgba(0,0,0,0.12); height: 42px; background: #ffffff; color: #0f172a;">
-                                <option value="receptionist" {{ old('role', 'receptionist') === 'receptionist' ? 'selected' : '' }}>Lễ tân vận hành</option>
-                                <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Quản trị viên toàn quyền</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->slug }}" @selected(old('role', 'receptionist') === $role->slug)>{{ $role->name }}</option>
+                                @endforeach
                             </select>
                             @error('role')
                                 <div class="invalid-feedback d-block small mt-1">{{ $message }}</div>
@@ -334,5 +335,6 @@ function toggleModalPwd(id, btn) {
     const createModal = new bootstrap.Modal(document.getElementById('createUserModal'));
     createModal.show();
 @endif
+
 </script>
 @endpush

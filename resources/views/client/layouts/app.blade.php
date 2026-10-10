@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Posh Boutique - Không gian nghỉ dưỡng riêng tư và thư thái.">
+    <meta name="description" content="Rosaliza Hotel - Không gian nghỉ dưỡng riêng tư và thư thái.">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Posh Boutique')</title>
+    <title>@yield('title', 'Rosaliza Hotel')</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">

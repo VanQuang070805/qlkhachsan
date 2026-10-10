@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#ffffff">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $pageTitle ?? 'Tài khoản · Posh Boutique' }}</title>
+    <title>{{ $pageTitle ?? 'Tài khoản · Rosaliza Hotel' }}</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
@@ -30,7 +30,7 @@
             @yield('content')
         </div>
 
-        {{-- Right Column: Dark Luxury Laptop Showcase (Adapted for Posh Boutique) --}}
+        {{-- Right Column: Dark Luxury Laptop Showcase (Adapted for Rosaliza Hotel) --}}
         <div class="sana-showcase-col" aria-hidden="true">
             <div class="sana-laptop">
                 {{-- macOS Traffic Lights Header --}}
@@ -40,7 +40,7 @@
                         <span class="ctrl-dot ctrl-yellow"></span>
                         <span class="ctrl-dot ctrl-green"></span>
                     </div>
-                    <span class="macos-card-title">Posh Boutique &mdash; Cổng trải nghiệm dịch vụ</span>
+                    <span class="macos-card-title">Rosaliza Hotel &mdash; Cổng trải nghiệm dịch vụ</span>
                     <div class="macos-card-spacer" aria-hidden="true"></div>
                 </div>
 
@@ -50,7 +50,7 @@
                     <div class="sana-laptop__sidebar">
                         <div class="sana-laptop__workspace">
                             <span class="sana-laptop__workspace-dot"></span>
-                            <span>Posh Suites</span>
+                            <span>Rosaliza Suites</span>
                         </div>
                         <ul class="sana-laptop__nav-list">
                             <li class="sana-laptop__nav-item is-active">
@@ -80,7 +80,7 @@
                     <div class="sana-laptop__content">
                         <div>
                             <div class="sana-laptop__greeting">
-                                <h3>Welcome to Posh Boutique</h3>
+                                <h3>Welcome to Rosaliza Hotel</h3>
                                 <p>Không gian lưu trú tinh tế &amp; dịch vụ chuẩn mực 5 sao</p>
                             </div>
 
@@ -92,9 +92,9 @@
                                     <p class="sana-laptop__card-sub">Skyline view &amp; Private pool</p>
                                 </div>
 
-                                {{-- Card 2: Posh Executive --}}
+                                {{-- Card 2: Rosaliza Executive --}}
                                 <div class="sana-laptop__card">
-                                    <img src="{{ asset('images/rooms/1.jpg') }}" alt="Posh Executive" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
+                                    <img src="{{ asset('images/rooms/1.jpg') }}" alt="Rosaliza Executive" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
                                     <p class="sana-laptop__card-title">Executive Suite</p>
                                     <p class="sana-laptop__card-sub">24/7 Butler &amp; Jacuzzi</p>
                                 </div>
@@ -111,7 +111,7 @@
                         {{-- Bottom Prompt Bar --}}
                         <div class="sana-laptop__prompt-bar">
                             <i class="bi bi-stars" style="color: #60a5fa;"></i>
-                            <span>Hỏi Posh Concierge về phòng nghỉ, đưa đón hoặc dịch vụ...</span>
+                            <span>Hỏi Rosaliza Concierge về phòng nghỉ, đưa đón hoặc dịch vụ...</span>
                         </div>
                     </div>
                 </div>
@@ -130,7 +130,7 @@
             <span class="dot-mark" aria-hidden="true">
                 <span></span><span></span><span></span><span></span>
             </span>
-            <span>Posh Boutique</span>
+            <span>Rosaliza Hotel</span>
         </div>
         <div class="sana-bottom-bar__right">
             <span>Curated for a quieter kind of stay</span>

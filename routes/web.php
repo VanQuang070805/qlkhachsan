@@ -12,6 +12,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\RoomController as AdminRoomController;
 use App\Http\Controllers\RecceiptionUsserController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\GoogleAuthController;
@@ -90,6 +91,8 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
     Route::get('/payment/error/{bookingId}',   [PaymentController::class, 'error'])->name('payment.error');
     Route::patch('/payment/{bookingId}',       [PaymentController::class, 'updateMethod'])->name('payment.update');
     Route::get('/payment/check/{bookingId}',   [PaymentController::class, 'checkStatus'])->name('payment.check');
+    Route::post('/payment/{bookingId}/keep-alive', [PaymentController::class, 'keepVietQrAlive'])->name('payment.keep-alive');
+    Route::post('/payment/{bookingId}/cancel-pending', [PaymentController::class, 'cancelPendingPayment'])->name('payment.cancel-pending');
 
     // Hủy phòng
     Route::get('/booking/{id}/cancel',  [CancellationController::class, 'show'])->name('booking.cancel.show');
@@ -126,45 +129,57 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
     Route::post('/face-id/sync', [FaceIdController::class, 'sync'])->middleware('throttle:5,1')->name('face-id.sync');
     Route::post('/face-id/full-sync', [FaceIdController::class, 'fullSync'])->middleware('throttle:2,1')->name('face-id.full-sync');
 
-    Route::get('/bookings',                           [ReceptionController::class, 'index'])->name('bookings');
-    Route::patch('/bookings/{id}/confirm',            [BookingController::class, 'confirm'])->name('bookings.confirm');
-    Route::patch('/bookings/{id}/checkin',            [BookingController::class, 'checkIn'])->name('bookings.checkin');
-    Route::patch('/bookings/{id}/checkout',           [BookingController::class, 'checkOut'])->name('bookings.checkout');
-    Route::patch('/bookings/{id}/refund',             [CancellationController::class, 'processRefund'])->name('bookings.refund');
-    Route::get('/bookings/{id}/vietqr',               [PaymentController::class, 'staffVietQR'])->name('bookings.vietqr');
-    Route::get('/bookings/{id}/check-status',         [PaymentController::class, 'staffCheckStatus'])->name('bookings.check-status');
-    Route::get('/bookings/{id}/checkout-success',     [PaymentController::class, 'checkoutSuccess'])->name('bookings.checkout-success');
-    Route::post('/bookings/{id}/extend',              [BookingController::class, 'extendStay'])->name('bookings.extend');
+    Route::get('/bookings', [ReceptionController::class, 'index'])->middleware('permission:bp_view_schedule')->name('bookings');
+    Route::patch('/bookings/{id}/confirm', [BookingController::class, 'confirm'])->middleware('permission:bp_create_booking')->name('bookings.confirm');
+    Route::patch('/bookings/{id}/checkin', [BookingController::class, 'checkIn'])->middleware('permission:bp_checkin_checkout')->name('bookings.checkin');
+    Route::patch('/bookings/{id}/checkout', [BookingController::class, 'checkOut'])->middleware(['permission:bp_checkin_checkout', 'permission:tn_collect_payment'])->name('bookings.checkout');
+    Route::patch('/bookings/{id}/refund', [CancellationController::class, 'processRefund'])->middleware('permission:tn_refund')->name('bookings.refund');
+    Route::get('/bookings/{id}/vietqr', [PaymentController::class, 'staffVietQR'])
+        ->middleware(['permission:bp_checkin_checkout', 'permission:tn_collect_payment'])
+        ->name('bookings.vietqr');
+    Route::get('/bookings/{id}/check-status', [PaymentController::class, 'staffCheckStatus'])
+        ->middleware(['permission:bp_checkin_checkout', 'permission:tn_collect_payment'])
+        ->name('bookings.check-status');
+    Route::get('/bookings/{id}/checkout-success', [PaymentController::class, 'checkoutSuccess'])
+        ->middleware(['permission:bp_checkin_checkout', 'permission:tn_collect_payment'])
+        ->name('bookings.checkout-success');
+    Route::post('/bookings/{id}/extend', [BookingController::class, 'extendStay'])->middleware('permission:bp_extend_stay')->name('bookings.extend');
 
     // AJAX — sơ đồ phòng
-    Route::get('/room/{id}/current-booking',          [BookingController::class, 'currentBooking'])->name('room.currentBooking');
-    Route::post('/room/{id}/checkin',                 [BookingController::class, 'checkInRoom'])->name('room.checkin');
-    Route::post('/room/{id}/status',                  [BookingController::class, 'updateRoomStatus'])->name('room.status');
-    Route::post('/room/{roomId}/cleaning-request/complete', [ReceptionController::class, 'completeCleaningRequest'])->name('room.cleaning.complete');
-    Route::post('/bookings/{id}/checkout',            [BookingController::class, 'checkOutRoom'])->name('bookings.checkout-room');
-    Route::post('/bookings/{id}/checkout-payment',    [PaymentController::class, 'staffCheckoutPayment'])->name('bookings.checkout-payment');
+    Route::get('/room/{id}/current-booking', [BookingController::class, 'currentBooking'])->middleware('permission:bp_view_schedule')->name('room.currentBooking');
+    Route::post('/room/{id}/checkin', [BookingController::class, 'checkInRoom'])->middleware('permission:bp_checkin_checkout')->name('room.checkin');
+    Route::post('/room/{id}/status', [BookingController::class, 'updateRoomStatus'])->middleware('permission:bp_clean_status')->name('room.status');
+    Route::post('/room/{roomId}/cleaning-request/complete', [ReceptionController::class, 'completeCleaningRequest'])->middleware('permission:bp_clean_status')->name('room.cleaning.complete');
+    Route::post('/bookings/{id}/checkout', [BookingController::class, 'checkOutRoom'])->middleware(['permission:bp_checkin_checkout', 'permission:tn_collect_payment'])->name('bookings.checkout-room');
+    Route::post('/bookings/{id}/checkout-payment', [PaymentController::class, 'staffCheckoutPayment'])->middleware(['permission:bp_checkin_checkout', 'permission:tn_collect_payment'])->name('bookings.checkout-payment');
 
     // API sơ đồ phòng lễ tân
-    Route::get('/cancellations', [ReceptionController::class, 'cancellations'])->name('cancellations');
-    Route::get('/reception/today-booking',            [ReceptionController::class, 'getTodayBooking'])->name('reception.today-booking');
-    Route::get('/reception/booking-by-scan',          [ReceptionController::class, 'getBookingByScan'])->name('reception.booking-by-scan');
-    Route::post('/reception/walkin',                  [ReceptionController::class, 'walkinCheckin'])->name('reception.walkin');
-    Route::post('/reception/extend',                  [ReceptionController::class, 'extendStay'])->name('reception.extend');
-    Route::post('/reception/update-status',           [ReceptionController::class, 'updateStatus'])->name('reception.update-status');
-    Route::post('/reception/quick-checkin',           [ReceptionController::class, 'quickCheckinMultipleRooms'])->name('reception.quick-checkin');
-    Route::get('/cleaning-notifications', [ReceptionController::class, 'cleaningNotifications'])->name('cleaning-notifications');
+    Route::get('/cancellations', [ReceptionController::class, 'cancellations'])->middleware('permission:tn_refund')->name('cancellations');
+    Route::get('/reception/today-booking', [ReceptionController::class, 'getTodayBooking'])->middleware('permission:bp_view_schedule')->name('reception.today-booking');
+    Route::get('/reception/booking-by-scan', [ReceptionController::class, 'getBookingByScan'])->middleware('permission:bp_checkin_checkout')->name('reception.booking-by-scan');
+    Route::post('/reception/walkin', [ReceptionController::class, 'walkinCheckin'])->middleware('permission:bp_create_booking')->name('reception.walkin');
+    Route::post('/reception/extend', [ReceptionController::class, 'extendStay'])->middleware('permission:bp_extend_stay')->name('reception.extend');
+    Route::post('/reception/update-status', [ReceptionController::class, 'updateStatus'])->name('reception.update-status');
+    Route::post('/reception/quick-checkin', [ReceptionController::class, 'quickCheckinMultipleRooms'])->middleware('permission:bp_checkin_checkout')->name('reception.quick-checkin');
+    Route::get('/cleaning-notifications', [ReceptionController::class, 'cleaningNotifications'])->middleware('permission:bp_clean_status')->name('cleaning-notifications');
 });
 
 // ============================================================
 // ADMIN
 // ============================================================
+Route::middleware(['auth.custom', 'permission:rp_view_reports'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
+});
+
 Route::middleware(['auth.custom', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
-    // Dashboard & Báo cáo
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-    Route::get('/reports',   [AdminController::class, 'reports'])->name('reports');
-
     // Cài đặt giá
+    Route::get('/rooms', [AdminRoomController::class, 'index'])->name('rooms.index');
+    Route::post('/rooms', [AdminRoomController::class, 'storeRoom'])->name('rooms.store');
+    Route::patch('/rooms/{room}', [AdminRoomController::class, 'updateRoom'])->name('rooms.update');
+    Route::post('/room-types', [AdminRoomController::class, 'storeRoomType'])->name('room-types.store');
+    Route::patch('/room-types/{roomType}', [AdminRoomController::class, 'updateRoomType'])->name('room-types.update');
     Route::get('/price-settings',           [AdminController::class, 'priceSettings'])->name('price-settings.index');
     Route::get('/price-settings/create',    [AdminController::class, 'priceSettingsCreate'])->name('price-settings.create');
     Route::post('/price-settings',          [AdminController::class, 'priceSettingsStore'])->name('price-settings.store');
@@ -174,8 +189,14 @@ Route::middleware(['auth.custom', 'role:admin'])->prefix('admin')->name('admin.'
     Route::patch('/room-types/{roomType}/price', [AdminController::class, 'updateRoomTypePrice'])
         ->name('room-types.price.update');
 
-    // Quản lý người dùng
+    // Quản lý người dùng & Phân quyền (RBAC)
     Route::resource('users', UserController::class)->except(['show']);
     Route::patch('users/{user}/toggle-verified', [UserController::class, 'toggleVerified'])
          ->name('users.toggle-verified');
+    Route::get('/roles', [AdminController::class, 'roles'])->name('roles.index');
+    Route::get('/roles/permissions', [AdminController::class, 'rolePermissions'])->name('roles.permissions.index');
+    Route::post('/roles/profiles', [AdminController::class, 'storeRoleProfile'])->name('roles.profiles.store');
+    Route::patch('/roles/{role}/permissions', [AdminController::class, 'updateRolePermissions'])->name('roles.role-permissions.update');
+    Route::patch('/roles/{user}/user-permissions', [AdminController::class, 'updateUserPermissions'])->name('roles.user-permissions.update');
+    Route::patch('/roles/{user}/profile', [AdminController::class, 'assignRoleProfile'])->name('roles.profile.assign');
 });

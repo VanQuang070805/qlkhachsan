@@ -12,12 +12,13 @@ class ReceptionistAccountMail extends Mailable
 
     public function __construct(
         public string $fullname,
-        public string $username
+        public string $username,
+        public string $roleLabel = 'Lễ tân'
     ) {}
 
     public function build()
     {
-        return $this->subject('Thông tin tài khoản lễ tân - ' . config('app.name'))
+        return $this->subject('Thông tin tài khoản nội bộ - ' . config('app.name'))
                     ->view('emails.receptionist-account');
     }
 }

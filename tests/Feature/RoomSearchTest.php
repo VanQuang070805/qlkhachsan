@@ -68,9 +68,24 @@ class RoomSearchTest extends TestCase
         ]))->assertSessionHasErrors('check_out');
     }
 
+    public function test_room_search_rejects_letters_in_guest_count_filters(): void
+    {
+        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(10, 0));
+
+        $this->get(route('rooms.index', [
+            'search' => 1,
+            'check_in' => now('Asia/Ho_Chi_Minh')->addDays(2)->toDateString(),
+            'check_out' => now('Asia/Ho_Chi_Minh')->addDays(3)->toDateString(),
+            'adults' => '1e2',
+            'children' => 0,
+        ]))->assertSessionHasErrors('adults');
+
+        $this->travelBack();
+    }
+
     public function test_room_search_disallows_same_day_checkin_after_five_pm(): void
     {
-        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(17, 1));
+        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(16, 1));
         $today = now('Asia/Ho_Chi_Minh')->toDateString();
 
         $this->get(route('rooms.index', [

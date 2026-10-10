@@ -4,7 +4,7 @@
 <div class="sana-auth-card">
     <div id="customer-card">
         <header class="sana-heading auth-intro">
-            <h1 class="sana-heading__title">Welcome to Posh Boutique</h1>
+            <h1 class="sana-heading__title">Welcome to Rosaliza Hotel</h1>
         </header>
 
         @if(session('success'))
@@ -32,6 +32,7 @@
 
             {{-- Email Input (Full Pill) --}}
             <div class="sana-form-group">
+                <label class="sana-field-label" for="email">Email <span class="sana-required-mark" aria-hidden="true">*</span></label>
                 <input type="email"
                        class="sana-input @if($errors->has('email') || session('error')) is-invalid @endif"
                        id="email"
@@ -56,6 +57,7 @@
 
             {{-- Password Input (Full Pill with Toggle) --}}
             <div class="sana-form-group">
+                <label class="sana-field-label" for="password">Mật khẩu <span class="sana-required-mark" aria-hidden="true">*</span></label>
                 <div class="sana-password-wrap">
                     <input type="password"
                            class="sana-input @error('password') is-invalid @enderror"

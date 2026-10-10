@@ -1,14 +1,14 @@
-<header class="site-header" data-site-header data-home-header data-homepage-header aria-label="Thanh điều hướng Posh Boutique">
+<header class="site-header" data-site-header data-home-header data-homepage-header aria-label="Thanh điều hướng Rosaliza Hotel">
     <div class="site-header__inner">
-        <div class="site-header__brand-spacer" aria-hidden="true">
-            <img src="{{ asset('aura-logo-white.png') }}" alt="" class="site-header__logo-img" draggable="false">
-        </div>
+        <a href="{{ route('home') }}" class="site-header__brand-spacer" aria-label="Rosa Hotel">
+            <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosa Hotel" class="site-header__logo-img">
+        </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" data-nav-toggle>
             <span class="sr-only">Mở menu</span><span></span><span></span>
         </button>
         <nav class="primary-nav" id="primary-navigation" aria-label="Điều hướng chính" data-primary-nav>
             <a class="{{ request()->routeIs('home') ? 'is-active' : '' }}" href="{{ route('home') }}">Trang chủ</a>
-            <a class="{{ request()->routeIs('contact', 'about') ? 'is-active' : '' }}" href="{{ route('contact') }}">Về Posh &amp; Liên hệ</a>
+            <a class="{{ request()->routeIs('contact', 'about') ? 'is-active' : '' }}" href="{{ route('contact') }}">Giới thiệu &amp; Liên hệ</a>
             <span class="primary-nav__divider" aria-hidden="true"></span>
             @if(session('user_id'))
                 <a class="primary-nav__mobile-account" href="{{ route('booking.mine') }}">Lịch sử đặt phòng</a>

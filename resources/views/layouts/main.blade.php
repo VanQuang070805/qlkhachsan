@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>@yield('title', $pageTitle ?? 'Posh Boutique')</title>
-    <meta name="description" content="Posh Boutique: không gian lưu trú riêng tư, được chăm chút cho từng nhịp nghỉ.">
+    <title>@yield('title', $pageTitle ?? 'Rosaliza Hotel')</title>
+    <meta name="description" content="Rosaliza Hotel: không gian lưu trú riêng tư, được chăm chút cho từng nhịp nghỉ.">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">

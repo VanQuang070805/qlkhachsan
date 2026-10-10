@@ -125,9 +125,8 @@ class PaymentController extends Controller
 
     private function lateCheckoutFee(Booking $booking): float
     {
-        if ($booking->waive_late_fee || now('Asia/Ho_Chi_Minh')->lte(
-            \Carbon\Carbon::parse($booking->check_out, 'Asia/Ho_Chi_Minh')->setTime(13, 0)
-        )) return 0;
+        $deadline = $booking->scheduledCheckoutAt()->addHour();
+        if ($booking->waive_late_fee || now('Asia/Ho_Chi_Minh')->lte($deadline)) return 0;
 
         return round($booking->rooms->sum(fn ($room) => (float) ($room->roomType->price ?? 0)) * .5, 2);
     }
@@ -135,6 +134,7 @@ class PaymentController extends Controller
     // ── VietQR ────────────────────────────────────────────
     private function showVietQR(Booking $booking)
     {
+        $booking->touch();
         $qrData = $this->vietqr->generateQR($booking);
         return view('payment.vietqr', compact('booking', 'qrData'));
     }
@@ -179,6 +179,103 @@ class PaymentController extends Controller
         }
 
         return response()->json(['status' => 'pending']);
+    }
+
+    public function keepVietQrAlive(Request $request, int $bookingId): JsonResponse
+    {
+        $booking = Booking::with('rooms')->findOrFail($bookingId);
+        $this->authorizeCustomerBooking($booking);
+        if (app(ExpirePendingBookingHolds::class)->expireIfDue($booking)) {
+            return response()->json(['status' => 'expired'], 410);
+        }
+
+        $result = \DB::transaction(function () use ($bookingId): array {
+            $locked = Booking::with('rooms')->lockForUpdate()->findOrFail($bookingId);
+            if ($locked->isPaid()) {
+                return ['status' => 'paid'];
+            }
+            if ($locked->status !== 'pending' || $locked->payment_status !== 'pending' || $locked->payment_method !== 'vietqr') {
+                return ['status' => 'expired'];
+            }
+
+            $roomIds = $locked->rooms->pluck('id');
+            Room::whereIn('id', $roomIds)->orderBy('id')->lockForUpdate()->get();
+            if (Booking::reservedRoomIds(
+                $locked->check_in->toDateString(),
+                $locked->check_out->toDateString(),
+                $locked->id
+            )->intersect($roomIds)->isNotEmpty()) {
+                $locked->update([
+                    'status' => 'cancelled',
+                    'payment_status' => 'failed',
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => 'Phòng không còn khả dụng khi gia hạn thời gian thanh toán.',
+                    'refund_status' => 'none',
+                ]);
+                PaymentLog::where('booking_id', $locked->id)->where('purpose', 'deposit')->where('status', 'pending')->update(['status' => 'failed']);
+                return ['status' => 'expired'];
+            }
+
+            $locked->touch();
+            $log = PaymentLog::where('booking_id', $locked->id)
+                ->where('gateway', 'vietqr')->where('purpose', 'deposit')->where('status', 'pending')
+                ->where('reference_code', 'like', 'KS%')->latest()->lockForUpdate()->first();
+            $log?->touch();
+
+            return ['status' => 'pending'];
+        });
+
+        if ($result['status'] === 'paid') {
+            return response()->json(['status' => 'paid', 'redirect_url' => route('payment.success', $bookingId)]);
+        }
+        if ($result['status'] !== 'pending') {
+            return response()->json(['status' => 'expired'], 410);
+        }
+
+        $booking->refresh();
+        $qrData = $this->vietqr->generateQR($booking);
+
+        return response()->json(['status' => 'pending', 'qr' => $qrData]);
+    }
+
+    public function cancelPendingPayment(Request $request, int $bookingId): JsonResponse
+    {
+        $booking = Booking::findOrFail($bookingId);
+        $this->authorizeCustomerBooking($booking);
+
+        $result = \DB::transaction(function () use ($bookingId): string {
+            $locked = Booking::with('rooms')->lockForUpdate()->findOrFail($bookingId);
+            if ($locked->isPaid() || in_array($locked->status, ['confirmed', 'checked_in', 'completed'], true)) {
+                return 'paid';
+            }
+            if ($locked->status === 'cancelled') {
+                return 'cancelled';
+            }
+            if ($locked->status !== 'pending' || $locked->payment_status !== 'pending' || $locked->payment_method !== 'vietqr') {
+                return 'unchanged';
+            }
+
+            Room::whereIn('id', $locked->rooms->pluck('id'))->orderBy('id')->lockForUpdate()->get();
+
+            $locked->update([
+                'status' => 'cancelled',
+                'payment_status' => 'failed',
+                'cancelled_at' => now(),
+                'cancellation_reason' => 'Khách rời màn hình thanh toán.',
+                'refund_status' => 'none',
+            ]);
+            PaymentLog::where('booking_id', $locked->id)
+                ->where('purpose', 'deposit')->where('status', 'pending')
+                ->update(['status' => 'failed']);
+
+            return 'cancelled';
+        });
+
+        if ($result === 'paid') {
+            return response()->json(['status' => 'paid', 'redirect_url' => route('payment.success', $bookingId)]);
+        }
+
+        return response()->json(['status' => $result]);
     }
 
     // ── MoMo Webhook ──────────────────────────────────────
@@ -402,8 +499,7 @@ class PaymentController extends Controller
                 return;
             }
             if ($booking->isPaid() || !in_array($booking->status, ['pending', 'confirmed'], true)) return;
-            $createdAt = $booking->{$booking->getCreatedAtColumn()};
-            if ($booking->status === 'pending' && $createdAt && $createdAt->lte(now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))) return;
+            if ($booking->status === 'pending' && $booking->paymentHoldExpired()) return;
 
             $roomIds = $booking->rooms()->orderBy('rooms.id')->pluck('rooms.id');
             Room::whereIn('id', $roomIds)->orderBy('id')->lockForUpdate()->get();
@@ -458,8 +554,7 @@ class PaymentController extends Controller
         app(ExpirePendingBookingHolds::class)->expireIfDue($booking);
         $booking->refresh();
         abort_unless(in_array($booking->status, ['pending', 'confirmed'], true), 409, 'Đặt phòng không còn khả dụng để thanh toán.');
-        $createdAt = $booking->{$booking->getCreatedAtColumn()};
-        abort_if($booking->status === 'pending' && $createdAt && $createdAt->lte(now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES)), 409, 'Thời gian giữ phòng đã hết.');
+        abort_if($booking->status === 'pending' && $booking->paymentHoldExpired(), 409, 'Thời gian giữ phòng đã hết.');
     }
 
     private function confirmCheckoutPayment(Booking $booking, string $gateway, string $transactionId, float $amount, array $rawData): bool
@@ -566,15 +661,14 @@ class PaymentController extends Controller
         try {
             $to      = $booking->customer_email;
             $name    = $booking->customer_name;
-            $hotel   = config('app.name', 'Posh Boutique');
+            $hotel   = config('app.name', 'Rosaliza Hotel');
             $subject = "Xác nhận đặt phòng & Mã nhận phòng QR – #{$booking->id} | {$hotel}";
 
             $booking->loadMissing('rooms.roomType');
             $rooms = $booking->rooms;
 
             $qrBytes = $this->generateQrCodeBytes($booking);
-            $logoPath = public_path('aura-logo-white.png');
-            $logoBytes = is_file($logoPath) ? file_get_contents($logoPath) : '';
+            $logoBytes = '';
             $body = $this->buildPaymentEmailHtml($booking, $rooms, $method, $transId, $hotel, $qrBytes !== '', $logoBytes !== '');
             
             $mailCfg = [
@@ -689,7 +783,7 @@ class PaymentController extends Controller
 
         $roomRowsHtml = '';
         foreach ($rooms as $r) {
-            $typeName = $escape($r->roomType->type_name ?? $r->roomType->name ?? 'Tiêu chuẩn');
+            $typeName = $escape($r->roomType?->type_name ?? 'Hạng phòng đang được cập nhật');
             $roomRowsHtml .= '<tr><td style="padding:10px 0; border-bottom:1px solid #f1f5f9; font-size:14px; color:#1e293b;">Phòng <strong>'.$escape($r->room_number).'</strong></td><td style="padding:10px 0; border-bottom:1px solid #f1f5f9; font-size:14px; text-align:right; color:#64748b;">Hạng: <strong style="color:#0f172a;">'.$typeName.'</strong></td></tr>';
         }
 
@@ -703,7 +797,7 @@ class PaymentController extends Controller
 QR;
         }
 
-        $logoImgHtml = $hasLogo ? '<img src="cid:royal-hotel-logo" alt="Posh Boutique Logo" class="header-logo" width="105" style="display:block; margin:0 auto 10px auto; max-width:105px; height:auto;">' : '';
+        $logoImgHtml = $hasLogo ? '<img src="cid:royal-hotel-logo" alt="Rosaliza Hotel Logo" class="header-logo" width="105" style="display:block; margin:0 auto 10px auto; max-width:105px; height:auto;">' : '';
 
         return <<<HTML
 <!DOCTYPE html>
@@ -744,13 +838,13 @@ QR;
 <div class="email-wrapper">
     <div class="email-header">
         {$logoImgHtml}
-        <h1 class="hotel-name">POSH BOUTIQUE</h1>
+        <h1 class="hotel-name">ROSALIZA HOTEL</h1>
         <p class="header-sub">Xác Nhận Đặt Phòng &amp; Mã Nhận Phòng QR</p>
     </div>
     <div class="email-content">
         <div class="greeting">Kính gửi quý khách <strong>{$customerName}</strong>,</div>
         <p class="intro-text">
-            Posh Boutique xin trân trọng thông báo yêu cầu đặt phòng của quý khách đã được ghi nhận thành công trên hệ thống. Khoản tiền cọc 50% đã được xác nhận thanh toán an toàn. Số tiền còn lại quý khách sẽ thanh toán khi làm thủ tục nhận phòng tại khách sạn.
+            Rosaliza Hotel xin trân trọng thông báo yêu cầu đặt phòng của quý khách đã được ghi nhận thành công trên hệ thống. Khoản tiền cọc 50% đã được xác nhận thanh toán an toàn. Số tiền còn lại quý khách sẽ thanh toán khi làm thủ tục nhận phòng tại khách sạn.
         </p>
 
         <!-- Fast Check-in QR Section -->
@@ -768,7 +862,7 @@ QR;
             <div class="card-title">Chi Tiết Kỳ Nghỉ</div>
             <table class="info-table">
                 <tr><td>Mã đặt phòng</td><td>#{$b->id}</td></tr>
-                <tr><td>Ngày nhận phòng</td><td>{$checkInFormatted} (từ 14:00)</td></tr>
+                <tr><td>Ngày nhận phòng</td><td>{$checkInFormatted} (12:00–trước 16:00)</td></tr>
                 <tr><td>Ngày trả phòng</td><td>{$checkOutFormatted} (trước 12:00)</td></tr>
                 <tr><td>Phương thức thanh toán</td><td>{$methodLabel}</td></tr>
                 <tr><td>Trạng thái đặt phòng</td><td style="color: #15803d;">✓ Đã xác nhận</td></tr>
@@ -800,13 +894,13 @@ QR;
 
         <div class="signoff">
             Trân trọng phục vụ,<br>
-            <strong style="color: #0f172a;">Ban Quản lý Posh Boutique</strong>
+            <strong style="color: #0f172a;">Ban Quản lý Rosaliza Hotel</strong>
         </div>
     </div>
     <div class="email-footer">
-        <p><strong>Posh Boutique</strong> — Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội</p>
+        <p><strong>Rosaliza Hotel</strong> — Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội</p>
         <p>Hotline: 024 3828 9999 | Email: contact@poshboutique.vn</p>
-        <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">&copy; 2026 Posh Boutique. All rights reserved.</p>
+        <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">&copy; 2026 Rosaliza Hotel. All rights reserved.</p>
     </div>
 </div>
 </body>

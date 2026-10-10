@@ -65,7 +65,7 @@
                         {{-- Phone --}}
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Số điện thoại</label>
-                            <input type="text" name="phone"
+                            <input type="tel" name="phone" inputmode="numeric" pattern="[0-9]{7,15}" maxlength="15" data-digits-only
                                    class="form-control @error('phone') is-invalid @enderror"
                                    value="{{ old('phone', $user->phone) }}">
                             @error('phone')
@@ -82,7 +82,7 @@
                             <div class="input-group">
                                 <input type="password" name="password" id="password"
                                        class="form-control @error('password') is-invalid @enderror"
-                                       placeholder="Tối thiểu 8 ký tự" minlength="8">
+                                       placeholder="Tối thiểu {{ $user->role === 'customer' ? 10 : 6 }} ký tự" minlength="{{ $user->role === 'customer' ? 10 : 6 }}">
                                 <button class="btn btn-outline-secondary" type="button" id="togglePwd">
                                     <i class="bi bi-eye"></i>
                                 </button>
@@ -107,8 +107,9 @@
                             </label>
                             <select name="role"
                                     class="form-select @error('role') is-invalid @enderror">
-                                <option value="receptionist" {{ old('role', $user->role) === 'receptionist' ? 'selected' : '' }}>Lễ tân</option>
-                                <option value="admin"        {{ old('role', $user->role) === 'admin'        ? 'selected' : '' }}>Quản trị viên</option>
+                                @foreach($roles->where('slug', '<>', 'customer') as $role)
+                                    <option value="{{ $role->slug }}" @selected(old('role', $user->assignedRole?->slug ?? $user->role) === $role->slug)>{{ $role->name }}</option>
+                                @endforeach
                             </select>
                             @error('role')
                                 <div class="invalid-feedback">{{ $message }}</div>

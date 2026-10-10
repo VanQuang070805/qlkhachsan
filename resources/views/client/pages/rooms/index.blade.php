@@ -1,5 +1,5 @@
 @extends('client.layouts.app')
-@section('title', 'Phòng nghỉ · Posh Boutique')
+@section('title', 'Phòng nghỉ · Rosaliza Hotel')
 
 @section('content')
 {{-- =========================================================================
@@ -12,7 +12,7 @@
             <span class="supaste-hero__headline-serif">every journey.</span>
         </h1>
         <p class="supaste-hero__subtitle">
-            Khám phá bộ sưu tập phòng nghỉ sang trọng, từ hạng phòng tiêu chuẩn tinh tế đến các căn Presidential Suite đỉnh cao tại Posh Boutique.
+            Khám phá bộ sưu tập phòng nghỉ sang trọng, từ hạng phòng tiêu chuẩn tinh tế đến các căn Presidential Suite đỉnh cao tại Rosaliza Hotel.
         </p>
     </div>
 </section>
@@ -48,13 +48,7 @@
                     </div>
                     <div class="rooms-multiselect-list">
                         @php
-                            $availableTypes = [
-                                'Phòng Đơn Tiêu Chuẩn',
-                                'Phòng Đôi Tiêu Chuẩn',
-                                'Phòng Triple',
-                                'Phòng Gia Đình',
-                                'Phòng VIP'
-                            ];
+                            $availableTypes = $roomTypeOptions ?? collect();
                             $oldQ = old('q', $filters['q'] ?? '');
                             $selectedTypes = array_filter(array_map('trim', explode(',', $oldQ)));
                         @endphp
@@ -83,7 +77,7 @@
                    placeholder="Chọn ngày nhận"
                    aria-invalid="{{ $errors->has('check_in') ? 'true' : 'false' }}"
                    aria-describedby="room-check-in-hint{{ $errors->has('check_in') ? ' room-check-in-error' : '' }}">
-            <small id="room-check-in-hint" class="rooms-search__hint">Từ 14:00 · Muộn nhất 17:00</small>
+            <small id="room-check-in-hint" class="rooms-search__hint">Từ 12:00 · Trước 16:00</small>
             @error('check_in')<small id="room-check-in-error" class="rooms-search__error">{{ $message }}</small>@enderror
         </div>
 
@@ -151,24 +145,14 @@
         <p class="supaste-section__eyebrow">BỘ SƯU TẬP PHÒNG NGHỈ</p>
         <h2 id="catalogue-title" class="supaste-section__title">Không gian lưu trú thanh lịch</h2>
         <p class="supaste-section__desc">
-            Mỗi phòng nghỉ tại Posh Boutique được thiết kế tỉ mỉ, kết hợp sự tiện nghi tối tân cùng cảm giác an yên tuyệt đối.
+            Mỗi phòng nghỉ tại Rosaliza Hotel được thiết kế tỉ mỉ, kết hợp sự tiện nghi tối tân cùng cảm giác an yên tuyệt đối.
         </p>
     </div>
 
     @if($rooms->isNotEmpty())
         <div class="supaste-rooms-grid" id="rooms-cards-grid">
             @foreach($rooms as $room)
-                @php
-                    $nameLower = mb_strtolower($room->type_name);
-                    if (str_contains($nameLower, 'vip') || str_contains($nameLower, 'presidential')) {
-                        $category = 'presidential';
-                    } elseif (str_contains($nameLower, 'triple') || str_contains($nameLower, 'gia đình') || str_contains($nameLower, 'suite')) {
-                        $category = 'suite';
-                    } else {
-                        $category = 'deluxe';
-                    }
-                @endphp
-                <article class="supaste-room-card" data-room-name="{{ $room->type_name }}" data-room-id="{{ $room->id }}" data-room-category="{{ $category }}" data-reveal>
+                <article class="supaste-room-card" data-room-name="{{ $room->type_name }}" data-room-id="{{ $room->id }}" data-reveal>
                     <div class="macos-card-bar" style="padding: 10px 16px; background: #ffffff !important; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; border-radius: 22px 22px 0 0;">
                         <div style="display: flex; gap: 6px;">
                             <span class="ctrl-dot ctrl-red"></span>
@@ -179,8 +163,8 @@
                         <div style="width: 32px;"></div>
                     </div>
                     <a class="supaste-room-card__img" href="{{ route('rooms.detail', array_merge(['id' => $room->id], $roomSearchQuery)) }}">
-                        <img src="{{ $room->image ?: config('room_images.' . $room->id . '.0', asset('images/rooms/default.jpg')) }}"
-                             alt="{{ $room->type_name }} tại Posh Boutique"
+                        <img src="{{ $room->image_url }}"
+                             alt="{{ $room->type_name }} tại Rosaliza Hotel"
                              loading="lazy"
                              onerror="this.onerror=null;this.src='{{ asset('images/rooms/default.jpg') }}';">
                         <span class="supaste-room-card__badge">
@@ -189,8 +173,8 @@
                     </a>
                     <div class="supaste-room-card__info" style="padding: 18px 20px 22px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 11.5px; color: #64748b; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">
-                            <span>{{ strtoupper($category) }}</span>
-                            <span>Tối đa {{ $room->max_guests }} khách</span>
+                            <span>HẠNG PHÒNG</span>
+                            <span>{{ $room->max_guests }} khách · {{ $room->max_adults }} người lớn · {{ $room->max_children }} trẻ em</span>
                         </div>
 
                         <h3 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0; line-height: 1.3;">
@@ -200,7 +184,7 @@
                         </h3>
 
                         <p style="font-size: 13.5px; color: #64748b; line-height: 1.6; margin: 0 0 16px 0; min-height: 44px;">
-                            {{ \Illuminate\Support\Str::limit($room->description ?: 'Không gian lưu trú cao cấp được trang bị tiện nghi đầy đủ cho kỳ nghỉ hoàn hảo.', 110) }}
+                            {{ \Illuminate\Support\Str::limit($room->description ?: 'Mô tả hạng phòng chưa được cập nhật.', 110) }}
                         </p>
 
                         <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px;">
@@ -209,12 +193,7 @@
                                     {{ $amenity->amenity_name }}
                                 </span>
                             @empty
-                                <span style="background: #f1f5f9; color: #475569; font-size: 11.5px; padding: 4px 10px; border-radius: 999px; font-weight: 500;">
-                                    Wi-Fi tốc độ cao
-                                </span>
-                                <span style="background: #f1f5f9; color: #475569; font-size: 11.5px; padding: 4px 10px; border-radius: 999px; font-weight: 500;">
-                                    Bữa sáng buffet
-                                </span>
+                                <span style="font-size: 11.5px; color: #64748b;">Chưa có tiện nghi được cập nhật</span>
                             @endforelse
                         </div>
 
@@ -254,7 +233,7 @@
         <p class="supaste-section__eyebrow">DỊCH VỤ &amp; TIÊU CHUẨN</p>
         <h2 id="standards-title" class="supaste-section__title">Đặc quyền nghỉ dưỡng chuẩn mực</h2>
         <p class="supaste-section__desc">
-            Mỗi khoảnh khắc tại Posh Boutique đều được kiến tạo từ sự chu đáo, tận tâm và tiêu chuẩn dịch vụ khách sạn 5 sao quốc tế.
+            Mỗi khoảnh khắc tại Rosaliza Hotel đều được kiến tạo từ sự chu đáo, tận tâm và tiêu chuẩn dịch vụ khách sạn 5 sao quốc tế.
         </p>
     </div>
 
@@ -316,13 +295,13 @@
         <div class="supaste-faq-item">
             <details>
                 <summary>Thời gian nhận phòng và trả phòng tiêu chuẩn là khi nào?</summary>
-                <p>Giờ nhận phòng tiêu chuẩn là từ 14:00 và giờ trả phòng trước 12:00 trưa hôm sau. Quý khách có thể yêu cầu nhận phòng sớm hoặc trả phòng muộn tùy thuộc vào tình trạng phòng trống.</p>
+                <p>Giờ nhận phòng từ 12:00 đến trước 16:00 và giờ trả phòng trước 12:00 trưa hôm sau. Quý khách có thể yêu cầu trả phòng muộn tùy thuộc vào tình trạng phòng trống.</p>
             </details>
         </div>
         <div class="supaste-faq-item">
             <details>
                 <summary>Chính sách hủy phòng và hoàn tiền như thế nào?</summary>
-                <p>Posh Boutique hỗ trợ hủy phòng hoàn toàn miễn phí nếu thực hiện trước 48 giờ so với thời điểm nhận phòng. Tiền đặt cọc sẽ được hoàn trả tự động theo phương thức thanh toán ban đầu.</p>
+                <p>Rosaliza Hotel hỗ trợ hủy phòng hoàn toàn miễn phí nếu thực hiện trước 48 giờ so với thời điểm nhận phòng. Tiền đặt cọc sẽ được hoàn trả tự động theo phương thức thanh toán ban đầu.</p>
             </details>
         </div>
         <div class="supaste-faq-item">

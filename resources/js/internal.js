@@ -1,6 +1,7 @@
 import { gsap } from 'gsap';
 import '../css/date-picker.css';
 import { enhanceDatePickers } from './date-picker';
+import './numeric-inputs';
 import { Flip } from 'gsap/Flip';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Chart from 'chart.js/auto';
@@ -104,6 +105,20 @@ document.addEventListener('DOMContentLoaded', () => {
             form.requestSubmit();
         }
     }));
+    const cancellationTabs = [...document.querySelectorAll('[data-cancellation-tab]')];
+    cancellationTabs.forEach(tab => tab.addEventListener('click', () => {
+        const activePanel = tab.dataset.cancellationTab;
+        cancellationTabs.forEach(item => {
+            const active = item === tab;
+            item.setAttribute('aria-selected', String(active));
+            item.classList.toggle('btn-dark', active);
+            item.classList.toggle('btn-outline-secondary', !active);
+        });
+        document.querySelectorAll('[data-cancellation-panel]').forEach(panel => {
+            panel.hidden = panel.dataset.cancellationPanel !== activePanel;
+        });
+    }));
+
     const search = document.querySelector('[data-refund-search]');
     const status = document.querySelector('[data-refund-status]');
     const filterRefunds = () => {
@@ -165,4 +180,39 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 5000);
     });
+
+    // Mobile sidebar off-canvas drawer toggle
+    const mobileToggle = document.getElementById('sidebarMobileToggle');
+    const sidebar = document.getElementById('workspaceSidebar') || document.querySelector('.workspace-sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+
+    const closeMobileSidebar = () => {
+        sidebar?.classList.remove('is-open');
+        backdrop?.classList.remove('is-open');
+        document.body.classList.remove('sidebar-mobile-open');
+    };
+
+    if (mobileToggle && sidebar) {
+        mobileToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const willOpen = !sidebar.classList.contains('is-open');
+            sidebar.classList.toggle('is-open', willOpen);
+            backdrop?.classList.toggle('is-open', willOpen);
+            document.body.classList.toggle('sidebar-mobile-open', willOpen);
+        });
+
+        backdrop?.addEventListener('click', closeMobileSidebar);
+
+        sidebar.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) closeMobileSidebar();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                closeMobileSidebar();
+            }
+        });
+    }
 });

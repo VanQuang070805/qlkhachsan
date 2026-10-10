@@ -76,7 +76,7 @@ main:has(.page-hero),main:has(.editorial-hero),main:has(.contact-hero) { backgro
    Matches https://www.supaste.com/ #features design:
    - Pitch black notch hanging flush from top: 0
    - Concave fillet curves on top-left and top-right
-   - Clean "Posh Boutique" brand typography (no squircle box)
+   - Clean "Rosaliza Hotel" brand typography (no squircle box)
    - Active nav item in clean subtle pill (no white outline box)
    - High-contrast pure white pill CTA button (never drowned in white)
    - Smooth entrance animation on page arrival
@@ -151,7 +151,7 @@ main:has(.page-hero),main:has(.editorial-hero),main:has(.contact-hero) { backgro
     position: relative !important;
 }
 
-/* Brand Aura Logo on Notch Header (non-interactive, sized to match previous text) */
+/* Rosaliza Hotel wordmark on Notch Header (non-interactive, sized to match previous text) */
 .site-header[data-homepage-header] .site-header__brand-spacer {
     display: inline-flex !important;
     align-items: center !important;
@@ -159,8 +159,8 @@ main:has(.page-hero),main:has(.editorial-hero),main:has(.contact-hero) { backgro
     width: auto !important;
     min-width: auto !important;
     text-decoration: none !important;
-    cursor: default !important;
-    pointer-events: none !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
     user-select: none !important;
 }
 .site-header[data-homepage-header] .site-header__brand-spacer::before,
@@ -169,16 +169,29 @@ main:has(.page-hero),main:has(.editorial-hero),main:has(.contact-hero) { backgro
     content: none !important;
 }
 
+.site-header__brand-name {
+    color: #f8fafc !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    white-space: nowrap !important;
+}
+
+
 .site-header__logo-img {
-    height: 16px !important;
+    height: 28px !important;
     width: auto !important;
-    max-height: 16px !important;
-    max-width: 52px !important;
+    max-height: 28px !important;
+    max-width: 80px !important;
     object-fit: contain !important;
     display: inline-block !important;
     vertical-align: middle !important;
     pointer-events: none !important;
     user-select: none !important;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.site-header[data-homepage-header] .site-header__brand-spacer:hover .site-header__logo-img {
+    transform: scale(1.08) !important;
 }
 
 /* Supaste-styled Navigation Links */

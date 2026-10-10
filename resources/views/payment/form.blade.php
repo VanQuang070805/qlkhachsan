@@ -1,16 +1,16 @@
 @extends('layouts.main')
 
-@section('title', 'Thanh toán · Posh Boutique')
+@section('title', 'Thanh toán · Rosaliza Hotel')
 
 @section('content')
 @php
     $nights = \Carbon\Carbon::parse($booking->check_in)->diffInDays($booking->check_out) ?: 1;
     $firstRoom = $booking->rooms->first();
-    $roomTypeName = $firstRoom?->roomType?->type_name ?? 'Grand Ocean Panorama Suite';
-    $roomImage = !empty($firstRoom?->roomType?->image) ? asset($firstRoom->roomType->image) : asset('images/rooms/1.jpg');
+    $roomTypeNames = $booking->rooms->map(fn($room) => $room->roomType?->type_name)->filter()->unique()->values();
+    $roomTypeName = $roomTypeNames->join(' · ') ?: 'Hạng phòng đang được cập nhật';
+    $roomImage = $firstRoom?->roomType?->image_url ?? asset('images/rooms/default.jpg');
     $roomNumbers = $booking->rooms->map(fn($r) => 'Phòng '.$r->room_number)->join(', ');
     $initials = collect(explode(' ', $booking->customer_name))->map(fn($part) => mb_substr($part, 0, 1))->take(2)->join('');
-    $usdPrice = round($booking->total_price / 25400, 2);
 @endphp
 
 <div class="aeth-canvas">
@@ -189,13 +189,13 @@
                             <img src="{{ $roomImage }}" alt="{{ $roomTypeName }}" style="width: 76px; height: 76px; border-radius: 16px; object-fit: cover; border: 1px solid #e2e8f0; flex-shrink: 0;">
                             <div>
                                 <small style="display:block; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--apple-blue);">
-                                    VILLA BIỆT LẬP HƯỚNG ĐỒI
+                                    HẠNG PHÒNG
                                 </small>
                                 <strong style="display:block; font-size: 17px; color: #0f172a; margin-top: 1px;">
                                     {{ $roomTypeName }}
                                 </strong>
                                 <span class="text-slate-500" style="font-size: 13px;">
-                                    {{ $roomNumbers ?: 'Posh Suite' }} • {{ $nights }} đêm lưu trú
+                                    {{ $roomNumbers ?: 'Chưa gán số phòng' }} • {{ $nights }} đêm lưu trú
                                 </span>
                             </div>
                         </div>
@@ -207,14 +207,14 @@
                                 <strong style="font-size: 15px; color: #0f172a; display:block; margin-top: 2px;">
                                     {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }}
                                 </strong>
-                                <span class="text-slate-500" style="font-size: 12px;">Thứ {{ \Carbon\Carbon::parse($booking->check_in)->dayOfWeek + 1 }} (14:00)</span>
+                                <span class="text-slate-500" style="font-size: 12px;">14:00</span>
                             </div>
                             <div>
                                 <small class="text-muted text-uppercase fw-bold" style="font-size: 11px; letter-spacing: 0.05em; display:block;">TRẢ PHÒNG</small>
                                 <strong style="font-size: 15px; color: #0f172a; display:block; margin-top: 2px;">
                                     {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }}
                                 </strong>
-                                <span class="text-slate-500" style="font-size: 12px;">Chủ Nhật (12:00)</span>
+                                <span class="text-slate-500" style="font-size: 12px;">Trước 12:00</span>
                             </div>
                         </div>
 
@@ -249,7 +249,6 @@
                                         <div style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.03em;">
                                             {{ number_format($booking->total_price, 0, ',', '.') }}đ
                                         </div>
-                                        <small class="text-muted" style="font-size: 12px;">≈ ${{ number_format($usdPrice, 2) }} USD</small>
                                     </div>
                                 </div>
                                 <small class="text-slate-400 d-block mt-1" style="font-size: 12px;">Giá lưu trú theo thời gian đã chọn</small>

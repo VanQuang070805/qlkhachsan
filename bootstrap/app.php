@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.custom' => App\Http\Middleware\AuthCustomMiddleware::class,
             'verified.custom'=> \App\Http\Middleware\VerifiedCustomMiddleware::class,
             'role'           => \App\Http\Middleware\RoleMiddleware::class,
+            'permission'     => \App\Http\Middleware\EnsureInternalPermission::class,
             'guest'          => \App\Http\Middleware\GuestMiddleware::class,
         ]);
 

@@ -3,25 +3,20 @@
 @section('content')
 @php
     $pageTitle = 'Chi Tiết - ' . htmlspecialchars($room->type_name ?? 'Phòng');
-    $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 17 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
+    $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 16 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
     $adults = (int)($adults ?? 1);
     $children = (int)($children ?? 0);
+    $initialNights = max(1, \Carbon\Carbon::parse($checkIn)->diffInDays($checkOut));
+    $initialEstimate = (float) $room->price * $initialNights;
     $availableRoomsCount = $allRoomsOfType->where('is_booked', false)->where('status', 'available')->count();
-    $maxCapacity = (int)($room->max_guests ?? 3);
-    $maxAdults = (int)($room->max_adults ?? $maxCapacity);
-    $maxChildren = (int)($room->max_children ?? $maxCapacity);
+    $maxCapacity = (int) $room->max_guests;
+    $maxAdults = (int) $room->max_adults;
+    $maxChildren = (int) $room->max_children;
     $isInsufficient = ($adults + $children) > $maxCapacity || $adults > $maxAdults || ($children > 0 && $children > $maxChildren);
     $roomsNeeded = $isInsufficient ? (int)ceil(($adults + $children) / max($maxCapacity, 1)) : 1;
     $multiRoomMode = $roomsNeeded > 1;
 
-    // Photos for Architectural Grid
-    $heroPhoto = !empty($room->image) ? asset($room->image) : asset('images/rooms/1.jpg');
-    $subPhotos = [
-        ['title' => 'Phòng Ngủ Master', 'img' => asset('images/rooms/2.jpg')],
-        ['title' => 'Jacuzzi Hướng Biển', 'img' => asset('images/rooms/3.jpg')],
-        ['title' => 'Phòng Khách VIP', 'img' => asset('images/rooms/4.jpg')],
-        ['title' => 'Bữa Sáng Nổi', 'img' => asset('images/rooms/5.jpg')],
-    ];
+    $heroPhoto = $room->image_url;
 @endphp
 
 <div class="aeth-canvas">
@@ -38,7 +33,7 @@
             <div class="aeth-top-badges">
                 <div class="aeth-badge-urgency">
                     <span class="aeth-pulse-dot"></span>
-                    <span>Chỉ còn {{ $availableRoomsCount ?: 2 }} phòng</span>
+                    <span>{{ $availableRoomsCount }} phòng còn khả dụng</span>
                 </div>
                 <div class="aeth-badge-rating">
                     <i class="bi bi-star-fill"></i>
@@ -49,68 +44,48 @@
 
         {{-- ── 2. Tiêu đề chính & Phân hạng (Ảnh 1) ── --}}
         <div class="aeth-title-row">
-            <h1 class="aeth-room-title">{{ $room->type_name ?? 'Grand Ocean Panorama Suite' }}</h1>
-            <span class="aeth-badge-rank">
-                <i class="bi bi-shield-check"></i>
-                <span>{{ $room->price >= 4000000 ? 'Tổng Thống Phổ Quát' : 'Hạng Thượng Hạng' }}</span>
-            </span>
+            <h1 class="aeth-room-title">{{ $room->type_name }}</h1>
         </div>
+        @if(filled($room->description))
+            <p class="text-slate-600" style="max-width: 78ch; line-height: 1.7; margin: 0 0 22px;">{{ $room->description }}</p>
+        @endif
 
         {{-- ── 3. Lưới Thư Viện Ảnh Kiến Trúc (Architectural Gallery Grid - Ảnh 1) ── --}}
-        <div class="aeth-gallery-grid">
-            {{-- Ảnh Hero chính bên trái --}}
-            <div class="aeth-gallery-hero" onclick="openGalleryModal(0)">
-                <img src="{{ $heroPhoto }}" alt="{{ $room->type_name }}" loading="eager" onerror="this.src='{{ asset('images/rooms/1.jpg') }}'">
+        <div class="aeth-gallery-grid aeth-gallery-grid--single">
+            <div class="aeth-gallery-hero">
+                <img src="{{ $heroPhoto }}" alt="{{ $room->type_name }}" loading="eager" onerror="this.onerror=null;this.src='{{ asset('images/rooms/default.jpg') }}'">
                 <div class="aeth-gallery-scrim"></div>
-                <button type="button" class="aeth-hero-pill-left" onclick="event.stopPropagation(); openGalleryModal(0);">
-                    <i class="bi bi-badge-3d"></i>
-                    <span>Panorama 360° View</span>
-                </button>
-                <button type="button" class="aeth-hero-pill-right" onclick="event.stopPropagation(); openGalleryModal(0);">
-                    <i class="bi bi-images"></i>
-                    <span>28 Ảnh</span>
-                </button>
-            </div>
-
-            {{-- 4 ảnh nhỏ bên phải --}}
-            <div class="aeth-gallery-subgrid">
-                @foreach($subPhotos as $idx => $sp)
-                <div class="aeth-sub-photo" onclick="openGalleryModal({{ $idx + 1 }})">
-                    <img src="{{ $sp['img'] }}" alt="{{ $sp['title'] }}" loading="lazy" onerror="this.src='{{ asset('images/rooms/'.(($idx % 6)+1).'.jpg') }}'">
-                    <span class="aeth-photo-tag">{{ $sp['title'] }}</span>
-                </div>
-                @endforeach
             </div>
         </div>
 
         {{-- ── 4. Bốn Thẻ Đo Lường Nhanh (Metric Spec Cards - Ảnh 1 & 2) ── --}}
         <div class="aeth-specs-row">
             <div class="aeth-spec-card">
-                <div class="aeth-spec-icon-box"><i class="bi bi-aspect-ratio"></i></div>
+                <div class="aeth-spec-icon-box"><i class="bi bi-person"></i></div>
                 <div class="aeth-spec-text">
-                    <strong>142 m²</strong>
-                    <span>Diện tích suite</span>
+                    <strong>{{ $maxAdults }}</strong>
+                    <span>Người lớn tối đa</span>
+                </div>
+            </div>
+            <div class="aeth-spec-card">
+                <div class="aeth-spec-icon-box"><i class="bi bi-person-hearts"></i></div>
+                <div class="aeth-spec-text">
+                    <strong>{{ $maxChildren }}</strong>
+                    <span>Trẻ em tối đa</span>
                 </div>
             </div>
             <div class="aeth-spec-card">
                 <div class="aeth-spec-icon-box"><i class="bi bi-people"></i></div>
                 <div class="aeth-spec-text">
-                    <strong>{{ $room->max_guests ?: 3 }} Khách</strong>
-                    <span>Sức chứa tối đa</span>
+                    <strong>{{ $maxCapacity }}</strong>
+                    <span>Khách tối đa</span>
                 </div>
             </div>
             <div class="aeth-spec-card">
-                <div class="aeth-spec-icon-box"><i class="bi bi-moon-stars"></i></div>
+                <div class="aeth-spec-icon-box"><i class="bi bi-door-open"></i></div>
                 <div class="aeth-spec-text">
-                    <strong>King 2.2m</strong>
-                    <span>Đệm mây Savoir</span>
-                </div>
-            </div>
-            <div class="aeth-spec-card">
-                <div class="aeth-spec-icon-box"><i class="bi bi-compass"></i></div>
-                <div class="aeth-spec-text">
-                    <strong>360° Vịnh</strong>
-                    <span>Tầm nhìn đỉnh tháp</span>
+                    <strong>{{ $availableRoomsCount }}</strong>
+                    <span>Phòng khả dụng</span>
                 </div>
             </div>
         </div>
@@ -127,42 +102,17 @@
                         <h2 class="aeth-section-title">
                             <span>Tiện nghi</span>
                         </h2>
-                        <span class="badge rounded-pill bg-slate-100 text-slate-700 px-3 py-1 fw-semibold" style="font-size:11.5px; border:none; background:#f1f5f9;">
-                            Chuẩn 6 Sao
-                        </span>
                     </div>
 
                     <div class="aeth-amenities-grid">
-                        <div class="aeth-amenity-card">
-                            <div class="aeth-amenity-icon"><i class="bi bi-wifi"></i></div>
-                            <span class="aeth-amenity-name">Wi-Fi 6E 1Gbps</span>
-                            <span class="aeth-amenity-sub">Băng thông riêng</span>
-                        </div>
-                        <div class="aeth-amenity-card">
-                            <div class="aeth-amenity-icon"><i class="bi bi-water"></i></div>
-                            <span class="aeth-amenity-name">Bồn Jacuzzi Kính</span>
-                            <span class="aeth-amenity-sub">Ion khoáng &amp; Muối</span>
-                        </div>
-                        <div class="aeth-amenity-card">
-                            <div class="aeth-amenity-icon"><i class="bi bi-tv"></i></div>
-                            <span class="aeth-amenity-name">Apple TV &amp; Dolby</span>
-                            <span class="aeth-amenity-sub">Bang &amp; Olufsen 77"</span>
-                        </div>
-                        <div class="aeth-amenity-card">
-                            <div class="aeth-amenity-icon"><i class="bi bi-cup-hot"></i></div>
-                            <span class="aeth-amenity-name">Nespresso Bar</span>
-                            <span class="aeth-amenity-sub">Ly pha lê Baccarat</span>
-                        </div>
-                        <div class="aeth-amenity-card">
-                            <div class="aeth-amenity-icon"><i class="bi bi-droplet-half"></i></div>
-                            <span class="aeth-amenity-name">Hồ Bơi Vô Cực</span>
-                            <span class="aeth-amenity-sub">Bữa sáng nổi miễn phí</span>
-                        </div>
-                        <div class="aeth-amenity-card">
-                            <div class="aeth-amenity-icon"><i class="bi bi-sun"></i></div>
-                            <span class="aeth-amenity-name">Ban Công Vịnh Biển</span>
-                            <span class="aeth-amenity-sub">Tầm nhìn hoàng hôn</span>
-                        </div>
+                        @forelse($room->amenities as $amenity)
+                            <div class="aeth-amenity-card">
+                                <div class="aeth-amenity-icon"><i class="bi bi-check2-circle"></i></div>
+                                <span class="aeth-amenity-name">{{ $amenity->amenity_name }}</span>
+                            </div>
+                        @empty
+                            <p class="text-muted mb-0">Hạng phòng chưa có tiện nghi được cập nhật.</p>
+                        @endforelse
                     </div>
                 </div>
 
@@ -218,7 +168,7 @@
                     <div class="aeth-rate-header">
                         <div class="aeth-rate-main">
                             <span class="aeth-rate-price" id="displayRate">{{ number_format($room->price, 0, ',', '.') }}đ</span>
-                            <span class="aeth-rate-unit">/ đêm</span>
+                            <span class="aeth-rate-unit">/ đêm trung bình</span>
                         </div>
                     </div>
 
@@ -322,12 +272,12 @@
                     {{-- Bảng Phân Tích Chi Phí Minh Bạch (Đã xóa phí dịch vụ) --}}
                     <div class="aeth-breakdown pt-3" style="border-top: none !important;">
                         <div class="aeth-breakdown-row">
-                            <span id="breakdownNightsLabel">1 đêm × 1 phòng</span>
-                            <strong id="breakdownBase">{{ number_format($room->price, 0, ',', '.') }}đ</strong>
+                            <span id="breakdownNightsLabel">{{ $initialNights }} đêm × 1 phòng</span>
+                            <strong id="breakdownBase">{{ number_format($initialEstimate, 0, ',', '.') }}đ</strong>
                         </div>
                         <div class="aeth-total-box" style="border: none !important; box-shadow: none !important; outline: none !important;">
                             <span>Tổng thanh toán</span>
-                            <strong id="breakdownTotal">{{ number_format($room->price * 1.08, 0, ',', '.') }}đ</strong>
+                            <strong id="breakdownTotal">{{ number_format($initialEstimate, 0, ',', '.') }}đ</strong>
                         </div>
                     </div>
 
@@ -342,11 +292,7 @@
                     {{-- Huy hiệu bảo chứng --}}
                     <div class="aeth-trust-note">
                         <i class="bi bi-check-circle-fill"></i>
-                        <span>Miễn phí hủy trong 48 giờ</span>
-                    </div>
-                    <div class="aeth-trust-sub">
-                        <i class="bi bi-shield-lock"></i>
-                        <span>Bảo mật 256-bit • Apple Pay sẵn sàng</span>
+                        <span>Giá cuối cùng được xác nhận trước khi thanh toán</span>
                     </div>
 
                 </div>
@@ -366,61 +312,9 @@
     <div id="formRoomIds"></div>
 </form>
 
-{{-- ── Fullscreen Gallery Modal (28 Ảnh - docs/05_modal_drawer_va_trang_thai_phu.md) ── --}}
-<div class="aeth-modal-backdrop" id="galleryModal">
-    <div class="aeth-modal-box" style="max-width: 1040px; height: 86vh; background: #0f172a; color: #fff; padding: 24px; display:flex; flex-direction:column; border:1px solid #334155;">
-        <button type="button" class="aeth-modal-close-btn" style="background:#1e293b; color:#fff;" onclick="closeGalleryModal()">
-            <i class="bi bi-x-lg"></i>
-        </button>
-
-        {{-- Top Bar: Info + Filter Pills --}}
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pe-5">
-            <div>
-                <span class="aeth-pulse-dot me-2"></span>
-                <strong style="font-size: 15px;">{{ $room->type_name ?? 'Grand Ocean Panorama Suite' }} • Thư viện kiến trúc</strong>
-                <span class="text-slate-400 ms-2" style="font-size: 12px;" id="galleryCounter">1 / 28</span>
-            </div>
-        </div>
-
-        {{-- Filter Pills --}}
-        <div class="d-flex gap-2 overflow-x-auto pb-2 mb-3" id="galleryPills">
-            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" onclick="filterGallery('all', this)">Tất cả</button>
-            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="filterGallery('view', this)">Toàn cảnh</button>
-            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="filterGallery('bedroom', this)">Phòng ngủ</button>
-            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="filterGallery('relax', this)">Thư giãn</button>
-            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="filterGallery('living', this)">Không gian sống</button>
-            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="filterGallery('dining', this)">Ẩm thực</button>
-        </div>
-
-        {{-- Main Stage with Left/Right Arrows --}}
-        <div style="flex-grow:1; position:relative; overflow:hidden; border-radius:18px; background:#000; display:flex; align-items:center; justify-content:center;">
-            <img src="{{ $heroPhoto }}" id="galleryMainImg" alt="Gallery" style="max-height:100%; max-width:100%; object-fit:contain; transition:opacity 0.25s ease;">
-            
-            <button type="button" class="btn btn-dark rounded-circle position-absolute start-0 ms-3" style="width:42px; height:42px; opacity:0.85;" onclick="prevGalleryImage()">
-                <i class="bi bi-chevron-left"></i>
-            </button>
-            <button type="button" class="btn btn-dark rounded-circle position-absolute end-0 me-3" style="width:42px; height:42px; opacity:0.85;" onclick="nextGalleryImage()">
-                <i class="bi bi-chevron-right"></i>
-            </button>
-
-            <div style="position:absolute; bottom:16px; left:20px; background:rgba(15,23,42,0.85); backdrop-filter:blur(8px); padding:6px 16px; border-radius:999px; font-size:12px;" id="galleryCaption">
-                Grand Ocean Panorama Suite • Toàn cảnh vịnh biển
-            </div>
-        </div>
-
-        {{-- Thumbnail strip --}}
-        <div class="d-flex gap-2 overflow-x-auto pt-3" style="height:76px;" id="galleryThumbnails">
-            @for($i = 1; $i <= 6; $i++)
-            <img src="{{ asset('images/rooms/'.$i.'.jpg') }}" class="gallery-thumb rounded-3 {{ $i === 1 ? 'border border-2 border-primary' : 'opacity-50' }}"
-                 style="width:72px; height:50px; object-fit:cover; cursor:pointer;" onclick="selectGalleryIndex({{ $i - 1 }})">
-            @endfor
-        </div>
-    </div>
-</div>
-
 {{-- ── Script tương tác đầy đủ ── --}}
 <script>
-const BASE_NIGHTLY_PRICE = {{ (float)$room->price }};
+let BASE_NIGHTLY_PRICE = {{ (float)$room->price }};
 const MAX_GUESTS_PER_ROOM = {{ $maxCapacity }};
 const MAX_ADULTS_PER_ROOM = {{ $maxAdults }};
 const MAX_CHILDREN_PER_ROOM = {{ $maxChildren }};
@@ -545,6 +439,11 @@ async function refreshAvailability() {
         });
         if (!response.ok || requestId !== availabilityRequestId) return;
         const data = await response.json();
+        const nightlyPrice = Number(data.nightly_price);
+        if (Number.isFinite(nightlyPrice) && nightlyPrice >= 0) {
+            BASE_NIGHTLY_PRICE = nightlyPrice;
+            document.getElementById('displayRate').textContent = new Intl.NumberFormat('vi-VN').format(nightlyPrice) + 'đ';
+        }
         const states = new Map((data.rooms || []).map(room => [String(room.id), room]));
         const freeByFloor = new Map();
 
@@ -630,73 +529,6 @@ function submitBooking() {
     }
 
     form.submit();
-}
-
-// Gallery Modal Controls
-const galleryImages = [
-    '{{ asset("images/rooms/1.jpg") }}',
-    '{{ asset("images/rooms/2.jpg") }}',
-    '{{ asset("images/rooms/3.jpg") }}',
-    '{{ asset("images/rooms/4.jpg") }}',
-    '{{ asset("images/rooms/5.jpg") }}',
-    '{{ asset("images/rooms/6.jpg") }}'
-];
-let currentGalleryIdx = 0;
-
-function openGalleryModal(idx) {
-    currentGalleryIdx = idx % galleryImages.length;
-    updateGalleryView();
-    document.getElementById('galleryModal').classList.add('is-open');
-}
-
-function closeGalleryModal() {
-    document.getElementById('galleryModal').classList.remove('is-open');
-}
-
-function nextGalleryImage() {
-    currentGalleryIdx = (currentGalleryIdx + 1) % galleryImages.length;
-    updateGalleryView();
-}
-
-function prevGalleryImage() {
-    currentGalleryIdx = (currentGalleryIdx - 1 + galleryImages.length) % galleryImages.length;
-    updateGalleryView();
-}
-
-function selectGalleryIndex(idx) {
-    currentGalleryIdx = idx;
-    updateGalleryView();
-}
-
-function updateGalleryView() {
-    const mainImg = document.getElementById('galleryMainImg');
-    mainImg.style.opacity = '0';
-    setTimeout(() => {
-        mainImg.src = galleryImages[currentGalleryIdx];
-        mainImg.style.opacity = '1';
-    }, 120);
-    document.getElementById('galleryCounter').textContent = `${currentGalleryIdx + 1} / 28`;
-    
-    // Highlight thumbnail
-    const thumbs = document.querySelectorAll('.gallery-thumb');
-    thumbs.forEach((th, i) => {
-        if (i === currentGalleryIdx) {
-            th.classList.add('border', 'border-2', 'border-primary');
-            th.classList.remove('opacity-50');
-        } else {
-            th.classList.remove('border', 'border-2', 'border-primary');
-            th.classList.add('opacity-50');
-        }
-    });
-}
-
-function filterGallery(category, btn) {
-    document.querySelectorAll('#galleryPills button').forEach(b => {
-        b.className = 'btn btn-sm btn-outline-light rounded-pill px-3';
-    });
-    btn.className = 'btn btn-sm btn-primary rounded-pill px-3';
-    currentGalleryIdx = 0;
-    updateGalleryView();
 }
 
 // Initial calculation

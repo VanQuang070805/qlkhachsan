@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use App\Models\Room;
 use App\Models\Booking;
@@ -16,24 +17,25 @@ class ReceptionController extends Controller
      */
     public function index(Request $request)
     {
+        app(\App\Services\ExpireNoShowBookings::class)->cancelDueBookings();
         $today = now('Asia/Ho_Chi_Minh')->toDateString();
         // Lấy toàn bộ phòng với trạng thái logic tính toán động
         $sql = "
             SELECT r.id, r.room_number, r.floor, r.status, r.needs_cleaning, r.cleaning_requested_at,
-                   rt.type_name, rt.max_guests, rt.price, rt.id as room_type_id,
+                   rt.type_name, rt.max_guests, rt.max_adults, rt.max_children, rt.price, rt.image, rt.id as room_type_id,
                    (SELECT COUNT(*) 
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                    ) as has_today_booking,
                    (SELECT COUNT(*)
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                    ) as has_active_booking,
                    (SELECT COUNT(*) 
                     FROM booking_rooms br
@@ -41,15 +43,15 @@ class ReceptionController extends Controller
                     WHERE br.room_id = r.id
                       AND b.check_out = ?
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                    ) as is_checkout_today,
                    (SELECT b.customer_name 
                     FROM booking_rooms br 
                     JOIN bookings b ON b.id = br.booking_id 
                     WHERE br.room_id = r.id 
                       AND (
-                          (b.status = 'checked_in' AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')) 
-                          OR (DATE(b.check_in) = ? AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)))))
+                          (b.status = 'checked_in' AND r.status IN ('occupied', 'overdue'))
+                          OR (DATE(b.check_in) = ? AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)))))
                       )
                     ORDER BY (CASE WHEN b.status = 'checked_in' THEN 1 ELSE 2 END) ASC, b.id DESC
                     LIMIT 1
@@ -59,8 +61,8 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id 
                     WHERE br.room_id = r.id 
                       AND (
-                          (b.status = 'checked_in' AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')) 
-                          OR (DATE(b.check_in) = ? AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)))))
+                          (b.status = 'checked_in' AND r.status IN ('occupied', 'overdue'))
+                          OR (DATE(b.check_in) = ? AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)))))
                       )
                     ORDER BY (CASE WHEN b.status = 'checked_in' THEN 1 ELSE 2 END) ASC, b.id DESC
                     LIMIT 1
@@ -70,7 +72,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                     ORDER BY b.check_out DESC
                     LIMIT 1
                    ) as active_booking_id,
@@ -79,7 +81,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                     ORDER BY b.check_out DESC
                     LIMIT 1
                    ) as active_customer_email,
@@ -88,7 +90,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                     ORDER BY b.check_out DESC
                     LIMIT 1
                    ) as active_check_in,
@@ -97,7 +99,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                     ORDER BY b.check_out DESC
                     LIMIT 1
                    ) as active_check_out,
@@ -106,7 +108,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                     ORDER BY b.check_out DESC
                     LIMIT 1
                    ) as active_adult_count,
@@ -115,7 +117,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                     ORDER BY b.check_out DESC
                     LIMIT 1
                    ) as active_child_count,
@@ -124,7 +126,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                     ORDER BY b.check_out DESC
                     LIMIT 1
                    ) as active_total_price,
@@ -134,7 +136,7 @@ class ReceptionController extends Controller
                     LEFT JOIN payment_logs pl ON pl.booking_id = b.id AND pl.status = 'success'
                     WHERE br.room_id = r.id
                       AND b.status = 'checked_in'
-                      AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                      AND r.status IN ('occupied', 'overdue')
                     GROUP BY b.id, b.deposit_amount, b.payment_status
                     ORDER BY b.check_out DESC
                     LIMIT 1
@@ -149,7 +151,7 @@ class ReceptionController extends Controller
                         JOIN bookings b2 ON b2.id = br2.booking_id
                         WHERE br2.room_id = r.id
                           AND b2.status = 'checked_in'
-                          AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                          AND r.status IN ('occupied', 'overdue')
                         ORDER BY b2.check_out DESC LIMIT 1
                     )
                    ) as active_room_price_per_night,
@@ -161,21 +163,21 @@ class ReceptionController extends Controller
                         JOIN bookings b ON b.id = br.booking_id
                         WHERE br.room_id = r.id
                           AND b.status = 'checked_in'
-                          AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                          AND r.status IN ('occupied', 'overdue')
                         LIMIT 1
                     )
                    ) as active_booking_room_count,
                    (SELECT COUNT(*)
                     FROM booking_rooms br2
                     JOIN rooms r2 ON r2.id = br2.room_id
-                    WHERE r2.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                    WHERE r2.status IN ('occupied', 'overdue')
                       AND br2.booking_id = (
                         SELECT b.id
                         FROM booking_rooms br
                         JOIN bookings b ON b.id = br.booking_id
                         WHERE br.room_id = r.id
                           AND b.status = 'checked_in'
-                          AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
+                          AND r.status IN ('occupied', 'overdue')
                         LIMIT 1
                     )
                    ) as active_booking_occupied_room_count,
@@ -184,7 +186,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_booking_id,
                    (SELECT b.customer_name
@@ -192,7 +194,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_customer_name,
                    (SELECT b.customer_phone
@@ -200,7 +202,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_customer_phone,
                    (SELECT b.customer_email
@@ -208,7 +210,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_customer_email,
                    (SELECT b.check_in
@@ -216,7 +218,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_check_in,
                    (SELECT b.check_out
@@ -224,7 +226,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_check_out,
                    (SELECT b.adult_count
@@ -232,7 +234,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_adult_count,
                    (SELECT b.child_count
@@ -240,7 +242,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_child_count,
                    (SELECT b.total_price
@@ -248,7 +250,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_total_price,
                    (SELECT b.deposit_amount
@@ -256,7 +258,7 @@ class ReceptionController extends Controller
                     JOIN bookings b ON b.id = br.booking_id
                     WHERE br.room_id = r.id
                       AND DATE(b.check_in) = ?
-                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE))))
+                      AND (b.status = 'confirmed' OR (b.status = 'pending' AND (b.payment_status = 'paid' OR b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE))))
                     LIMIT 1
                    ) as today_deposit_amount
             FROM rooms r
@@ -264,14 +266,47 @@ class ReceptionController extends Controller
             ORDER BY r.floor DESC, r.room_number ASC
         ";
 
-        $sql = str_replace('b.created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)', $this->pendingHoldExpirySql(), $sql);
+        $sql = str_replace('b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)', $this->pendingHoldExpirySql(), $sql);
         $roomsRaw = DB::select($sql, array_fill(0, substr_count($sql, '?'), $today));
+
+        $activeCheckoutDates = [];
+        foreach ($roomsRaw as $roomRow) {
+            if (! empty($roomRow->active_booking_id) && ! empty($roomRow->active_check_out)) {
+                $activeCheckoutDates[(int) $roomRow->active_booking_id] = Carbon::parse($roomRow->active_check_out)->toDateString();
+            }
+        }
+        $hourlyCheckoutAt = [];
+        if ($activeCheckoutDates !== []) {
+            $extensionLogs = DB::table('payment_logs')
+                ->whereIn('booking_id', array_keys($activeCheckoutDates))
+                ->where('purpose', 'stay_extension')
+                ->where('status', 'pending')
+                ->orderBy('id')
+                ->get(['booking_id', 'raw_response']);
+
+            foreach ($extensionLogs as $log) {
+                $metadata = is_array($log->raw_response)
+                    ? $log->raw_response
+                    : json_decode($log->raw_response ?? '[]', true);
+                $bookingId = (int) $log->booking_id;
+                if (is_array($metadata)
+                    && ($metadata['mode'] ?? null) === 'hours'
+                    && ($metadata['checkout_date'] ?? null) === ($activeCheckoutDates[$bookingId] ?? null)
+                    && ! empty($metadata['due_at'])) {
+                    $hourlyCheckoutAt[$bookingId] = $metadata['due_at'];
+                }
+            }
+        }
 
         // Phân nhóm phòng theo tầng
         $floors = [];
-        $operationImages = config('operation_room_images', []);
-        foreach ($roomsRaw as $index => $r) {
+        foreach ($roomsRaw as $r) {
             $rArray = (array) $r;
+            $activeBookingId = (int) ($rArray['active_booking_id'] ?? 0);
+            if ($activeBookingId > 0) {
+                $rArray['active_scheduled_checkout_at'] = $hourlyCheckoutAt[$activeBookingId]
+                    ?? Carbon::parse($rArray['active_check_out'], 'Asia/Ho_Chi_Minh')->setTime(12, 0)->toIso8601String();
+            }
             // Lấy danh sách tiện ích
             $amenitiesSql = "
                 SELECT a.amenity_name 
@@ -282,17 +317,25 @@ class ReceptionController extends Controller
             $amenities = array_column(DB::select($amenitiesSql, [$rArray['room_type_id']]), 'amenity_name');
             $rArray['needs_cleaning'] = (bool) $rArray['needs_cleaning'];
             $rArray['amenities_list'] = implode(', ', $amenities);
-            $rArray['image_url'] = $operationImages[$index % max(1, count($operationImages))] ?? asset('images/rooms/default.jpg');
+            $roomImages = Storage::disk('public')->files('room-galleries/'.$rArray['id']);
+            sort($roomImages, SORT_STRING);
+            $storedImage = trim((string) ($rArray['image'] ?? ''));
+            $rArray['image_url'] = $roomImages !== []
+                ? Storage::disk('public')->url($roomImages[0])
+                : (preg_match('/^https?:\/\//i', $storedImage)
+                    ? $storedImage
+                    : ($storedImage !== '' ? asset(ltrim($storedImage, '/')) : asset('images/rooms/default.jpg')));
 
             $floors[$rArray['floor']][] = $rArray;
         }
 
-        // Số booking bị huỷ cần xử lý hoàn tiền (hiển thị badge + toast cho lễ tân)
-        $pendingRefunds = \App\Models\Booking::where('status', 'cancelled')
-            ->where('refund_status', 'eligible')
-            ->count();
+        // Build once for the board so each action can match its assigned capability.
+        $permissions = $this->currentInternalPermissions();
+        $pendingRefunds = $permissions['tn_refund']
+            ? \App\Models\Booking::where('status', 'cancelled')->where('refund_status', 'eligible')->count()
+            : 0;
 
-        return view('staff.bookings', compact('floors', 'pendingRefunds'));
+        return view('staff.bookings', compact('floors', 'pendingRefunds', 'permissions'));
     }
 
     /**
@@ -300,16 +343,93 @@ class ReceptionController extends Controller
      */
     public function updateStatus(Request $request)
     {
-        $roomId = (int) $request->input('room_id');
+        $roomId = filter_var($request->input('room_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($roomId === false) {
+            return response()->json(['success' => false, 'message' => 'Phòng không hợp lệ.'], 400);
+        }
         $status = $request->input('status');
+        $checkoutScope = $request->input('checkout_scope');
 
         $validStatuses = ['available', 'occupied', 'cleaning'];
         if (!in_array($status, $validStatuses)) {
             return response()->json(['success' => false, 'message' => 'Trạng thái không hợp lệ: ' . $status], 400);
         }
+        if (!in_array($checkoutScope, [null, 'room'], true)) {
+            return response()->json(['success' => false, 'message' => 'Phạm vi trả phòng không hợp lệ.'], 400);
+        }
+
+        $isPartialCheckout = $status === 'cleaning' && $checkoutScope === 'room';
+
+        if ($status === 'occupied') {
+            if (! $this->currentInternalUserHasPermission('bp_checkin_checkout')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tài khoản chưa được cấp quyền nhận phòng.',
+                ], 403);
+            }
+        } elseif ($isPartialCheckout) {
+            if (! $this->currentInternalUserHasPermission('bp_checkin_checkout')
+                || ! $this->currentInternalUserHasPermission('tn_collect_payment')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tài khoản chưa được cấp quyền trả phòng và xử lý thanh toán.',
+                ], 403);
+            }
+        } elseif (! $this->currentInternalUserHasPermission('bp_clean_status')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản chưa được cấp quyền cập nhật trạng thái phòng.',
+            ], 403);
+        }
 
         try {
             DB::beginTransaction();
+
+            if ($isPartialCheckout) {
+                $booking = Booking::query()
+                    ->where('status', 'checked_in')
+                    ->whereHas('rooms', fn ($query) => $query->where('rooms.id', $roomId))
+                    ->latest('check_out')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $booking) {
+                    DB::rollBack();
+                    return response()->json(['success' => false, 'message' => 'Không tìm thấy booking đang lưu trú cho phòng này.'], 404);
+                }
+
+                $roomIds = $booking->rooms()->pluck('rooms.id');
+                $bookingRooms = \App\Models\Room::query()
+                    ->whereIn('id', $roomIds)
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+                $currentRoom = $bookingRooms->firstWhere('id', $roomId);
+                $occupiedCount = $bookingRooms->whereIn('status', [Room::STATUS_OCCUPIED, Room::STATUS_OVERDUE])->count();
+
+                if (! $currentRoom || ! in_array($currentRoom->status, [Room::STATUS_OCCUPIED, Room::STATUS_OVERDUE], true)) {
+                    DB::rollBack();
+                    return response()->json(['success' => false, 'message' => 'Phòng không còn ở trạng thái đang lưu trú. Vui lòng tải lại.'], 409);
+                }
+                if ($occupiedCount <= 1) {
+                    DB::rollBack();
+                    return response()->json(['success' => false, 'message' => 'Phòng cuối cùng cần hoàn tất thanh toán và trả toàn bộ booking.'], 422);
+                }
+
+                $currentRoom->update([
+                    'status' => Room::STATUS_CLEANING,
+                    'needs_cleaning' => true,
+                    'cleaning_requested_at' => now(),
+                ]);
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Đã trả phòng {$currentRoom->room_number}; các phòng còn lại của booking vẫn đang lưu trú.",
+                    'new_status' => Room::STATUS_CLEANING,
+                ]);
+            }
+
             $currentRoom = \App\Models\Room::lockForUpdate()->findOrFail($roomId);
             if (($status === 'available' && $currentRoom->status !== 'cleaning') || ($status === 'occupied' && $currentRoom->status !== 'available')) {
                 DB::rollBack();
@@ -411,10 +531,18 @@ class ReceptionController extends Controller
     }
 
     /**
-     * Check-in khách vãng lai hoặc Giữ chỗ phòng.
+     * Check-in khách vãng lai vào phòng đang trống.
      */
     public function walkinCheckin(Request $request)
     {
+        if ($request->input('walkin_type') === 'now'
+            && ! $this->currentInternalUserHasPermission('bp_checkin_checkout')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản chưa được cấp quyền nhận phòng.',
+            ], 403);
+        }
+
         $data = $request->validate([
             'room_ids' => 'required|array|min:1|max:25',
             'room_ids.*' => 'required|integer|distinct|exists:rooms,id',
@@ -442,24 +570,28 @@ class ReceptionController extends Controller
             $conflict = $rooms->pluck('id')->intersect($reserved)->isNotEmpty();
             if ($conflict) return response()->json(['success'=>false, 'message'=>'Phòng đã có lịch đặt trong thời gian này. Vui lòng chọn lại.'], 409);
             $total = $rooms->sum(fn ($room) => PriceSetting::calculateTotalPrice((float) $room->roomType->price, now()->toDateString(), $data['check_out']));
+            $isImmediateCheckin = $data['walkin_type'] === 'now';
             $booking = \App\Models\Booking::create([
                 'user_id'=>null, 'customer_name'=>$data['customer_name'],
                 'customer_phone'=>$data['customer_phone'], 'customer_email'=>$data['customer_email'] ?? '',
                 'check_in'=>now()->toDateString(), 'check_out'=>$data['check_out'],
-                'actual_check_in'=>$data['walkin_type'] === 'now' ? now() : null,
+                'actual_check_in'=>$isImmediateCheckin ? now() : null,
                 'adult_count'=>$data['adult_count'], 'child_count'=>$data['child_count'],
                 'total_price'=>$total, 'deposit_amount'=>0, 'payment_method'=>'cash', 'payment_status'=>'pending',
-                'status'=>$data['walkin_type'] === 'now' ? 'checked_in' : 'confirmed',
+                'status'=>$isImmediateCheckin ? 'checked_in' : 'confirmed',
             ]);
             $booking->rooms()->attach($rooms->pluck('id'));
-            if ($data['walkin_type'] === 'now') {
+            if ($isImmediateCheckin) {
                 \App\Models\Room::whereIn('id', $rooms->pluck('id'))->update([
                     'status' => Room::STATUS_OCCUPIED,
                     'needs_cleaning' => false,
                     'cleaning_requested_at' => null,
                 ]);
             }
-            return response()->json(['success'=>true, 'message'=>$data['walkin_type'] === 'now' ? 'Nhận phòng thành công.' : 'Giữ chỗ phòng thành công.']);
+            return response()->json([
+                'success' => true,
+                'message' => $isImmediateCheckin ? 'Nhận phòng thành công.' : 'Đã giữ booking; phòng vẫn được hiển thị theo trạng thái vật lý hiện tại.',
+            ]);
         });
     }
 
@@ -468,124 +600,39 @@ class ReceptionController extends Controller
      */
     public function extendStay(Request $request)
     {
-        $roomId = (int) $request->input('room_id');
+        $roomId = filter_var($request->input('room_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $mode = $request->input('mode', 'days');
-        $amount = (int) $request->input('amount', $request->input('days', 0));
+        $amount = filter_var($request->input('amount', $request->input('days', 0)), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
-        if ($roomId <= 0) {
+        if ($roomId === false) {
             return response()->json(['success' => false, 'message' => 'Phòng không hợp lệ.'], 400);
         }
 
         $max = $mode === 'hours' ? 12 : 30;
-        if (!in_array($mode, ['hours', 'days'], true) || $amount < 1 || $amount > $max) {
+        if (!in_array($mode, ['hours', 'days'], true) || $amount === false || $amount > $max) {
             return response()->json(['success' => false, 'message' => 'Thời lượng gia hạn không hợp lệ.'], 400);
         }
 
+        $booking = Booking::query()
+            ->whereHas('rooms', fn ($query) => $query->where('rooms.id', $roomId))
+            ->where('status', 'checked_in')->latest('check_out')->first();
+        if (! $booking) {
+            return response()->json(['success' => false, 'message' => 'Phòng chưa có booking đã nhận phòng.'], 404);
+        }
+
         try {
-            DB::beginTransaction();
-
-            $booking = DB::selectOne("
-                SELECT b.id, b.check_out, b.total_price, b.status, b.customer_name, rt.price AS room_rate
-                FROM bookings b
-                JOIN booking_rooms br ON br.booking_id = b.id
-                JOIN rooms r ON r.id = br.room_id
-                JOIN room_types rt ON rt.id = r.room_type_id
-                WHERE br.room_id = ?
-                  AND b.status = 'checked_in'
-                ORDER BY b.check_out DESC
-                LIMIT 1
-            ", [$roomId]);
-
-            if (!$booking) {
-                DB::rollBack();
-                return response()->json(['success' => false, 'message' => 'Phòng đang ở trạng thái sử dụng nhưng chưa có booking checked-in liên kết.'], 404);
-            }
-
-            if ($mode === 'hours') {
-                $hourlyRate = round(max(0, (float) $booking->room_rate) * 0.1, 2);
-                $addedAmount = round($amount * $hourlyRate, 2);
-                $newTotal = (float) $booking->total_price + $addedAmount;
-                DB::update('UPDATE bookings SET total_price = ? WHERE id = ? AND status = ?', [$newTotal, $booking->id, 'checked_in']);
-                DB::commit();
-                return response()->json(['success' => true, 'message' => 'Gia hạn thành công '.$amount.' giờ · '.number_format($addedAmount, 0, ',', '.').'đ (10% giá phòng mỗi giờ).', 'hourly_rate' => $hourlyRate, 'added_amount' => $addedAmount, 'total_price' => $newTotal]);
-            }
-
-            $oldCheckout = $booking->check_out;
-            $newCheckout = date('Y-m-d', strtotime($oldCheckout . ' +' . $amount . ' day'));
-
-            $rooms = DB::select("
-                SELECT r.id, r.room_number, rt.price
-                FROM booking_rooms br
-                JOIN rooms r ON r.id = br.room_id
-                JOIN room_types rt ON rt.id = r.room_type_id
-                WHERE br.booking_id = ?
-                  AND r.status IN ('occupied', 'soon_to_checkout', 'overdue')
-            ", [$booking->id]);
-
-            if (empty($rooms)) {
-                DB::rollBack();
-                return response()->json(['success' => false, 'message' => 'Booking hiện tại chưa có phòng liên kết.'], 400);
-            }
-
-            $roomIds = array_column($rooms, 'id');
-            $placeholders = implode(',', array_fill(0, count($roomIds), '?'));
-            $conflictParams = array_merge($roomIds, [$booking->id, $newCheckout, $oldCheckout]);
-
-            $conflicts = DB::select("
-                SELECT DISTINCT b.id, b.customer_name, b.check_in, b.check_out,
-                       GROUP_CONCAT(r.room_number ORDER BY r.room_number SEPARATOR ', ') AS room_numbers
-                FROM bookings b
-                JOIN booking_rooms br ON br.booking_id = b.id
-                JOIN rooms r ON r.id = br.room_id
-                WHERE br.room_id IN ($placeholders)
-                  AND b.id <> ?
-                  AND (
-                      b.status IN ('pending', 'confirmed')
-                      OR (b.status = 'checked_in' AND r.status IN ('occupied', 'soon_to_checkout', 'overdue'))
-                  )
-                  AND b.check_in < ?
-                  AND b.check_out > ?
-                GROUP BY b.id, b.customer_name, b.check_in, b.check_out
-                LIMIT 1
-            ", $conflictParams);
-
-            if (!empty($conflicts)) {
-                $c = $conflicts[0];
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Không thể gia hạn vì phòng ' . $c->room_numbers . ' đã có lịch đặt từ ' . date('d/m/Y', strtotime($c->check_in)) . ' đến ' . date('d/m/Y', strtotime($c->check_out)) . '.'
-                ], 409);
-            }
-
-            $addedAmount = 0;
-            foreach ($rooms as $r) {
-                $addedAmount += PriceSetting::calculateTotalPrice((float) $r->price, $oldCheckout, $newCheckout);
-            }
-
-            $newTotal = (float) $booking->total_price + $addedAmount;
-
-            DB::update("
-                UPDATE bookings
-                SET check_out = ?, total_price = ?
-                WHERE id = ? AND status = 'checked_in'
-            ", [$newCheckout, $newTotal, $booking->id]);
-
-            DB::commit();
-
+            $result = app(\App\Services\StayExtensionService::class)->extend($booking->id, $mode, $amount);
             return response()->json([
                 'success' => true,
-                'message' => 'Gia hạn thành công ' . $amount . ' ngày. Ngày trả mới: ' . date('d/m/Y', strtotime($newCheckout)) . '.',
+                'message' => $result['message'].' Chi phí bổ sung: '.number_format($result['added_amount'], 0, ',', '.').'đ.',
                 'booking_id' => $booking->id,
-                'old_checkout' => $oldCheckout,
-                'new_checkout' => $newCheckout,
-                'added_amount' => $addedAmount,
-                'total_price' => $newTotal
+                'new_checkout' => $result['booking']->check_out->toDateString(),
+                'hourly_rate' => $result['hourly_rate'],
+                'added_amount' => $result['added_amount'],
+                'total_price' => (float) $result['booking']->total_price,
             ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Không thể xử lý lúc này. Vui lòng thử lại.'], 500);
+        } catch (\DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 409);
         }
     }
 
@@ -675,6 +722,13 @@ class ReceptionController extends Controller
      */
     public function quickCheckinMultipleRooms(Request $request)
     {
+        if (! $this->currentInternalUserHasPermission('bp_checkin_checkout')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản chưa được cấp quyền nhận phòng.',
+            ], 403);
+        }
+
         $token = (string) $request->input('token', '');
         try {
             $tokens = app(\App\Services\CheckInTokenService::class);
@@ -698,11 +752,29 @@ class ReceptionController extends Controller
         return view('staff.cancellations', compact('cancellations'));
     }
 
+    private function currentInternalUserHasPermission(string $permissionKey): bool
+    {
+        $userId = session('staff_user_id') ?: session('auth_user_id');
+        $user = $userId ? \App\Models\User::find($userId) : null;
+
+        return $user?->hasInternalPermission($permissionKey) ?? false;
+    }
+
+    private function currentInternalPermissions(): array
+    {
+        $userId = session('staff_user_id') ?: session('auth_user_id');
+        $user = $userId ? \App\Models\User::find($userId) : null;
+
+        return collect(\App\Models\User::INTERNAL_PERMISSION_CATALOG)
+            ->mapWithKeys(fn ($permission, $key) => [$key => $user?->hasInternalPermission($key) ?? false])
+            ->all();
+    }
+
     private function pendingHoldExpirySql(): string
     {
         return DB::getDriverName() === 'sqlite'
-            ? "datetime(b.created_at) > datetime('now', '-".Booking::PAYMENT_HOLD_MINUTES." minutes')"
-            : 'b.created_at > DATE_SUB(NOW(), INTERVAL '.Booking::PAYMENT_HOLD_MINUTES.' MINUTE)';
+            ? "datetime(b.updated_at) > datetime('now', '-".Booking::PAYMENT_HOLD_MINUTES." minutes')"
+            : 'b.updated_at > DATE_SUB(NOW(), INTERVAL '.Booking::PAYMENT_HOLD_MINUTES.' MINUTE)';
     }
     
 }

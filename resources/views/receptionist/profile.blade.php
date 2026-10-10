@@ -1,6 +1,6 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Hồ Sơ Cá Nhân · Posh Boutique')
+@section('title', 'Hồ Sơ Cá Nhân · Rosaliza Hotel')
 @section('page-title', 'Hồ sơ cá nhân')
 
 @section('content')
@@ -81,16 +81,8 @@
                         {{ $user->fullname ?? $user->name }}
                     </h2>
 
-                    {{-- Huy Hiệu Mã Số --}}
-                    <div class="macos-id-pill font-monospace mb-4">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1.5 text-sky-500">
-                            <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14M21 5v14"/>
-                        </svg>
-                        <span>{{ $user->role === 'admin' ? 'AETH-EXEC-001' : 'AETH-STAFF-' . str_pad($user->id, 3, '0', STR_PAD_LEFT) }}</span>
-                    </div>
-
                     {{-- C. Khung Thông Số Inset (Căn Ra Giữa Card Identity, Chấm Xanh Không Bị Đè Chữ) --}}
-                    <div class="macos-status-box">
+                    <div class="macos-status-box mt-3">
                         <div class="status-row">
                             <span class="status-label">
                                 <span class="status-dot-emerald"></span>
@@ -103,7 +95,7 @@
                                 <i class="bi bi-shield-check text-sky-500"></i>
                                 <span>Bảo mật:</span>
                             </span>
-                            <span class="badge-security-enclave">Apple Enclave 2FA</span>
+                            <span class="text-slate-900 fw-semibold" style="font-size: 0.82rem;">Xác thực tài khoản</span>
                         </div>
                         <div class="status-row">
                             <span class="status-label">
@@ -219,16 +211,14 @@
                         <div class="macos-list-row d-flex align-items-center justify-content-between">
                             <div class="row-meta d-flex align-items-center gap-3">
                                 <i class="bi bi-telephone-fill fs-5 text-teal-600"></i>
-                                <span class="row-field-name">Số điện thoại Hotline</span>
+                                <span class="row-field-name">Số điện thoại</span>
                             </div>
                             <div class="row-field-val text-end d-flex align-items-center gap-2">
-                                <span class="font-monospace text-slate-800" id="detailPhone" style="font-size: 0.84rem;">{{ $user->phone ?? '0900000001' }}</span>
-                                <a href="tel:{{ $user->phone ?? '0900000001' }}" class="btn btn-sm btn-macos-icon-clean" title="Gọi trực tiếp">
-                                    <i class="bi bi-arrow-up-right"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-macos-icon-clean" onclick="copyToClipboard('{{ $user->phone ?? '0900000001' }}', 'Đã sao chép số điện thoại!')" title="Sao chép SĐT">
-                                    <i class="bi bi-copy"></i>
-                                </button>
+                                <span class="font-monospace text-slate-800" id="detailPhone" style="font-size: 0.84rem;">{{ $user->phone ?: 'N/A' }}</span>
+                                @if($user->phone)
+                                    <a href="tel:{{ $user->phone }}" class="btn btn-sm btn-macos-icon-clean" title="Gọi trực tiếp"><i class="bi bi-arrow-up-right"></i></a>
+                                    <button type="button" class="btn btn-sm btn-macos-icon-clean" onclick="copyToClipboard('{{ $user->phone }}', 'Đã sao chép số điện thoại!')" title="Sao chép SĐT"><i class="bi bi-copy"></i></button>
+                                @endif
                             </div>
                         </div>
 
@@ -239,7 +229,7 @@
                 <div class="pt-2 mt-4 d-flex flex-wrap justify-content-between align-items-center text-muted gap-2" style="font-size: 0.78rem;">
                     <div class="d-flex align-items-center gap-1.5 text-slate-600">
                         <i class="bi bi-shield-check text-success fs-6"></i>
-                        <span>Hệ thống quản trị Aetheria OS v4.2</span>
+                        <span>Hệ thống quản trị Rosaliza Hotel</span>
                     </div>
                     <div class="text-slate-400">
                         Cập nhật gần nhất: <span class="fw-semibold text-slate-600" id="liveTimestamp">{{ $user->updated_at ? \Carbon\Carbon::parse($user->updated_at)->format('d/m/Y H:i') : '05/06/2026 18:27' }}</span>
@@ -255,9 +245,9 @@
 
 {{-- ===== HỘP THOẠI 1: MACOS SHEET ĐỔI MẬT KHẨU ===== --}}
 <div class="macos-modal-backdrop" id="passwordModal" style="display: none;" onclick="closeModalOnBackdrop(event, 'passwordModal')">
-    <div class="macos-modal-dialog modal-dialog-password">
+    <div class="macos-modal-dialog modal-dialog-password" onclick="event.stopPropagation()">
         
-        {{-- Header: Orange Squircle + Tiêu đề (Căn giữa popup) + Nút Đóng '✕' --}}
+        {{-- Header: Orange Squircle + Tiêu đề + Nút Đóng '✕' --}}
         <div class="macos-modal-header position-relative d-flex align-items-center justify-content-center">
             <div class="d-flex align-items-center justify-content-center gap-2">
                 <div class="modal-header-squircle bg-apple-amber">
@@ -278,60 +268,62 @@
         </div>
 
         {{-- Form Đổi Mật Khẩu --}}
-        <form id="formPwd" method="POST" action="{{ route('receptionist.profile.update-password') }}" class="macos-modal-body">
+        <form id="formPwd" method="POST" action="{{ route('receptionist.profile.update-password') }}" class="macos-modal-form-wrap">
             @csrf
 
-            {{-- 1. Mật khẩu hiện tại --}}
-            <div class="modal-form-group mb-2.5">
-                <label class="modal-field-label">Mật khẩu hiện tại <span class="text-danger">*</span></label>
-                <div class="modal-input-wrap">
-                    <input type="password" name="current_password" id="popup_p1" class="modal-field-input @error('current_password') is-invalid @enderror" placeholder="Nhập mật khẩu hiện tại..." required>
-                    <button type="button" class="modal-input-eye-btn" onclick="togglePopupPwd('popup_p1', this)" aria-label="Hiện/ẩn mật khẩu">
-                        <i class="bi bi-eye"></i>
-                    </button>
+            <div class="macos-modal-body">
+                {{-- 1. Mật khẩu hiện tại --}}
+                <div class="modal-form-group">
+                    <label class="modal-field-label">Mật khẩu hiện tại <span class="text-danger">*</span></label>
+                    <div class="modal-input-wrap">
+                        <input type="password" name="current_password" id="popup_p1" class="modal-field-input @error('current_password') is-invalid @enderror" placeholder="Nhập mật khẩu hiện tại..." required>
+                        <button type="button" class="modal-input-eye-btn" onclick="togglePopupPwd('popup_p1', this)" aria-label="Hiện/ẩn mật khẩu">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    @error('current_password')<div class="modal-field-error">{{ $message }}</div>@enderror
                 </div>
-                @error('current_password')<div class="modal-field-error">{{ $message }}</div>@enderror
+
+                {{-- 2. Mật khẩu mới --}}
+                <div class="modal-form-group">
+                    <label class="modal-field-label">Mật khẩu mới <span class="text-danger">*</span></label>
+                    <div class="modal-input-wrap">
+                        <input type="password" name="new_password" id="popup_p2" class="modal-field-input @error('new_password') is-invalid @enderror" placeholder="Tối thiểu 8 ký tự..." required oninput="calculateAppleStrength(this.value)">
+                        <button type="button" class="modal-input-eye-btn" onclick="togglePopupPwd('popup_p2', this)" aria-label="Hiện/ẩn mật khẩu">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    @error('new_password')<div class="modal-field-error">{{ $message }}</div>@enderror
+                </div>
+
+                {{-- Thanh Đo Độ An Toàn 4 Vạch Chuẩn Apple --}}
+                <div class="apple-strength-wrap">
+                    <div class="d-flex align-items-center justify-content-between mb-1.5">
+                        <span class="apple-meter-label text-muted" style="font-size: 0.72rem;">Độ an toàn mật khẩu:</span>
+                        <span class="apple-meter-status fw-semibold" id="appleStrengthText" style="font-size: 0.72rem;">Chưa nhập</span>
+                    </div>
+                    <div class="apple-meter-track d-flex gap-1.5">
+                        <div class="meter-bar flex-grow-1" id="mBar1"></div>
+                        <div class="meter-bar flex-grow-1" id="mBar2"></div>
+                        <div class="meter-bar flex-grow-1" id="mBar3"></div>
+                        <div class="meter-bar flex-grow-1" id="mBar4"></div>
+                    </div>
+                </div>
+
+                {{-- 3. Xác nhận mật khẩu mới --}}
+                <div class="modal-form-group">
+                    <label class="modal-field-label">Xác nhận mật khẩu mới <span class="text-danger">*</span></label>
+                    <div class="modal-input-wrap">
+                        <input type="password" name="new_password_confirmation" id="popup_p3" class="modal-field-input" placeholder="Nhập lại mật khẩu mới..." required>
+                        <button type="button" class="modal-input-eye-btn" onclick="togglePopupPwd('popup_p3', this)" aria-label="Hiện/ẩn mật khẩu">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            {{-- 2. Mật khẩu mới --}}
-            <div class="modal-form-group mb-2">
-                <label class="modal-field-label">Mật khẩu mới <span class="text-danger">*</span></label>
-                <div class="modal-input-wrap">
-                    <input type="password" name="new_password" id="popup_p2" class="modal-field-input @error('new_password') is-invalid @enderror" placeholder="Tối thiểu 8 ký tự..." required oninput="calculateAppleStrength(this.value)">
-                    <button type="button" class="modal-input-eye-btn" onclick="togglePopupPwd('popup_p2', this)" aria-label="Hiện/ẩn mật khẩu">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-                @error('new_password')<div class="modal-field-error">{{ $message }}</div>@enderror
-            </div>
-
-            {{-- Thanh Đo Độ An Toàn 4 Vạch Chuẩn Apple --}}
-            <div class="apple-strength-wrap mb-2.5 px-1">
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span class="apple-meter-label text-muted" style="font-size: 0.7rem;">Độ an toàn mật khẩu:</span>
-                    <span class="apple-meter-status fw-semibold" id="appleStrengthText" style="font-size: 0.7rem;">Chưa nhập</span>
-                </div>
-                <div class="apple-meter-track d-flex gap-1.5">
-                    <div class="meter-bar flex-grow-1" id="mBar1"></div>
-                    <div class="meter-bar flex-grow-1" id="mBar2"></div>
-                    <div class="meter-bar flex-grow-1" id="mBar3"></div>
-                    <div class="meter-bar flex-grow-1" id="mBar4"></div>
-                </div>
-            </div>
-
-            {{-- 3. Xác nhận mật khẩu mới --}}
-            <div class="modal-form-group mb-2.5">
-                <label class="modal-field-label">Xác nhận mật khẩu mới <span class="text-danger">*</span></label>
-                <div class="modal-input-wrap">
-                    <input type="password" name="new_password_confirmation" id="popup_p3" class="modal-field-input" placeholder="Nhập lại mật khẩu mới..." required>
-                    <button type="button" class="modal-input-eye-btn" onclick="togglePopupPwd('popup_p3', this)" aria-label="Hiện/ẩn mật khẩu">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
-
-            {{-- Footer: 2 Buttons Chuẩn Dạng Pill --}}
-            <div class="modal-footer-actions d-flex align-items-center justify-content-end gap-2.5 pt-2">
+            {{-- Footer: Buttons --}}
+            <div class="modal-footer-actions">
                 <button type="button" class="btn btn-modal-cancel" onclick="closeModal('passwordModal')">Hủy Bỏ</button>
                 <button type="submit" class="btn btn-modal-submit-blue">Lưu Mật Khẩu</button>
             </div>
@@ -342,9 +334,9 @@
 
 {{-- ===== HỘP THOẠI 2: MACOS SHEET CHỈNH SỬA HỒ SƠ ===== --}}
 <div class="macos-modal-backdrop" id="editProfileModal" style="display: none;" onclick="closeModalOnBackdrop(event, 'editProfileModal')">
-    <div class="macos-modal-dialog modal-dialog-edit">
+    <div class="macos-modal-dialog modal-dialog-edit" onclick="event.stopPropagation()">
         
-        {{-- Header: Blue Squircle + Tiêu đề (Căn giữa popup) + Nút Đóng '✕' --}}
+        {{-- Header: Blue Squircle + Tiêu đề + Nút Đóng '✕' --}}
         <div class="macos-modal-header position-relative d-flex align-items-center justify-content-center">
             <div class="d-flex align-items-center justify-content-center gap-2">
                 <div class="modal-header-squircle bg-apple-blue">
@@ -362,57 +354,58 @@
         </div>
 
         {{-- Form Chỉnh Sửa Hồ Sơ --}}
-        <form id="formInfo" method="POST" action="{{ route('receptionist.profile.update-info') }}" class="macos-modal-body">
+        <form id="formInfo" method="POST" action="{{ route('receptionist.profile.update-info') }}" class="macos-modal-form-wrap">
             @csrf
 
-            {{-- 1. Họ và tên đầy đủ --}}
-            <div class="modal-form-group mb-2.5">
-                <label class="modal-field-label">Họ và tên đầy đủ <span class="text-danger">*</span></label>
-                <div class="modal-input-wrap">
-                    <input type="text" name="fullname" id="inputPopupFullname" class="modal-field-input @error('fullname') is-invalid @enderror" value="{{ old('fullname', $user->fullname ?? $user->name) }}" required oninput="syncLiveName(this.value)">
+            <div class="macos-modal-body">
+                {{-- 1. Họ và tên đầy đủ --}}
+                <div class="modal-form-group">
+                    <label class="modal-field-label">Họ và tên đầy đủ <span class="text-danger">*</span></label>
+                    <div class="modal-input-wrap">
+                        <input type="text" name="fullname" id="inputPopupFullname" class="modal-field-input @error('fullname') is-invalid @enderror" value="{{ old('fullname', $user->fullname ?? $user->name) }}" required oninput="syncLiveName(this.value)">
+                    </div>
+                    @error('fullname')<div class="modal-field-error">{{ $message }}</div>@enderror
                 </div>
-                @error('fullname')<div class="modal-field-error">{{ $message }}</div>@enderror
+
+                {{-- 2. Tên đăng nhập hệ thống (Cố định định danh) --}}
+                <div class="modal-form-group">
+                    <label class="modal-field-label">
+                        Tên đăng nhập hệ thống <span class="text-muted fw-normal">(Cố định định danh)</span>
+                    </label>
+                    <div class="modal-input-wrap">
+                        <input type="text" class="modal-field-input input-readonly font-monospace" value="{{ $user->username }}" readonly disabled>
+                    </div>
+                </div>
+
+                {{-- 3. Vai trò & Phân quyền --}}
+                <div class="modal-form-group">
+                    <label class="modal-field-label">Vai trò &amp; Phân quyền</label>
+                    <div class="modal-input-wrap position-relative">
+                        <input type="text" class="modal-field-input input-readonly font-monospace" value="{{ $user->role === 'admin' ? 'Quản trị viên (Admin)' : 'Nhân viên lễ tân (Staff)' }}" readonly disabled>
+                    </div>
+                </div>
+
+                {{-- 4. Địa chỉ Email --}}
+                <div class="modal-form-group">
+                    <label class="modal-field-label">Địa chỉ Email <span class="text-danger">*</span></label>
+                    <div class="modal-input-wrap">
+                        <input type="email" name="email" id="inputPopupEmail" class="modal-field-input font-monospace @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required>
+                    </div>
+                    @error('email')<div class="modal-field-error">{{ $message }}</div>@enderror
+                </div>
+
+                {{-- 5. Số điện thoại cá nhân --}}
+                <div class="modal-form-group">
+                    <label class="modal-field-label">Số điện thoại</label>
+                    <div class="modal-input-wrap">
+                        <input type="tel" name="phone" id="inputPopupPhone" autocomplete="tel" inputmode="numeric" pattern="[0-9]{7,15}" maxlength="15" data-digits-only class="modal-field-input font-monospace @error('phone') is-invalid @enderror" value="{{ old('phone', $user->phone) }}">
+                    </div>
+                    @error('phone')<div class="modal-field-error">{{ $message }}</div>@enderror
+                </div>
             </div>
 
-            {{-- 2. Tên đăng nhập hệ thống (Cố định định danh) --}}
-            <div class="modal-form-group mb-2.5">
-                <label class="modal-field-label">
-                    Tên đăng nhập hệ thống <span class="text-muted fw-normal">(Cố định định danh)</span>
-                </label>
-                <div class="modal-input-wrap">
-                    <input type="text" class="modal-field-input input-readonly font-monospace" value="{{ $user->username }}" readonly disabled>
-                </div>
-            </div>
-
-            {{-- 3. Vai trò & Phân quyền (Dropdown) --}}
-            <div class="modal-form-group mb-2.5">
-                <label class="modal-field-label">Vai trò &amp; Phân quyền <span class="text-danger">*</span></label>
-                <div class="modal-input-wrap position-relative">
-                    <input type="text" class="modal-field-input input-readonly pe-5 font-monospace" value="{{ $user->role === 'admin' ? 'Quản trị viên (Admin)' : 'Nhân viên lễ tân (Staff)' }}" readonly disabled>
-                    <i class="bi bi-chevron-down position-absolute end-0 top-50 translate-middle-y me-3 text-slate-400" style="font-size: 0.75rem;"></i>
-                </div>
-            </div>
-
-            {{-- 4. Địa chỉ Email --}}
-            <div class="modal-form-group mb-2.5">
-                <label class="modal-field-label">Địa chỉ Email <span class="text-danger">*</span></label>
-                <div class="modal-input-wrap">
-                    <input type="email" name="email" id="inputPopupEmail" class="modal-field-input font-monospace @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required>
-                </div>
-                @error('email')<div class="modal-field-error">{{ $message }}</div>@enderror
-            </div>
-
-            {{-- 5. Số điện thoại Hotline --}}
-            <div class="modal-form-group mb-2.5">
-                <label class="modal-field-label">Số điện thoại Hotline <span class="text-danger">*</span></label>
-                <div class="modal-input-wrap">
-                    <input type="text" name="phone" id="inputPopupPhone" class="modal-field-input font-monospace @error('phone') is-invalid @enderror" value="{{ old('phone', $user->phone ?? '0900000001') }}" required>
-                </div>
-                @error('phone')<div class="modal-field-error">{{ $message }}</div>@enderror
-            </div>
-
-            {{-- Footer: 2 Buttons Chuẩn Dạng Pill --}}
-            <div class="modal-footer-actions d-flex align-items-center justify-content-end gap-2.5 pt-2">
+            {{-- Footer: Buttons --}}
+            <div class="modal-footer-actions">
                 <button type="button" class="btn btn-modal-cancel" onclick="closeModal('editProfileModal')">Hủy Bỏ</button>
                 <button type="submit" class="btn btn-modal-submit-blue">Lưu Thay Đổi</button>
             </div>
@@ -461,16 +454,57 @@
     width: 340px;
     flex: 0 0 340px;
 }
-@media (max-width: 991.98px) {
-    .macos-card-col-left {
-        width: 100%;
-        flex: 1 1 100%;
-    }
-}
 
 .macos-card-col-right {
     flex: 1 1 0%;
     min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+    .macos-cards-container {
+        flex-direction: column !important;
+        align-items: center;
+        gap: 20px;
+    }
+    .macos-card-col-left {
+        width: 100% !important;
+        max-width: 640px;
+        flex: none !important;
+    }
+    .macos-card-col-right {
+        width: 100% !important;
+        max-width: 640px;
+        flex: none !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .macos-profile-wrapper {
+        margin: 16px auto 32px;
+        padding: 0 12px 24px;
+    }
+    .macos-identity-card,
+    .macos-detail-card {
+        padding: 20px 16px !important;
+        border-radius: 20px;
+    }
+    .macos-card-header-row {
+        height: auto !important;
+        min-height: auto !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        margin-bottom: 16px !important;
+    }
+    .macos-list-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 6px;
+    }
+    .row-field-val {
+        width: 100%;
+        justify-content: space-between;
+    }
 }
 
 /* Chất liệu kính mờ Apple (macOS Vibrancy) */
@@ -822,35 +856,47 @@
 }
 
 /* ========================================================
-   HỘP THOẠI MACOS SHEET TƯƠNG TÁC
+   HỘP THOẠI MACOS SHEET TƯƠNG TÁC (CHỐNG DÍNH, KHÔNG ĐÈ NHAU)
    ======================================================== */
 .macos-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    z-index: 10000;
+    background: rgba(15, 23, 42, 0.48);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 10500;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: clamp(12px, 3vh, 24px);
+    overflow-y: auto;
 }
 .macos-modal-dialog {
     width: 100%;
     background: #ffffff;
     border-radius: 20px;
-    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    max-height: min(90vh, 640px);
+    padding: 0 !important;
     overflow: hidden;
-    padding: 20px 24px;
     animation: sheetSlideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .modal-dialog-password {
-    max-width: 390px;
+    max-width: 440px;
 }
 .modal-dialog-edit {
-    max-width: 420px;
+    max-width: 480px;
+}
+
+.macos-modal-form-wrap {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
 }
 
 @keyframes sheetSlideDown {
@@ -861,12 +907,14 @@
 .macos-modal-header {
     position: relative;
     border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 13px;
-    margin-bottom: 15px;
+    padding: 16px 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
+    flex-shrink: 0;
+    background: #ffffff;
+    margin-bottom: 0;
 }
 .modal-header-squircle {
     width: 30px;
@@ -896,13 +944,13 @@
 }
 .macos-modal-header .modal-circle-close-btn {
     position: absolute;
-    right: 0;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
 }
 .modal-circle-close-btn {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: #f1f5f9;
     border: none;
@@ -919,16 +967,27 @@
     color: #0f172a;
 }
 
-/* Modal Form Fields (Nhỏ gọn, chuẩn macOS) */
+.macos-modal-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 18px 22px;
+    overscroll-behavior: contain;
+}
+
+/* Modal Form Fields */
 .modal-form-group {
-    margin-bottom: 11px;
+    margin-bottom: 14px;
+}
+.modal-form-group:last-child {
+    margin-bottom: 0;
 }
 .modal-field-label {
     display: block;
-    font-size: 0.74rem;
+    font-size: 0.76rem;
     font-weight: 600;
     color: #334155;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
+    line-height: 1.3;
 }
 .modal-input-wrap {
     position: relative;
@@ -936,12 +995,12 @@
 }
 .modal-field-input {
     width: 100%;
-    height: 36px;
-    padding: 6px 12px;
-    border-radius: 9px;
+    height: 40px;
+    padding: 7px 13px;
+    border-radius: 10px;
     border: 1px solid #e2e8f0;
     background: #f8fafc;
-    font-size: 0.8rem;
+    font-size: 0.84rem;
     color: #0f172a;
     outline: none;
     transition: all 0.15s ease;
@@ -961,7 +1020,7 @@
 .modal-field-input::placeholder {
     color: #94a3b8;
     font-family: inherit;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
 }
 .modal-input-eye-btn {
     position: absolute;
@@ -981,16 +1040,23 @@
 .modal-field-error {
     font-size: 0.72rem;
     color: #ef4444;
-    margin-top: 3px;
+    margin-top: 4px;
 }
 
 /* Apple 4-segment Strength Meter */
+.apple-strength-wrap {
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 10px 0 14px;
+}
 .apple-meter-track {
-    height: 3.5px;
+    height: 4px;
     background: transparent;
 }
 .meter-bar {
-    height: 3.5px;
+    height: 4px;
     border-radius: 2px;
     background: #e2e8f0;
     transition: background 0.2s ease;
@@ -1000,11 +1066,17 @@
 .meter-bar.active-yellow { background: #eab308; }
 .meter-bar.active-green  { background: #10b981; }
 
-/* Modal Footer Actions (Push Button Chuẩn macOS) */
+/* Modal Footer Actions */
 .modal-footer-actions {
+    flex-shrink: 0;
     border-top: 1px solid #f1f5f9;
-    margin-top: 8px;
-    padding-top: 12px;
+    padding: 14px 22px;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 0;
 }
 .btn-modal-cancel {
     background: #f1f5f9 !important;
@@ -1012,8 +1084,8 @@
     border: none !important;
     border-radius: 8px !important;
     padding: 6px 16px !important;
-    height: 32px !important;
-    font-size: 0.79rem !important;
+    height: 34px !important;
+    font-size: 0.8rem !important;
     font-weight: 600 !important;
     transition: all 0.15s ease !important;
 }
@@ -1028,8 +1100,8 @@
     border: none !important;
     border-radius: 8px !important;
     padding: 6px 20px !important;
-    height: 32px !important;
-    font-size: 0.79rem !important;
+    height: 34px !important;
+    font-size: 0.8rem !important;
     font-weight: 600 !important;
     box-shadow: 0 2px 6px rgba(0, 113, 227, 0.25) !important;
     transition: all 0.15s ease !important;
@@ -1081,6 +1153,10 @@
    MACOS INTERACTION & REALTIME SYNC CONTROLLERS
    ======================================================== */
 function openModal(modalId) {
+    // Đóng toàn bộ các popup khác trước để chống dính và đè lên nhau
+    document.querySelectorAll('.macos-modal-backdrop').forEach(modal => {
+        modal.style.display = 'none';
+    });
     const el = document.getElementById(modalId);
     if (el) {
         el.style.display = 'flex';
@@ -1187,7 +1263,7 @@ function calculateAppleStrength(pwd) {
         if (b2) b2.className = 'meter-bar flex-grow-1 active-green';
         if (b3) b3.className = 'meter-bar flex-grow-1 active-green';
         if (b4) b4.className = 'meter-bar flex-grow-1 active-green';
-        if (txt) { txt.textContent = 'Rất an toàn (Apple Enclave)'; txt.className = 'apple-meter-status text-success'; }
+        if (txt) { txt.textContent = 'Rất an toàn'; txt.className = 'apple-meter-status text-success'; }
     }
 }
 

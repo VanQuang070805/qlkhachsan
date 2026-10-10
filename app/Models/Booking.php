@@ -34,7 +34,7 @@ class Booking extends Model
                     if ($roomTypes->isNotEmpty() && $booking->customer_email) {
                         \Illuminate\Support\Facades\Mail::send('emails.review_request', compact('booking', 'roomTypes'), function ($message) use ($booking) {
                             $message->to($booking->customer_email)
-                                    ->subject('Cảm ơn quý khách và Đánh giá phòng tại Posh Boutique');
+                                    ->subject('Cảm ơn quý khách và Đánh giá phòng tại Rosaliza Hotel');
                         });
                     }
                 } catch (\Throwable $e) {
@@ -77,6 +77,21 @@ class Booking extends Model
         }
         return $column;
     }
+
+    public function paymentHoldTimestamp(): ?Carbon
+    {
+        $column = $this->getUpdatedAtColumn() ?: $this->getCreatedAtColumn();
+        $value = $this->getAttribute($column);
+
+        return $value ? Carbon::parse($value) : null;
+    }
+
+    public function paymentHoldExpired(): bool
+    {
+        $updatedAt = $this->paymentHoldTimestamp();
+
+        return $updatedAt !== null && $updatedAt->lte(now()->subMinutes(self::PAYMENT_HOLD_MINUTES));
+    }
     
     protected $fillable = [
         'user_id', 'customer_name', 'customer_email', 'customer_phone',
@@ -104,17 +119,71 @@ class Booking extends Model
     /** Shared reservation window for search, booking and payment. */
     public static function reservedRoomIds(string $checkIn, string $checkOut, ?int $excludeId = null)
     {
-        $createdColumn = 'bookings.'.(new static)->getCreatedAtColumn();
-        return \Illuminate\Support\Facades\DB::table('booking_rooms')
+        $bookingModel = new static;
+        $holdColumn = 'bookings.'.($bookingModel->getUpdatedAtColumn() ?: $bookingModel->getCreatedAtColumn());
+        $roomIds = \Illuminate\Support\Facades\DB::table('booking_rooms')
             ->join('bookings', 'bookings.id', '=', 'booking_rooms.booking_id')
             ->whereNotIn('bookings.status', ['cancelled', 'completed'])
             ->when($excludeId, fn ($query) => $query->where('bookings.id', '!=', $excludeId))
-            ->where('bookings.check_in', '<', $checkOut)->where('bookings.check_out', '>', $checkIn)
-            ->where(function ($query) use ($createdColumn) {
+            ->where('bookings.check_in', '<', $checkOut)
+            ->where('bookings.check_out', '>', $checkIn)
+            ->where(function ($query) use ($holdColumn) {
                 $query->whereIn('bookings.status', ['confirmed', 'checked_in'])
                     ->orWhere('bookings.payment_status', 'paid')
-                    ->orWhere(fn ($pending) => $pending->where('bookings.status', 'pending')->where($createdColumn, '>', now()->subMinutes(self::PAYMENT_HOLD_MINUTES)));
+                    ->orWhere(fn ($pending) => $pending->where('bookings.status', 'pending')->where($holdColumn, '>', now()->subMinutes(self::PAYMENT_HOLD_MINUTES)));
             })->pluck('booking_rooms.room_id');
+
+        // Hourly extensions use the existing payment log JSON; no booking columns are added.
+        $hourlyExtensions = \Illuminate\Support\Facades\DB::table('payment_logs')
+            ->join('bookings', 'bookings.id', '=', 'payment_logs.booking_id')
+            ->where('bookings.status', 'checked_in')
+            ->when($excludeId, fn ($query) => $query->where('bookings.id', '!=', $excludeId))
+            ->where('bookings.check_out', '>=', $checkIn)
+            ->where('bookings.check_out', '<', $checkOut)
+            ->where('payment_logs.purpose', 'stay_extension')
+            ->where('payment_logs.status', 'pending')
+            ->where('payment_logs.raw_response->mode', 'hours')
+            ->get(['bookings.id as booking_id', 'bookings.check_out', 'payment_logs.raw_response'])
+            ->filter(function ($row) {
+                $metadata = is_array($row->raw_response) ? $row->raw_response : json_decode($row->raw_response ?? '[]', true);
+                return ($metadata['checkout_date'] ?? null) === Carbon::parse($row->check_out)->toDateString();
+            })
+            ->pluck('booking_id');
+
+        return $hourlyExtensions->isEmpty()
+            ? $roomIds
+            : $roomIds->merge(\Illuminate\Support\Facades\DB::table('booking_rooms')->whereIn('booking_id', $hourlyExtensions)->pluck('room_id'))->unique()->values();
+    }
+
+    public function stayExtensionLogs()
+    {
+        return $this->hasMany(PaymentLog::class)->where('purpose', 'stay_extension')->where('status', 'pending')->orderBy('id');
+    }
+
+    public function currentHourlyExtensionLogs()
+    {
+        $checkoutDate = $this->check_out->toDateString();
+        $logs = $this->relationLoaded('stayExtensionLogs')
+            ? $this->stayExtensionLogs
+            : $this->stayExtensionLogs()->get();
+
+        return $logs->filter(fn (PaymentLog $log) => ($log->raw_response['mode'] ?? null) === 'hours'
+            && ($log->raw_response['checkout_date'] ?? null) === $checkoutDate);
+    }
+
+    public function scheduledCheckoutAt(): Carbon
+    {
+        $latest = $this->currentHourlyExtensionLogs()->last();
+        $dueAt = $latest?->raw_response['due_at'] ?? null;
+
+        return $dueAt
+            ? Carbon::parse($dueAt, 'Asia/Ho_Chi_Minh')
+            : Carbon::parse($this->check_out->toDateString(), 'Asia/Ho_Chi_Minh')->setTime(12, 0);
+    }
+
+    public function currentHourlyExtensionCharge(): float
+    {
+        return (float) $this->currentHourlyExtensionLogs()->sum('amount');
     }
 
     // ── Relations ──────────────────────────────────────────
@@ -282,6 +351,42 @@ class Booking extends Model
                 GROUP BY b.check_in
                 ORDER BY b.check_in ASC";
         
+        return \Illuminate\Support\Facades\DB::select($sql, $params);
+    }
+
+    public function getReportStatusTrendData(array $filters): array
+    {
+        [$whereSql, $params] = $this->buildReportConditions($filters);
+        $periodExpression = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', b.check_in)"
+            : "DATE_FORMAT(b.check_in, '%Y-%m')";
+
+        $sql = "SELECT $periodExpression AS period,
+                       SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed,
+                       SUM(CASE WHEN b.status = 'checked_in' THEN 1 ELSE 0 END) AS checked_in,
+                       SUM(CASE WHEN b.status = 'completed' THEN 1 ELSE 0 END) AS completed,
+                       SUM(CASE WHEN b.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
+                  FROM bookings b
+                 WHERE $whereSql
+                 GROUP BY period
+                 ORDER BY period ASC";
+
+        return \Illuminate\Support\Facades\DB::select($sql, $params);
+    }
+
+    public function getReportWeekdayData(array $filters): array
+    {
+        [$whereSql, $params] = $this->buildReportConditions($filters);
+        $weekdayExpression = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite'
+            ? "CAST(strftime('%w', b.check_in) AS INTEGER)"
+            : 'DAYOFWEEK(b.check_in) - 1';
+
+        $sql = "SELECT $weekdayExpression AS weekday, COUNT(*) AS bookings
+                  FROM bookings b
+                 WHERE $whereSql
+                 GROUP BY weekday
+                 ORDER BY weekday";
+
         return \Illuminate\Support\Facades\DB::select($sql, $params);
     }
 

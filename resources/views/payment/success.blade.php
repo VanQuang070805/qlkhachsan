@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Thanh toán thành công · Posh Boutique')
+@section('title', 'Thanh toán thành công · Rosaliza Hotel')
 
 @push('styles')
 <style>
@@ -215,15 +215,8 @@
         } catch (\Throwable $e) {}
     }
 
-    $room_name = 'Phòng Nghỉ Posh';
-    if (isset($booking->rooms) && $booking->rooms->isNotEmpty()) {
-        $roomTypes = $booking->rooms->map(fn($r) => $r->roomType?->name ?? ('Phòng ' . $r->room_number))->unique()->filter();
-        if ($roomTypes->isNotEmpty()) {
-            $room_name = $roomTypes->first();
-        }
-    } elseif (!empty($booking->type_name)) {
-        $room_name = $booking->type_name;
-    }
+    $roomTypes = $booking->rooms->map(fn($room) => $room->roomType?->type_name)->filter()->unique()->values();
+    $room_name = $roomTypes->join(' · ') ?: 'Hạng phòng đang được cập nhật';
 
     if (empty($qr_base64) && !empty($checkin_token)) {
         try {
@@ -277,7 +270,7 @@
             <div class="detail-row">
                 <span class="label">Thời gian lưu trú:</span>
                 <span class="value">
-                    {{ \Carbon\Carbon::parse($booking->check_in)->format('d \T\hm') }} — {{ \Carbon\Carbon::parse($booking->check_out)->format('d \T\hm') }} ({{ $nights }} đêm)
+                    {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} (14:00) — {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }} (12:00) ({{ $nights }} đêm)
                 </span>
             </div>
             <div class="detail-row">
@@ -285,10 +278,14 @@
                 <span class="value">{{ $booking->customer_name }}</span>
             </div>
             <div class="detail-row">
-                <span class="label" style="font-weight: 700; color: #0f172a;">Đã thanh toán:</span>
+                <span class="label" style="font-weight: 700; color: #0f172a;">Tổng tiền đặt phòng:</span>
                 <span class="value" style="color: #0071e3; font-weight: 800; font-size: 15px;">
                     {{ number_format($booking->total_price, 0, ',', '.') }}đ
                 </span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Trạng thái thanh toán:</span>
+                <span class="value">{{ $booking->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán đủ' }}</span>
             </div>
         </div>
 

@@ -27,10 +27,10 @@
      role="dialog"
      inert>
     <div class="mobile-drawer-header">
-        <div class="mobile-drawer-brand">
-            <img src="{{ asset('aura-logo-white.png') }}" alt="Posh Boutique Logo" class="mobile-drawer-logo">
-            <span class="mobile-drawer-title">Posh Boutique</span>
-        </div>
+        <a href="{{ route('home') }}" class="mobile-drawer-brand" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none;">
+            <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosa Hotel" style="height: 32px; width: auto; object-fit: contain;">
+            <span class="mobile-drawer-title" style="margin: 0; color: #ffffff;">Rosa Hotel</span>
+        </a>
         <button type="button" class="mobile-drawer-close" aria-label="Đóng menu" data-drawer-close>
             <i class="bi bi-x-lg" aria-hidden="true"></i>
         </button>
@@ -44,7 +44,7 @@
         </a>
         <a href="{{ route('contact') }}" class="mobile-drawer-link {{ request()->routeIs('contact') ? 'is-active' : '' }}">
             <i class="bi bi-geo-alt" aria-hidden="true"></i>
-            <span>Về Posh &amp; Liên hệ</span>
+            <span>Giới thiệu &amp; Liên hệ</span>
         </a>
 
         <div class="mobile-drawer-section-label">TÀI KHOẢN &amp; LƯU TRÚ</div>
@@ -87,7 +87,7 @@
         </div>
         <div class="mobile-drawer-contact-line">
             <i class="bi bi-envelope" aria-hidden="true"></i>
-            <span>concierge@poshboutique.vn</span>
+            <span>concierge@rosalizahotel.vn</span>
         </div>
     </div>
 </nav>

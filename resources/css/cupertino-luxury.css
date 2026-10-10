@@ -254,6 +254,10 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
     height: 480px;
 }
 
+.aeth-gallery-grid--single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 @media (max-width: 991px) {
     .aeth-gallery-grid {
         grid-template-columns: 1fr;

@@ -94,7 +94,7 @@ class RoyalKnowledgeService
 
                 return collect($chunks)->map(fn (string $content) => [
                     'title' => $title,
-                    'source' => 'Posh Boutique · '.$title,
+                    'source' => 'Rosaliza Hotel · '.$title,
                     'content' => $content,
                 ]);
             });
@@ -124,8 +124,8 @@ class RoyalKnowledgeService
                 $text = collect($result['content'] ?? [])->pluck('text')->filter()->implode("\n");
 
                 return [
-                    'title' => $result['filename'] ?? 'Tài liệu Posh Boutique',
-                    'source' => $result['filename'] ?? 'Posh Boutique knowledge base',
+                    'title' => $result['filename'] ?? 'Tài liệu Rosaliza Hotel',
+                    'source' => $result['filename'] ?? 'Rosaliza Hotel knowledge base',
                     'content' => Str::limit($text, 1600, ''),
                     'score' => (float) ($result['score'] ?? 0),
                 ];

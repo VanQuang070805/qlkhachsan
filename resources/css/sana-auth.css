@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Sana AI Auth Theme for Posh Boutique
+   Sana AI Auth Theme for Rosaliza Hotel
    1:1 Faithful Clone of https://sana.ai/sign-in-to-sana
    ========================================================================== */
 
@@ -10,6 +10,13 @@
     --sana-border: #e4e4e7;
     --sana-pill-bg: #f4f4f5;
     --sana-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.auth-brand__name {
+    color: #111827;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.035em;
 }
 
 body.auth-shell {
@@ -199,6 +206,26 @@ body.auth-shell {
 .sana-form-group {
     margin-bottom: 14px !important;
     position: relative !important;
+}
+
+.sana-field-label {
+    display: block !important;
+    margin: 0 12px 6px !important;
+    color: #52525b !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+}
+
+.sana-required-mark {
+    color: #b42318 !important;
+}
+
+.sana-field-help {
+    margin: 6px 12px 0 !important;
+    color: #71717a !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
 }
 
 .sana-input {

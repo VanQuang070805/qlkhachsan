@@ -161,7 +161,7 @@ onMounted(() => {
             ? saved.slice(-10).map(item => message(item.role, item.content, { sentAt: item.sentAt || new Date().toISOString(), status: item.status || (item.role === 'user' ? 'Đã gửi' : null) }))
             : [message('assistant', 'Xin chào, tôi có thể giúp bạn chọn phòng, xem giá hoặc hướng dẫn đặt kỳ nghỉ.')];
     } catch {
-        messages.value = [message('assistant', 'Xin chào, tôi có thể giúp bạn chuẩn bị kỳ nghỉ tại Posh Boutique.')];
+        messages.value = [message('assistant', 'Xin chào, tôi có thể giúp bạn chuẩn bị kỳ nghỉ tại Rosaliza Hotel.')];
     }
     window.openRoyalChat = () => toggle(true);
     window.toggleRoyalChat = (val) => toggle(val);
@@ -211,6 +211,6 @@ onBeforeUnmount(() => {
             <textarea id="royal-chat-input" ref="input" v-model="draft" rows="1" maxlength="1000" placeholder="Hỏi về kỳ nghỉ của bạn…" required @input="resizeInput" @keydown="keydown"></textarea>
             <button type="submit" aria-label="Gửi câu hỏi" :disabled="pending"><span aria-hidden="true">↑</span></button>
         </form>
-        <p class="royal-chat__note">Câu trả lời dùng dữ liệu hiện tại và tài liệu Posh Boutique.</p>
+        <p class="royal-chat__note">Câu trả lời dùng dữ liệu hiện tại và tài liệu Rosaliza Hotel.</p>
     </div>
 </template>

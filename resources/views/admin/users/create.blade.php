@@ -63,7 +63,7 @@
                         {{-- Phone --}}
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Số điện thoại</label>
-                            <input type="text" name="phone"
+                            <input type="tel" name="phone" inputmode="numeric" pattern="[0-9]{7,15}" maxlength="15" data-digits-only
                                    class="form-control @error('phone') is-invalid @enderror"
                                    value="{{ old('phone') }}" placeholder="09xxxxxxxx">
                             @error('phone')
@@ -79,7 +79,7 @@
                             <div class="input-group">
                                 <input type="password" name="password" id="password"
                                        class="form-control @error('password') is-invalid @enderror"
-                                       placeholder="Tối thiểu 8 ký tự" minlength="8">
+                                       placeholder="Tối thiểu 6 ký tự" minlength="6">
                                 <button class="btn btn-outline-secondary" type="button" id="togglePwd">
                                     <i class="bi bi-eye"></i>
                                 </button>
@@ -106,8 +106,9 @@
                                 </label>
                                 <select name="role"
                                         class="form-select @error('role') is-invalid @enderror">
-                                    <option value="receptionist" {{ old('role') === 'receptionist'            ? 'selected' : '' }}>Lễ tân</option>
-                                    <option value="admin"        {{ old('role') === 'admin'                   ? 'selected' : '' }}>Quản trị viên</option>
+                                    @foreach($roles as $role)
+                                        <option value="{{ $role->slug }}" @selected(old('role', 'receptionist') === $role->slug)>{{ $role->name }}</option>
+                                    @endforeach
                                 </select>
                                 @error('role')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -156,5 +157,6 @@
             icon.classList.replace('bi-eye-slash', 'bi-eye');
         }
     });
+
 </script>
 @endpush

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 use App\Mail\AccountLockedMail;
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use App\Mail\ReceptionistAccountMail;
 use App\Mail\AccountUpdatedMail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -29,48 +31,63 @@ class UserController extends Controller
         }
 
         if ($request->filled('role')) {
-            $query->where('role', $request->role);
+            $roleId = Role::where('slug', $request->role)->value('id');
+            $query->where('role_id', $roleId ?? 0);
         }
 
         if ($request->filled('verified')) {
             $query->where('verified', $request->verified);
         }
 
-        $users = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
+        $users = $query->with('assignedRole')
+            ->select(['id', 'username', 'fullname', 'email', 'phone', 'role', 'role_id', 'verified', 'created_at'])
+            ->orderBy('id', 'desc')->paginate(10)->withQueryString();
 
-        return view('admin.users.index', compact('users'));
+        $roles = Role::orderBy('name')->get();
+
+        return view('admin.users.index', compact('users', 'roles'));
     }
 
     public function create()
     {
-        return view('admin.users.create');
+        return view('admin.users.create', ['roles' => Role::where('slug', '<>', 'customer')->orderBy('name')->get()]);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $roles = Role::where('slug', '<>', 'customer')->get()->keyBy('slug');
+        $validated = $request->validate([
             'username' => 'required|string|max:50|unique:users,username',
-            'password' => ['required', 'confirmed', Password::min(10)->mixedCase()->numbers()],
+            'password' => ['required', 'confirmed', 'string', 'min:6'],
             'fullname' => 'required|string|max:150',
             'email'    => 'required|email|max:150|unique:users,email',
-            'phone'    => 'nullable|string|max:30',
-            'role'     => 'required|in:receptionist,admin',
+            'phone'    => ['nullable', 'regex:/^[0-9]{7,15}$/'],
+            'role'     => ['required', 'string', Rule::in($roles->keys()->all())],
+        ], [
+            'phone.regex' => 'Số điện thoại chỉ được chứa 7–15 chữ số.',
         ]);
 
-        $user = User::create([
-            'username' => $request->username,
-            'password' => Hash::make($request->password),
-            'fullname' => $request->fullname,
-            'email'    => $request->email,
-            'phone'    => $request->phone,
-            'role'     => $request->role,
-            'verified' => 1,
-        ]);
+        $assignedRole = $roles->get($validated['role']);
+        $accessRole = $assignedRole->slug === 'admin' ? 'admin' : 'receptionist';
+        $user = DB::transaction(function () use ($validated, $assignedRole, $accessRole): User {
+            $user = User::create([
+                'username' => $validated['username'],
+                'password' => Hash::make($validated['password']),
+                'fullname' => $validated['fullname'],
+                'email'    => $validated['email'],
+                'phone'    => $validated['phone'] ?? null,
+                'role'     => $accessRole,
+                'role_id'  => $assignedRole->id,
+                'verified' => 1,
+            ]);
+
+            return $user;
+        });
 
         // Gửi mail thông tin cho lễ tân
-        if ($user->role === 'receptionist') {
+        if ($accessRole === 'receptionist') {
             try {
-                Mail::to($user->email)->send(new ReceptionistAccountMail($user->fullname, $user->username));
+                Mail::to($user->email)->send(new ReceptionistAccountMail($user->fullname, $user->username, $assignedRole->name));
             } catch (\Throwable $e) {
                 Log::warning('Internal account notification failed', ['user_id' => $user->id, 'exception' => get_class($e)]);
             }
@@ -82,39 +99,60 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        $roles = Role::orderBy('name')->get();
+        return view('admin.users.edit', compact('user', 'roles'));
     }
 
     public function update(Request $request, User $user)
     {
-        $request->validate([
+        $request->merge(['email' => mb_strtolower(trim((string) $request->email))]);
+        $passwordRule = $request->input('role') === 'customer'
+            ? ['nullable', 'confirmed', Password::min(10)->mixedCase()->numbers()]
+            : ['nullable', 'confirmed', 'string', 'min:6'];
+
+        $validated = $request->validate([
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($user->id)],
-            'password' => ['nullable', 'confirmed', Password::min(10)->mixedCase()->numbers()],
+            'password' => $passwordRule,
             'fullname' => 'required|string|max:150',
             'email'    => ['required', 'email', 'max:150', Rule::unique('users')->ignore($user->id)],
-            'phone'    => 'nullable|string|max:30',
-            'role'     => 'required|in:receptionist,admin,customer',
+            'phone'    => ['nullable', 'regex:/^[0-9]{7,15}$/'],
+            'role'     => ['required', 'string', Rule::in(Role::pluck('slug')->all())],
+        ], [
+            'phone.regex' => 'Số điện thoại chỉ được chứa 7–15 chữ số.',
         ]);
+
+        $assignedRole = Role::where('slug', $validated['role'])->firstOrFail();
+        $accessRole = match ($assignedRole->slug) {
+            'customer' => 'customer',
+            'admin' => 'admin',
+            default => 'receptionist',
+        };
 
         $data = [
             'username' => $request->username,
             'fullname' => $request->fullname,
             'email'    => $request->email,
             'phone'    => $request->phone,
-            'role'     => $request->role,
+            'role'     => $accessRole,
+            'role_id'  => $assignedRole->id,
         ];
 
-        if ($user->role === 'admin' && $user->verified && $request->role !== 'admin'
+        if ($user->isAdmin() && $user->verified && $assignedRole->slug !== 'admin'
             && User::where('role', 'admin')->where('verified', true)->count() <= 1) {
             return back()->withInput()->with('error', 'Không thể hạ quyền quản trị viên hoạt động cuối cùng.');
         }
 
-        $credentialsChanged = !empty($request->password) || $request->role !== $user->role;
-        if (!empty($request->password)) {
-            $data['password'] = Hash::make($request->password);
+        $credentialsChanged = ! empty($validated['password']) || (int) $user->role_id !== (int) $assignedRole->id;
+        if (! empty($validated['password'])) {
+            $data['password'] = Hash::make($validated['password']);
         }
 
-        $user->update($data);
+        DB::transaction(function () use ($user, $data, $credentialsChanged): void {
+            $user->update($data);
+            if ($credentialsChanged) {
+                DB::table('user_permissions')->where('user_id', $user->id)->delete();
+            }
+        });
         if ($credentialsChanged) {
             app(\App\Services\SessionRevocationService::class)->revoke($user);
         }
@@ -125,7 +163,7 @@ class UserController extends Controller
                 $user->username,
                 $user->email,
                 $user->phone,
-                $user->role
+                $assignedRole->name
             ));
         } catch (\Throwable $e) {
             Log::warning('Account update notification failed', ['user_id' => $user->id, 'exception' => get_class($e)]);

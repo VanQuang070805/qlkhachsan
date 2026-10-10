@@ -1,6 +1,6 @@
 @extends('client.layouts.app')
 
-@section('title', 'Liên hệ · Posh Boutique')
+@section('title', 'Liên hệ · Rosaliza Hotel')
 
 @section('content')
 <div class="contact-page contact-page--full">
@@ -14,7 +14,7 @@
                 Một nơi dừng chân thanh lịch, riêng tư và đủ gần để bạn chạm tới mọi nhịp sống Hà Nội.
             </p>
             <div class="contact-hero__actions" style="margin-top: 28px; display: flex; align-items: center; justify-content: center; gap: 14px;">
-                <a class="button button--primary" href="#contact-details" data-gsap-scroll-to style="border-radius: 999px; background: #000000; color: #ffffff; padding: 12px 28px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">Liên hệ với Posh Boutique</a>
+                <a class="button button--primary" href="#contact-details" data-gsap-scroll-to style="border-radius: 999px; background: #000000; color: #ffffff; padding: 12px 28px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">Liên hệ với Rosaliza Hotel</a>
                 <a class="contact-hero__scroll" href="#royal-story" data-gsap-scroll-to style="border-radius: 999px; background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); color: #ffffff; padding: 12px 24px; font-weight: 600; text-decoration: none; border: 1px solid rgba(255,255,255,0.4);">Câu chuyện của chúng tôi <span aria-hidden="true">↓</span></a>
             </div>
         </div>
@@ -26,8 +26,8 @@
         <div class="contact-story__copy" data-reveal>
             <p class="editorial-eyebrow">Our story</p>
             <h2 id="royal-story-title">Quiet by design</h2>
-            <p>Posh Boutique được tạo nên cho những hành trình cần sự đơn giản và chỉn chu. Từ cách chọn phòng rõ ràng đến lúc bạn nhận phòng, mỗi chi tiết đều hướng đến cảm giác thư thái.</p>
-            <dl class="contact-story__facts" aria-label="Thông tin Posh Boutique">
+            <p>Rosaliza Hotel được tạo nên cho những hành trình cần sự đơn giản và chỉn chu. Từ cách chọn phòng rõ ràng đến lúc bạn nhận phòng, mỗi chi tiết đều hướng đến cảm giác thư thái.</p>
+            <dl class="contact-story__facts" aria-label="Thông tin Rosaliza Hotel">
                 <div><dt>05</dt><dd>Hạng phòng</dd></div>
                 <div><dt>24/7</dt><dd>Luôn sẵn sàng</dd></div>
                 <div><dt>12</dt><dd>Chùa Bộc</dd></div>
@@ -40,7 +40,7 @@
                     <span class="ctrl-dot ctrl-yellow"></span>
                     <span class="ctrl-dot ctrl-green"></span>
                 </div>
-                <span class="macos-card-title">Không gian kiến trúc Posh Boutique — Photo Gallery</span>
+                <span class="macos-card-title">Không gian kiến trúc Rosaliza Hotel — Photo Gallery</span>
                 <div style="width: 52px;" aria-hidden="true"></div>
             </div>
             <div class="contact-gallery__viewport" data-gallery-viewport role="region" aria-label="Kéo ngang hoặc dùng phím mũi tên để xem album" tabindex="0">
@@ -120,8 +120,8 @@
             <p>Gọi, gửi email hoặc ghé thăm chúng tôi tại Chùa Bộc.</p>
         </div>
         <div class="contact-methods">
-            <a class="contact-method" href="tel:0123456789" aria-label="Gọi Posh Boutique theo số 0123 456 789" data-reveal><span class="contact-method__icon"><i class="bi bi-telephone" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Điện thoại</span><strong>0123 456 789</strong><span class="contact-method__hint">Hỗ trợ nhanh qua cuộc gọi</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
-            <a class="contact-method" href="mailto:poshboutique@gmail.com" aria-label="Gửi email đến poshboutique@gmail.com" data-reveal><span class="contact-method__icon"><i class="bi bi-envelope" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Email</span><strong>poshboutique@gmail.com</strong><span class="contact-method__hint">Phản hồi yêu cầu chi tiết</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
+            <a class="contact-method" href="tel:0123456789" aria-label="Gọi Rosaliza Hotel theo số 0123 456 789" data-reveal><span class="contact-method__icon"><i class="bi bi-telephone" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Điện thoại</span><strong>0123 456 789</strong><span class="contact-method__hint">Hỗ trợ nhanh qua cuộc gọi</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
+            <a class="contact-method" href="mailto:rosalizahotel@gmail.com" aria-label="Gửi email đến rosalizahotel@gmail.com" data-reveal><span class="contact-method__icon"><i class="bi bi-envelope" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Email</span><strong>rosalizahotel@gmail.com</strong><span class="contact-method__hint">Phản hồi yêu cầu chi tiết</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
         </div>
     </section>
 
@@ -130,7 +130,7 @@
             <p class="editorial-eyebrow">Location</p>
             <h2 id="contact-location-title">Find us</h2>
             <address>12 Chùa Bộc,<br>Đống Đa, Hà Nội</address>
-            <p class="contact-location__note"><i class="bi bi-clock" aria-hidden="true"></i> Lễ tân hỗ trợ 24 giờ mỗi ngày · Nhận phòng 12:00 - 17:00</p>
+            <p class="contact-location__note"><i class="bi bi-clock" aria-hidden="true"></i> Lễ tân hỗ trợ 24 giờ mỗi ngày · Nhận phòng 12:00 - trước 16:00</p>
             <a class="button" href="https://www.google.com/maps/search/?api=1&query=12+Ch%C3%B9a+B%E1%BB%99c%2C+%C4%90%E1%BB%91ng+%C4%90a%2C+H%C3%A0+N%E1%BB%99i" target="_blank" rel="noopener noreferrer">Mở chỉ đường <span aria-hidden="true">↗</span></a>
         </div>
         <div class="contact-map" data-reveal style="overflow: hidden; border-radius: 28px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06); padding-bottom: 20px;">
@@ -140,11 +140,11 @@
                     <span class="ctrl-dot ctrl-yellow"></span>
                     <span class="ctrl-dot ctrl-green"></span>
                 </div>
-                <span class="macos-card-title">Bản đồ Posh Boutique — 12 Chùa Bộc, Hà Nội</span>
+                <span class="macos-card-title">Bản đồ Rosaliza Hotel — 12 Chùa Bộc, Hà Nội</span>
                 <div style="width: 52px;" aria-hidden="true"></div>
             </div>
             <div style="margin: 14px 20px 0 20px; border-radius: 18px; overflow: hidden; height: 380px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04);">
-                <iframe title="Bản đồ Posh Boutique tại 12 Chùa Bộc, Hà Nội" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.6203769615904!2d105.82535447503089!3d21.00784918063632!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac806cfc0845%3A0x3848505bd3b9490f!2zMTIgUC4gQ2jDuWEgQuG7mWMsIEtpbSBMacOqbiwgSMOgIE7hu5lpIDEwMDAwMCwgVmnhu4d0IE5hbQ!5e0!3m2!1svi!2s!4v1777979688214!5m2!1svi!2s" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen style="width: 100%; height: 100%; border: 0; display: block;"></iframe>
+                <iframe title="Bản đồ Rosaliza Hotel tại 12 Chùa Bộc, Hà Nội" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.6203769615904!2d105.82535447503089!3d21.00784918063632!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac806cfc0845%3A0x3848505bd3b9490f!2zMTIgUC4gQ2jDuWEgQuG7mWMsIEtpbSBMacOqbiwgSMOgIE7hu5lpIDEwMDAwMCwgVmnhu4d0IE5hbQ!5e0!3m2!1svi!2s!4v1777979688214!5m2!1svi!2s" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen style="width: 100%; height: 100%; border: 0; display: block;"></iframe>
             </div>
         </div>
     </section>

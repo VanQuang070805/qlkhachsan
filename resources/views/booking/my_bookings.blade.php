@@ -1,6 +1,6 @@
 @extends('layouts.main')
 
-@section('title', 'Kỳ nghỉ của tôi · POSH BOUTIQUE')
+@section('title', 'Kỳ nghỉ của tôi · ROSALIZA HOTEL')
 
 @section('content')
 @php
@@ -90,23 +90,24 @@
             @php
                 $firstRoom = $booking->rooms->first();
                 $roomType = $firstRoom?->roomType;
+                $roomTypeNames = $booking->rooms->map(fn($room) => $room->roomType?->type_name)->filter()->unique()->join(' · ');
                 $nights = \Carbon\Carbon::parse($booking->check_in)->diffInDays($booking->check_out) ?: 1;
                 $roomNames = $booking->rooms->map(fn($room) => 'Phòng '.$room->room_number)->join(', ');
-                $floor = $firstRoom?->floor ?? 18;
-                $roomImg = !empty($roomType?->image) ? asset($roomType->image) : asset('images/rooms/1.jpg');
+                $floor = $firstRoom?->floor;
+                $floorLabel = $floor !== null ? 'Tầng '.$floor : 'Tầng chưa xác định';
+                $roomImg = $roomType?->image_url ?? asset('images/rooms/default.jpg');
 
                 $isCancelled = in_array($booking->status, ['cancelled', 'rejected']);
                 $isCompleted = $booking->status === 'completed';
                 $isUpcoming = in_array($booking->status, ['pending', 'confirmed', 'checked_in']);
-                $canExtend = in_array($booking->status, ['confirmed', 'checked_in'], true)
-                    && $booking->check_out->toDateString() > now('Asia/Ho_Chi_Minh')->toDateString();
+                $canExtend = $booking->status === 'checked_in';
                 $checkinToken = $checkinTokens[$booking->id] ?? null;
                 $filterGroup = $isCancelled ? 'cancelled' : ($isCompleted ? 'completed' : 'upcoming');
-                $extensionHasError = (int) old('booking_id') === (int) $booking->id && $errors->has('days');
+                $extensionHasError = (int) old('booking_id') === (int) $booking->id && $errors->hasAny(['mode', 'amount']);
             @endphp
             <article class="booking-card-horizontal p-4 rounded-4 bg-white border border-slate-200 shadow-xs transition-all {{ $isCancelled ? 'opacity-75' : '' }}"
                      data-status-group="{{ $filterGroup }}"
-                     data-search-text="{{ $booking->id }} {{ $roomNames }} {{ $roomType?->type_name }} {{ $booking->customer_name }}"
+                     data-search-text="{{ $booking->id }} {{ $roomNames }} {{ $roomTypeNames }} {{ $booking->customer_name }}"
                      style="transition: all 0.2s ease;">
                 <div class="row g-3 align-items-center">
 
@@ -114,9 +115,11 @@
                     <div class="col-md-3">
                         <div class="position-relative rounded-3 overflow-hidden" style="height: 140px; border: 1px solid #e2e8f0;">
                             <img src="{{ $roomImg }}" alt="{{ $roomType?->type_name }}" style="width: 100%; height: 100%; object-fit: cover; {{ $isCancelled ? 'filter: grayscale(40%);' : '' }}">
-                            <span class="position-absolute top-2 start-2 badge bg-white/90 text-dark backdrop-blur-md rounded-pill px-2.5 py-1 shadow-xs" style="font-size: 10.5px; font-weight: 700;">
-                                <i class="bi bi-layers text-primary me-1"></i> Tầng {{ $floor }}
-                            </span>
+                            @if($floor !== null)
+                                <span class="position-absolute top-2 start-2 badge bg-white/90 text-dark backdrop-blur-md rounded-pill px-2.5 py-1 shadow-xs" style="font-size: 10.5px; font-weight: 700;">
+                                    <i class="bi bi-layers text-primary me-1"></i> Tầng {{ $floor }}
+                                </span>
+                            @endif
                         </div>
                     </div>
 
@@ -139,11 +142,11 @@
                         </div>
 
                         <h3 class="fw-bold text-dark m-0 mb-1" style="font-size: 17px; letter-spacing: -0.02em;">
-                            {{ $roomType?->type_name ?? 'Phòng Tiêu Chuẩn' }}
+                            {{ $roomTypeNames ?: 'Hạng phòng đang được cập nhật' }}
                         </h3>
 
                         <div class="text-slate-500 mb-2" style="font-size: 12.5px;">
-                            {{ $roomNames ?: 'Phòng VIP' }} • {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} đến {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }} ({{ $nights }} đêm)
+                            {{ $roomNames ?: 'Chưa gán số phòng' }} • {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} đến {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }} ({{ $nights }} đêm)
                         </div>
 
                         <div class="d-flex flex-wrap align-items-center gap-2">
@@ -175,48 +178,10 @@
                                     @endforeach
                                 @endif
 
-                                @if($canExtend)
-                                <button type="button"
-                                        class="booking-extension-toggle"
-                                        data-extension-toggle
-                                        aria-expanded="{{ $extensionHasError ? 'true' : 'false' }}"
-                                        aria-controls="booking-extension-{{ $booking->id }}">
-                                    <i class="bi bi-calendar-plus" aria-hidden="true"></i>
-                                    <span>Gia hạn lưu trú</span>
-                                </button>
-                                <div class="booking-extension-panel" id="booking-extension-{{ $booking->id }}" {{ $extensionHasError ? '' : 'hidden' }}>
-                                    <form action="{{ route('booking.extend', $booking) }}" method="POST" class="booking-extension-form">
-                                        @csrf
-                                        <input type="hidden" name="booking_id" value="{{ $booking->id }}">
-                                        <div class="booking-extension-field">
-                                            <label for="extension-days-{{ $booking->id }}">Số ngày gia hạn</label>
-                                            <input type="number"
-                                                   id="extension-days-{{ $booking->id }}"
-                                                   name="days"
-                                                   min="1"
-                                                   max="30"
-                                                   step="1"
-                                                   value="{{ $extensionHasError ? old('days', 1) : 1 }}"
-                                                   required
-                                                   inputmode="numeric"
-                                                   aria-describedby="extension-help-{{ $booking->id }}{{ $extensionHasError ? ' extension-error-'.$booking->id : '' }}"
-                                                   aria-invalid="{{ $extensionHasError ? 'true' : 'false' }}">
-                                        </div>
-                                        <button type="submit" class="booking-extension-submit">Xác nhận gia hạn</button>
-                                    </form>
-                                    <p id="extension-help-{{ $booking->id }}" class="booking-extension-help">
-                                        Ngày trả hiện tại: {{ $booking->check_out->format('d/m/Y') }}. Hệ thống chỉ xác nhận khi phòng chưa có lịch đặt tiếp theo.
-                                    </p>
-                                    @if($extensionHasError)
-                                    <p id="extension-error-{{ $booking->id }}" class="booking-extension-error" role="alert">{{ $errors->first('days') }}</p>
-                                    @endif
-                                </div>
-                                @endif
-
                                 {{-- Nút Apple Wallet (Black Pill) --}}
                                 <button type="button" class="btn rounded-pill px-3 py-1.5 text-white d-inline-flex align-items-center gap-1.5 shadow-xs"
                                         style="font-size: 11.5px; font-weight: 600; background: #0f172a; border: 1px solid #1e293b; transition: all 0.2s ease;"
-                                        onclick="openWalletModal('{{ $booking->id }}', '{{ addslashes($roomType?->type_name ?? 'Phòng Royal') }}', '{{ addslashes($booking->customer_name) }}', 'Tầng {{ $floor }}')">
+                                        onclick="openWalletModal('{{ $booking->id }}', '{{ addslashes($roomTypeNames ?: 'Hạng phòng đang cập nhật') }}', '{{ addslashes($booking->customer_name) }}', '{{ $floorLabel }} · {{ addslashes($roomNames ?: 'Chưa gán số phòng') }}')">
                                     <i class="bi bi-apple"></i>
                     <span>Apple Wallet</span>
                                 </button>
@@ -237,7 +202,7 @@
                                 <button type="button" class="btn rounded-pill px-3 py-1.5 text-white d-inline-flex align-items-center gap-1.5 shadow-xs"
                                         style="font-size: 11.5px; font-weight: 600; background: #0071e3; border: none; box-shadow: 0 2px 8px rgba(0,113,227,0.28); transition: all 0.2s ease;"
                                         data-qr-uri="{{ $checkinQrDataUri }}"
-                                        onclick="openQrModal('{{ $booking->id }}', '{{ addslashes($roomType?->type_name ?? 'Phòng Posh') }}', this.dataset.qrUri)">
+                                        onclick="openQrModal('{{ $booking->id }}', '{{ addslashes($roomTypeNames ?: 'Hạng phòng đang cập nhật') }}', this.dataset.qrUri)">
                                     <i class="bi bi-qr-code"></i>
                                     <span>Mã nhận phòng</span>
                                 </button>
@@ -251,6 +216,20 @@
                                 </a>
                                 @elseif($booking->payment_status !== 'paid' && $booking->payment_method === 'cash')
                                 <span class="small text-secondary">Thanh toán tại quầy</span>
+                                @endif
+
+                                @if($canExtend)
+                                <button type="button"
+                                        class="booking-extension-toggle btn"
+                                        data-extension-open
+                                        data-booking-id="{{ $booking->id }}"
+                                        data-post-url="{{ route('booking.extend', $booking) }}"
+                                        data-room-name="{{ $roomNames }}"
+                                        data-checkout="{{ $booking->scheduledCheckoutAt()->format('H:i d/m/Y') }}"
+                                        data-auto-open="{{ $extensionHasError ? 'true' : 'false' }}">
+                                    <i class="bi bi-calendar-plus" aria-hidden="true"></i>
+                                    <span>Gia hạn phòng</span>
+                                </button>
                                 @endif
 
                                 <a href="{{ route('booking.cancel.show', $booking->id) }}" class="btn rounded-pill px-3 py-1.5 text-decoration-none d-inline-flex align-items-center shadow-xs"
@@ -303,6 +282,48 @@
     </div>
 </div>
 
+<div class="aeth-modal-backdrop" id="stayExtensionModal" role="dialog" aria-modal="true" aria-labelledby="stayExtensionTitle">
+    <div class="aeth-modal-box" style="max-width: 520px; width: calc(100% - 32px); padding: 0; overflow: hidden;">
+        <div class="d-flex align-items-center gap-3 px-4 py-3 border-bottom">
+            <div class="window-controls window-controls--modal d-flex align-items-center gap-1" aria-hidden="true">
+                <span class="ctrl-dot ctrl-red"></span><span class="ctrl-dot ctrl-yellow"></span><span class="ctrl-dot ctrl-green"></span>
+            </div>
+            <h2 class="m-0 flex-grow-1 text-center fs-6 fw-bold" id="stayExtensionTitle">Gia hạn lưu trú</h2>
+            <button type="button" class="aeth-modal-close-btn position-static" onclick="closeModal('stayExtensionModal')" aria-label="Đóng">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <form id="stayExtensionForm" method="POST">
+            @csrf
+            <input type="hidden" name="booking_id" id="extensionBookingId" value="{{ old('booking_id') }}">
+            <div class="p-4">
+                <div class="p-3 mb-4 rounded-3 border bg-light">
+                    <div class="small text-secondary fw-semibold mb-1">Phòng lưu trú</div>
+                    <div class="fw-bold" id="extensionRoomName">—</div>
+                    <div class="small text-secondary mt-1">Hạn trả hiện tại: <span id="extensionCheckout">—</span></div>
+                </div>
+                <label for="extensionMode" class="form-label fw-semibold">Hình thức gia hạn</label>
+                <select class="form-select mb-3" id="extensionMode" name="mode" required>
+                    <option value="hours" @selected(old('mode', 'hours') === 'hours')>Theo giờ · 10% giá phòng/giờ</option>
+                    <option value="days" @selected(old('mode') === 'days')>Theo ngày · giá phòng hiện tại</option>
+                </select>
+                <label for="extensionAmount" class="form-label fw-semibold" id="extensionAmountLabel">Số giờ gia hạn</label>
+                <input class="form-control" type="number" id="extensionAmount" name="amount" min="1" max="12" step="1" value="{{ old('amount', 1) }}" required inputmode="numeric" aria-describedby="extensionHelp extensionError">
+                <div class="form-text mt-2" id="extensionHelp">Tính 10% giá đêm/giờ đến 18:00; vượt mốc này hệ thống tính thành một đêm.</div>
+                @if((int) old('booking_id') > 0 && $errors->hasAny(['mode', 'amount']))
+                    <div class="small text-danger mt-2" id="extensionError" role="alert">{{ $errors->first('mode') ?: $errors->first('amount') }}</div>
+                @else
+                    <div class="small text-danger mt-2" id="extensionError" role="alert" hidden></div>
+                @endif
+            </div>
+            <div class="d-flex justify-content-end gap-2 px-4 py-3 border-top bg-light">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeModal('stayExtensionModal')">Hủy</button>
+                <button type="submit" class="btn btn-primary fw-semibold"><i class="bi bi-check2 me-1"></i>Xác nhận gia hạn</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {{-- ── 5. Bốn Modal Tương Tác Kèm Theo (docs/05_modal_drawer_va_trang_thai_phu.md) ── --}}
 
 {{-- Modal 1: Apple Wallet Pass Modal --}}
@@ -322,12 +343,12 @@
             <div style="position:absolute; top:-20px; right:-20px; width:120px; height:120px; background:radial-gradient(circle, rgba(0,113,227,0.5), transparent 70%); pointer-events:none;"></div>
             
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="fw-bold tracking-wider text-white" style="font-size: 13px; letter-spacing:0.12em;">POSH BOUTIQUE</span>
+                <span class="fw-bold tracking-wider text-white" style="font-size: 13px; letter-spacing:0.12em;">ROSALIZA HOTEL</span>
                 <span class="badge bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 rounded-pill px-2.5 py-1" style="font-size: 10px; font-weight: 700;">NFC KEY ACTIVE</span>
             </div>
 
-            <h4 class="fw-bold mb-1 text-white" style="font-size: 17px;" id="walletRoomName">Phòng Tiêu Chuẩn</h4>
-            <div class="text-slate-300 mb-3" style="font-size: 12.5px; font-weight: 500;" id="walletFloor">Tầng 18 • Phòng 1801</div>
+            <h4 class="fw-bold mb-1 text-white" style="font-size: 17px;" id="walletRoomName">—</h4>
+            <div class="text-slate-300 mb-3" style="font-size: 12.5px; font-weight: 500;" id="walletFloor">—</div>
 
             <div class="row g-2 mb-3 text-start" style="font-size: 11.5px;">
                 <div class="col-6">
@@ -423,7 +444,7 @@
         </div>
 
         <h3 class="fw-bold mb-1 text-slate-900" style="font-size: 20px;">Mã Nhận Phòng Điện Tử</h3>
-        <p class="text-slate-600 mb-3 fw-semibold" style="font-size: 13px;" id="qrSubtitle">Phòng Tiêu Chuẩn</p>
+        <p class="text-slate-600 mb-3 fw-semibold" style="font-size: 13px;" id="qrSubtitle">—</p>
 
         <div style="border: 1px solid #e2e8f0; border-radius: 24px; padding: 20px 16px 16px; background: #f8fafc; margin-bottom: 18px;">
             <div class="p-2.5 bg-white rounded-4 d-inline-block shadow-xs mb-2" style="border: 1px solid #e2e8f0; line-height: 0;">
@@ -436,7 +457,7 @@
         </div>
 
         <p class="text-slate-600 mb-4" style="font-size: 12.5px; line-height: 1.5;">
-            Quý khách vui lòng xuất trình mã này tại quầy Lễ tân POSH BOUTIQUE để hoàn tất nhận phòng trong giây lát.
+            Quý khách vui lòng xuất trình mã này tại quầy Lễ tân ROSALIZA HOTEL để hoàn tất nhận phòng trong giây lát.
         </p>
 
         <button type="button" class="btn btn-primary w-100 py-2.5 rounded-pill fw-semibold text-white shadow-xs" style="background:#0071e3; border:none; height: 44px;" onclick="closeModal('qrModal')">
@@ -470,7 +491,7 @@
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; font-size: 13px;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px;">
                 <span style="color: #64748b; font-weight: 500;">Đơn vị phát hành:</span>
-                <span style="color: #0f172a; font-weight: 700; text-align: right;">Công ty CP POSH BOUTIQUE</span>
+                <span style="color: #0f172a; font-weight: 700; text-align: right;">Công ty CP ROSALIZA HOTEL</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px;">
                 <span style="color: #64748b; font-weight: 500;">Dịch vụ:</span>
@@ -489,7 +510,7 @@
                 <span>Thành tiền</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid #f1f5f9; color: #0f172a;">
-                <span style="font-weight: 500;">Dịch vụ lưu trú Posh Boutique</span>
+                <span style="font-weight: 500;">Dịch vụ lưu trú Rosaliza Hotel</span>
                 <span style="font-weight: 700;" id="invoiceItemPrice">0 đ</span>
             </div>
         </div>
@@ -503,7 +524,7 @@
         {{-- Chữ ký số --}}
         <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 12px; color: #475569; margin-bottom: 18px;">
             <i class="bi bi-shield-check" style="font-size: 16px; color: #059669; flex-shrink: 0;"></i>
-            <span>Chữ ký số hợp lệ: <strong>VNPT-CA Token</strong> · POSH BOUTIQUE Hospitality JSC</span>
+            <span>Chữ ký số hợp lệ: <strong>VNPT-CA Token</strong> · ROSALIZA HOTEL Hospitality JSC</span>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -568,7 +589,7 @@
                 <div style="width: 20px; height: 20px; border-radius: 50%; background: #eff6ff; color: #0071e3; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px;">3</div>
                 <div>
                     <div style="font-weight: 700; color: #0f172a; font-size: 13px;">Mã đối soát giao dịch</div>
-                    <div style="color: #0071e3; font-size: 12px; font-weight: 600;" id="refundBookingCode">POSH-REFUND-7458291048</div>
+                    <div style="color: #0071e3; font-size: 12px; font-weight: 600;" id="refundBookingCode">ROSA-REFUND-7458291048</div>
                 </div>
             </div>
         </div>
@@ -673,7 +694,7 @@ function openInvoiceModal(id, price, name) {
 }
 
 function openRefundModal(id, price) {
-    document.getElementById('refundBookingCode').textContent = 'POSH-REFUND-' + (id || '7458291048');
+    document.getElementById('refundBookingCode').textContent = 'ROSA-REFUND-' + (id || '7458291048');
     document.getElementById('refundAmount').textContent = price + ' đ';
     openModalHelper('refundModal');
 }
@@ -707,27 +728,44 @@ document.addEventListener('keydown', e => {
     }
 });
 
-document.querySelectorAll('[data-extension-toggle]').forEach(button => {
-    const panel = document.getElementById(button.getAttribute('aria-controls'));
-    if (!panel) return;
+function syncStayExtensionMode() {
+    const mode = document.getElementById('extensionMode')?.value || 'hours';
+    const amount = document.getElementById('extensionAmount');
+    const hourly = mode === 'hours';
+    amount.max = hourly ? '12' : '30';
+    document.getElementById('extensionAmountLabel').textContent = hourly ? 'Số giờ gia hạn' : 'Số ngày gia hạn';
+    document.getElementById('extensionHelp').textContent = hourly
+        ? 'Tính 10% giá đêm/giờ đến 18:00; vượt mốc này hệ thống tính thành một đêm.'
+        : 'Từ 1 đến 30 ngày, tính theo giá phòng hiện tại; chỉ xác nhận khi không trùng lịch đặt tiếp theo.';
+    if (Number(amount.value) > Number(amount.max)) amount.value = '1';
+}
 
+document.getElementById('extensionMode')?.addEventListener('change', syncStayExtensionMode);
+document.querySelectorAll('[data-extension-open]').forEach(button => {
     button.addEventListener('click', () => {
-        const willOpen = panel.hidden;
-        panel.hidden = !willOpen;
-        button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-        if (willOpen) panel.querySelector('input[name="days"]')?.focus();
+        const hasValidationError = button.dataset.autoOpen === 'true';
+        const form = document.getElementById('stayExtensionForm');
+        form.action = button.dataset.postUrl;
+        document.getElementById('extensionBookingId').value = button.dataset.bookingId;
+        document.getElementById('extensionRoomName').textContent = button.dataset.roomName || '—';
+        document.getElementById('extensionCheckout').textContent = button.dataset.checkout || '—';
+        if (!hasValidationError) {
+            document.getElementById('extensionMode').value = 'hours';
+            document.getElementById('extensionAmount').value = '1';
+            document.getElementById('extensionError').hidden = true;
+        }
+        syncStayExtensionMode();
+        openModalHelper('stayExtensionModal');
+        setTimeout(() => document.getElementById('extensionAmount')?.focus(), 0);
     });
 });
-
+document.querySelector('[data-extension-open][data-auto-open="true"]')?.click();
 document.addEventListener('keydown', event => {
-    if (event.key !== 'Escape') return;
-    document.querySelectorAll('[data-extension-toggle][aria-expanded="true"]').forEach(button => {
-        const panel = document.getElementById(button.getAttribute('aria-controls'));
-        if (panel) panel.hidden = true;
-        button.setAttribute('aria-expanded', 'false');
-        button.focus();
-    });
+    if (event.key === 'Escape' && document.getElementById('stayExtensionModal')?.classList.contains('is-open')) {
+        closeModal('stayExtensionModal');
+    }
 });
+syncStayExtensionMode();
 
 document.querySelectorAll('.cleaning-request-toggle').forEach(toggle => {
     toggle.addEventListener('change', async function () {

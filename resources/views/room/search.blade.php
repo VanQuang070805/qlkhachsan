@@ -819,7 +819,7 @@ body { background: var(--cream) !important; }
             <span class="ctrl-dot ctrl-yellow"></span>
             <span class="ctrl-dot ctrl-green"></span>
         </div>
-        <span class="macos-card-title">Tìm kiếm phòng trống — Posh Concierge</span>
+        <span class="macos-card-title">Tìm kiếm phòng trống — Rosaliza Concierge</span>
         <span style="font-size: 11px; color: #64748b;">macOS Finder Mode</span>
     </div>
     <form method="GET" action="{{ route('rooms.search') }}" id="searchForm" novalidate>
@@ -1032,7 +1032,7 @@ body { background: var(--cream) !important; }
             <?php 
             foreach ($roomTypes as $i => $type):
                 $typeId     = $type['id'];
-                $imgSrc     = data_get($type, 'image') ?: config('room_images.' . $typeId . '.0', url('/') . '/images/rooms/default.jpg');
+                $imgSrc     = data_get($type, 'image_url');
                 $imgFallback= url('/') . '/images/rooms/default.jpg';
                 $amenityIds = collect($type['amenities'] ?? [])->pluck('id')->all();
                 $availabilityUrl = route('rooms.detail', $type['id']) . '?' . http_build_query([
@@ -1053,7 +1053,7 @@ body { background: var(--cream) !important; }
                         <span class="ctrl-dot ctrl-yellow"></span>
                         <span class="ctrl-dot ctrl-green"></span>
                     </div>
-                    <span class="macos-card-title"><?= htmlspecialchars($type['type_name']) ?> — Posh Preview</span>
+                    <span class="macos-card-title"><?= htmlspecialchars($type['type_name']) ?> — Rosaliza Preview</span>
                 </div>
 
                 <!-- Header -->
@@ -1093,7 +1093,7 @@ body { background: var(--cream) !important; }
                             <div class="room-meta">
                                 <span class="room-price"><?= number_format($type['price'], 0, ',', '.') ?> VNĐ<small>/đêm</small></span>
                                 <span style="color:var(--border)">|</span>
-                                <i class="bi bi-people"></i>Tối đa <?= $type['max_adults'] ?> người lớn, <?= $type['max_children'] ?> trẻ em
+                                <i class="bi bi-people"></i><?= (int)$type['max_guests'] ?> khách tối đa (<?= (int)$type['max_adults'] ?> người lớn, <?= (int)$type['max_children'] ?> trẻ em)
                             </div>
                             <div class="room-desc"><?= htmlspecialchars(mb_substr($type['description'] ?? '', 0, 100)) ?>...</div>
                         </div>

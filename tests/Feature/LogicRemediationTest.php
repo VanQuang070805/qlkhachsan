@@ -27,7 +27,7 @@ class LogicRemediationTest extends TestCase
     public function test_expired_hold_cannot_be_revived_by_a_late_gateway_callback(): void
     {
         [$booking] = $this->bookingWithRoom();
-        $booking->forceFill(['created_at' => now()->subMinutes(11)])->saveQuietly();
+        $booking->forceFill(['created_at' => now()->subMinutes(11), 'updated_at' => now()->subMinutes(11)])->saveQuietly();
 
         $this->invokeDepositSettlement($booking, 'late-tx');
 
@@ -39,7 +39,7 @@ class LogicRemediationTest extends TestCase
     public function test_expiry_command_cancels_stale_booking_and_fails_its_pending_deposit_log(): void
     {
         [$booking] = $this->bookingWithRoom();
-        $booking->forceFill(['created_at' => now()->subMinutes(11)])->saveQuietly();
+        $booking->forceFill(['created_at' => now()->subMinutes(11), 'updated_at' => now()->subMinutes(11)])->saveQuietly();
         $log = PaymentLog::create([
             'booking_id' => $booking->id,
             'gateway' => 'vietqr',
@@ -103,6 +103,124 @@ class LogicRemediationTest extends TestCase
         $this->assertSame('sepay-1', $transaction['id']);
         $this->assertSame('pending', $log->fresh()->status);
         $this->assertNull($log->fresh()->transaction_id);
+    }
+
+    public function test_vietqr_keepalive_extends_the_pending_room_hold_and_returns_qr_data(): void
+    {
+        [$booking] = $this->bookingWithRoom();
+        $customer = $booking->user;
+        $booking->update(['payment_method' => 'vietqr']);
+        PaymentLog::create([
+            'booking_id' => $booking->id,
+            'gateway' => 'vietqr',
+            'reference_code' => 'KS'.$booking->id.'LIVE',
+            'amount' => $booking->deposit_amount,
+            'purpose' => 'deposit',
+            'status' => 'pending',
+        ]);
+        $booking->forceFill(['updated_at' => now()->subMinutes(9)])->saveQuietly();
+
+        $this->actingAs($customer)->withSession([
+            'customer_user_id' => $customer->id,
+            'customer_user' => ['id' => $customer->id, 'role' => 'customer', 'verified' => true],
+        ])->postJson(route('payment.keep-alive', $booking->id))
+            ->assertOk()
+            ->assertJsonPath('status', 'pending')
+            ->assertJsonPath('qr.reference_code', 'KS'.$booking->id.'LIVE');
+
+        $this->assertFalse($booking->fresh()->paymentHoldExpired());
+    }
+
+    public function test_vietqr_screen_renders_refresh_and_leave_guard_controls(): void
+    {
+        [$booking] = $this->bookingWithRoom();
+        $customer = $booking->user;
+        $booking->update(['payment_method' => 'vietqr']);
+
+        $this->actingAs($customer)->withSession([
+            'customer_user_id' => $customer->id,
+            'customer_user' => ['id' => $customer->id, 'role' => 'customer', 'verified' => true],
+        ])->get(route('payment.show', $booking->id))
+            ->assertOk()
+            ->assertSee('Làm mới mã QR sau')
+            ->assertSee(str_replace('/', '\\/', route('payment.keep-alive', $booking->id)), false)
+            ->assertSee(str_replace('/', '\\/', route('payment.cancel-pending', $booking->id)), false)
+            ->assertDontSee('vietqr_timer_');
+    }
+
+    public function test_customer_leaving_vietqr_cancels_the_unpaid_booking_and_releases_its_room(): void
+    {
+        [$booking, $room] = $this->bookingWithRoom();
+        $customer = $booking->user;
+        $booking->update(['payment_method' => 'vietqr']);
+        $log = PaymentLog::create([
+            'booking_id' => $booking->id,
+            'gateway' => 'vietqr',
+            'reference_code' => 'KS'.$booking->id.'EXIT',
+            'amount' => $booking->deposit_amount,
+            'purpose' => 'deposit',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($customer)->withSession([
+            'customer_user_id' => $customer->id,
+            'customer_user' => ['id' => $customer->id, 'role' => 'customer', 'verified' => true],
+        ])->postJson(route('payment.cancel-pending', $booking->id))
+            ->assertOk()
+            ->assertJsonPath('status', 'cancelled');
+
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertSame('failed', $booking->fresh()->payment_status);
+        $this->assertSame('failed', $log->fresh()->status);
+        $this->assertFalse(Booking::reservedRoomIds(
+            now()->addDays(3)->toDateString(),
+            now()->addDays(5)->toDateString()
+        )->contains($room->id));
+    }
+
+    public function test_admin_can_create_an_internal_account_with_a_six_character_password_and_cannot_view_customer_passwords(): void
+    {
+        Mail::fake();
+        $admin = $this->internalUser('password-policy-admin@example.com', 'admin');
+        $customer = $this->customer('hidden-password@example.com');
+        $storedHash = $customer->password;
+
+        $this->actingAs($admin)->withSession([
+            'staff_user_id' => $admin->id,
+            'staff_user' => ['id' => $admin->id, 'role' => 'admin', 'verified' => true],
+        ])->post(route('admin.users.store'), [
+            'username' => 'sixchar_staff',
+            'fullname' => 'Six Character Staff',
+            'email' => 'sixchar-staff@example.com',
+            'phone' => '0912345678',
+            'role' => 'receptionist',
+            'password' => 'abc123',
+            'password_confirmation' => 'abc123',
+        ])->assertRedirect(route('admin.users.index'))->assertSessionHas('success');
+
+        $this->assertTrue(Hash::check('abc123', User::where('username', 'sixchar_staff')->firstOrFail()->password));
+        $response = $this->actingAs($admin)->withSession([
+            'staff_user_id' => $admin->id,
+            'staff_user' => ['id' => $admin->id, 'role' => 'admin', 'verified' => true],
+        ])->get(route('admin.users.index'));
+        $response->assertOk()->assertDontSee($storedHash);
+    }
+
+    public function test_receptionist_can_change_their_own_email_without_admin_approval(): void
+    {
+        $staff = $this->internalUser('profile-old@example.com', 'receptionist');
+
+        $this->actingAs($staff)->withSession([
+            'staff_user_id' => $staff->id,
+            'user_id' => $staff->id,
+            'staff_user' => ['id' => $staff->id, 'role' => 'receptionist', 'verified' => true],
+        ])->post(route('receptionist.profile.update-info'), [
+            'fullname' => $staff->fullname,
+            'email' => 'profile-new@example.com',
+            'phone' => $staff->phone,
+        ])->assertRedirect(route('receptionist.profile'))->assertSessionHas('success_info');
+
+        $this->assertSame('profile-new@example.com', $staff->fresh()->email);
     }
 
     public function test_payment_email_uses_cid_images_instead_of_base64_data_uris(): void
@@ -257,6 +375,7 @@ class LogicRemediationTest extends TestCase
 
     public function test_signed_checkin_token_is_required_and_can_only_be_used_once(): void
     {
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-04 14:00:00', 'Asia/Ho_Chi_Minh'));
         [$booking, $room] = $this->bookingWithRoom();
         $staff = $this->internalUser('qr-checkin@example.com', 'receptionist');
         $booking->update([
@@ -290,6 +409,7 @@ class LogicRemediationTest extends TestCase
         $this->actingAs($staff)->withSession($session)
             ->postJson(route('staff.reception.quick-checkin'), ['token' => $token])
             ->assertUnprocessable();
+        $this->travelBack();
     }
 
     public function test_checkin_token_remains_valid_until_end_of_checkout_day_only(): void
@@ -437,10 +557,24 @@ class LogicRemediationTest extends TestCase
         $booking = $this->booking($this->customer('hourly-guest@example.com'), 'checked_in', 'paid');
         $booking->rooms()->attach($room->id);
 
-        $this->actingAs($staff)->withSession([
+        $internalSession = [
             'staff_user_id' => $staff->id,
             'staff_user' => ['id' => $staff->id, 'role' => 'receptionist', 'verified' => true],
-        ])->postJson(route('staff.reception.extend'), [
+        ];
+        $originalTotal = (float) $booking->total_price;
+        $this->actingAs($staff)->withSession($internalSession)->postJson(route('staff.reception.extend'), [
+            'room_id' => $room->id.'abc',
+            'mode' => 'hours',
+            'amount' => 2,
+        ])->assertBadRequest();
+        $this->actingAs($staff)->withSession($internalSession)->postJson(route('staff.reception.extend'), [
+            'room_id' => $room->id,
+            'mode' => 'hours',
+            'amount' => '2abc',
+        ])->assertBadRequest();
+        $this->assertSame($originalTotal, (float) $booking->fresh()->total_price);
+
+        $this->actingAs($staff)->withSession($internalSession)->postJson(route('staff.reception.extend'), [
             'room_id' => $room->id,
             'mode' => 'hours',
             'amount' => 2,

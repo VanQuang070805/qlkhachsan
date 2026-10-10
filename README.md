@@ -7,6 +7,15 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Rosaliza Hotel: setup and startup
+
+The app uses the local MySQL database `qlkhachsan`. Start MySQL in XAMPP and configure the database values in `.env` before starting Laravel.
+
+- For a fresh clone, import `database/qlkhachsan.sql` once in phpMyAdmin, then run `php artisan db:seed --class=RoomCapacitySeeder` once to add floors 6–10. The dump contains the schema, first 25 rooms, knowledge chunks, and local `admin`/`staff` accounts. Do not import it again over a database with real work in it.
+- If starting from an empty database instead, run `php artisan migrate` and then `php artisan db:seed` once to create the catalog and internal accounts. The seeder does not create sample customers, bookings, payments, or reviews.
+- Start only the Laravel web server with `composer start`, or start the full local development stack with `composer dev`. Both apply pending migrations first; neither resets or reseeds existing data.
+- Local demo logins are `admin` / `123456` and `staff` / `123456`. The staff account has the `receptionist` role used by the app.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

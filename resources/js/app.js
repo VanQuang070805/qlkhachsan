@@ -9,6 +9,7 @@ import { SplitText } from 'gsap/SplitText';
 import { createApp } from 'vue';
 import RoyalChat from './components/RoyalChat.vue';
 import { enhanceDatePickers } from './date-picker';
+import './numeric-inputs';
 
 gsap.registerPlugin(Draggable, Flip, ScrollToPlugin, ScrollTrigger, SplitText);
 window.gsap = gsap;

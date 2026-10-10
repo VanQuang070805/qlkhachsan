@@ -6,6 +6,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -13,7 +14,7 @@ class DatabaseSeederSchemaTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_demo_seeder_writes_price_data_to_the_current_schema(): void
+    public function test_local_seeder_writes_catalog_and_internal_accounts_without_sample_transactions(): void
     {
         $this->seed(DatabaseSeeder::class);
 
@@ -23,8 +24,15 @@ class DatabaseSeederSchemaTest extends TestCase
             ->where('adjustment_value', 50)
             ->where('status', true)
             ->exists());
-        $this->assertSame(25, DB::table('rooms')->count());
-        $this->assertSame(2, DB::table('booking_rooms')->count());
+        $this->assertSame(50, DB::table('rooms')->count());
+        $this->assertDatabaseCount('users', 2);
+        $this->assertDatabaseCount('bookings', 0);
+        $this->assertDatabaseCount('booking_rooms', 0);
+        $this->assertDatabaseCount('payment_logs', 0);
+        $this->assertDatabaseCount('reviews', 0);
+        $this->assertTrue(Schema::hasTable('user_permissions'));
+        $this->assertTrue(Schema::hasTable('price_setting_room_types'));
+        $this->assertTrue(Schema::hasColumn('price_settings', 'holiday_id'));
     }
 
     public function test_demo_seed_rolls_back_all_rows_when_a_later_insert_fails(): void

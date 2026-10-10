@@ -126,14 +126,14 @@ The admin and staff sidebar/header must remain persistent across their pages. Na
 
 ## 8. Booking, payment and operational logic
 
-- Same-day check-in cannot be selected after 17:00. Communicate that check-in is available from 12:00 to 17:00.
+- Same-day check-in is available from 12:00 until before 16:00; at 16:00 an unchecked confirmed booking is cancelled.
 - Customer check-in QR payloads use `ROYAL-CHECKIN:v1:<booking_id>:<32-character nonce>`. The nonce is an expiring, one-time server-side credential; staff scan endpoints validate the full prefixed payload and never look up a booking from a raw invoice ID. Keep legacy encrypted `ROYAL-CHECKIN:` / `POSH-CHECKIN:` payloads readable only until their original expiry.
 - A booking may reserve capacity greater than the entered guest count. It must reject selected room capacity lower than the guest count with one clear inline/animated notice.
 - Unpaid pending booking holds and deposit payment attempts expire after 10 minutes; expired bookings are cancelled and their rooms released. Laravel's scheduler must run (`php artisan schedule:work` locally, `schedule:run` from the production cron).
 - Checkout late fee starts only after the scheduled checkout time plus one-hour grace and equals 50% of one room-night rate, not 50% of the booking total.
-- Stay extension supports hourly extension at 200,000 VND/hour and daily extension at the normal nightly room price.
+- Hourly stay extension costs 10% of the room-night price per hour through 18:00; crossing 18:00 converts that checkout date to one full night, crediting previously charged extension hours. Daily extension uses the nightly price.
 - Customers may extend confirmed or checked-in stays by whole days only before the checkout date. The server must lock the booking and rooms, reject any overlap with an active reservation, and add the date-adjusted room price to the existing booking snapshot.
-- A confirmed booking with no check-in is automatically cancelled when its arrival date has passed or the 17:00 check-in deadline is reached. The scheduler must run for this status to remain current.
+- A confirmed booking with no check-in is automatically cancelled when its arrival date has passed or the 16:00 check-in deadline is reached. The scheduler must run for this status to remain current.
 - Customer booking views show one clear booking status, not several overlapping status badges.
 - Payment supports configured online methods and cash where the business flow permits it. Steps before payment may be revisited to edit information safely.
 - Live availability, booking, payment and room status come from transactional database queries/tools, never stale vector-store content.
@@ -150,6 +150,9 @@ The admin and staff sidebar/header must remain persistent across their pages. Na
 - Secrets live only in `.env`/server secret storage. `.env.example` contains placeholders only.
 - Production uses HTTPS and HSTS with secure cookies. Local HTTP remains supported for development.
 - Prevent duplicate payments, refunds, checkout and booking mutations with transactions, status preconditions and idempotent checks.
+- Internal RBAC lists only non-customer accounts from `users`; role filters derive from the roles present in that table. Keep customer-profile/contact/export permissions out of the assignable catalog. Check-in and check-out share one permission, and enabled staff permissions are enforced by server middleware against `user_permissions`.
+- Admin room inventory and room-type management may add or edit rooms, categories, capacity, amenities and base prices; never expose a room or category delete action. Reject room identity/category/floor changes while an active reservation or stay is attached.
+- Admin room management is organized by floors 1–10; the selected floor is query-backed and only its rooms are listed. New-room entry opens in a popup, and floor values outside 1–10 are rejected.
 - RLS applies only when the selected database platform supports it; otherwise enforce equivalent ownership/role policy in Laravel and document the limitation.
 - Run dependency audits and targeted security tests after dependency or authentication changes.
 

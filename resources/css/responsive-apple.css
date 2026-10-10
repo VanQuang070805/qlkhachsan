@@ -23,6 +23,45 @@
     body.client-shell {
         padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
     }
+    body.client-shell #main-content,
+    body.client-shell .site-main,
+    body.client-shell footer {
+        padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .supaste-section {
+        padding-top: 36px !important;
+        padding-bottom: 48px !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+    .supaste-section__header {
+        margin-bottom: 24px !important;
+    }
+
+    .supaste-rooms-hero {
+        padding: 92px 18px 24px !important;
+    }
+    .supaste-rooms-hero .supaste-hero__headline {
+        font-size: 2.1rem !important;
+        line-height: 1.15 !important;
+    }
+    .supaste-rooms-hero .supaste-hero__subtitle {
+        font-size: 0.92rem !important;
+        margin-top: 8px !important;
+    }
+    .rooms-search-wrap {
+        margin: -10px 14px 28px !important;
+    }
+
+    .supaste-section__title,
+    .section-title,
+    .hero__headline,
+    .supaste-hero__headline {
+        word-break: normal !important;
+        overflow-wrap: break-word !important;
+        hyphens: manual !important;
+    }
 
     /* Floating Translucent Frosted White Glass Tab Bar (Apple iOS Dock) */
     .ios-bottom-bar {
@@ -217,7 +256,7 @@
     .supaste-hero__bg {
         display: block !important;
         position: absolute !important;
-        bottom: 0 !important;
+        bottom: -80px !important;
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
@@ -241,7 +280,7 @@
         padding-top: 10px !important;
         max-width: 100% !important;
         position: relative !important;
-        z-index: 2 !important;
+        z-index: 10 !important;
     }
 
     .supaste-hero__headline {
@@ -295,7 +334,8 @@
     .supaste-hero__trust {
         margin-top: 10px !important;
         font-size: 11px !important;
-        color: rgba(255, 255, 255, 0.88) !important;
+        color: rgba(255, 255, 255, 0.95) !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
         gap: 6px !important;
     }
 
@@ -304,7 +344,7 @@
         width: 100% !important;
         margin: 18px auto 0 auto !important;
         border-radius: 18px !important;
-        padding-bottom: 65px !important;
+        padding-bottom: 95px !important;
         background: rgba(255, 255, 255, 0.28) !important;
         backdrop-filter: blur(24px) saturate(180%) !important;
         -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
@@ -318,11 +358,11 @@
     .supaste-hero__fg {
         display: block !important;
         position: absolute !important;
-        bottom: 0 !important;
+        bottom: -80px !important;
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
-        height: 220px !important;
+        height: 380px !important;
         z-index: 4 !important;
         pointer-events: none !important;
         overflow: hidden !important;
@@ -349,45 +389,96 @@
         pointer-events: none !important;
     }
 
-    /* Inset Black Notch Card inside Glass Showcase Window */
+    /* Inset Black Shelf Card inside Glass Showcase Window */
+    .supaste-window__topbar {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 4px 6px 10px 6px !important;
+        width: 100% !important;
+    }
+
+    .supaste-window__brand {
+        font-size: 11.5px !important;
+        font-weight: 600 !important;
+        color: rgba(255, 255, 255, 0.95) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+    }
+
+    .supaste-window__brand i {
+        color: #ffffff !important;
+        font-size: 11px !important;
+    }
+
+    .supaste-window__time {
+        font-size: 11.5px !important;
+        font-weight: 500 !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .supaste-shelf__inner,
     .supaste-notch__core {
-        width: calc(100% - 24px) !important;
-        max-width: calc(100% - 24px) !important;
-        margin: 4px auto 14px auto !important;
-        border-radius: 20px !important;
-        padding: 14px 12px 16px 12px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        border-radius: 18px !important;
+        padding: 12px 10px 14px 10px !important;
         background: #000000 !important;
         box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45) !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
         box-sizing: border-box !important;
     }
 
+    .supaste-shelf__top,
     .supaste-notch__top {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
         margin-bottom: 10px !important;
-        padding: 0 4px !important;
+        padding: 0 2px !important;
         gap: 8px !important;
     }
 
+    .supaste-shelf__search,
     .supaste-notch__search {
         font-size: 11px !important;
-        padding: 6px 12px !important;
+        padding: 5px 12px !important;
         background: rgba(255, 255, 255, 0.1) !important;
         border-radius: 999px !important;
-    }
-
-    .supaste-notch__tabs {
-        margin-bottom: 12px !important;
-        padding: 0 4px !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
+        color: #94a3b8 !important;
+        display: inline-flex !important;
+        align-items: center !important;
         gap: 6px !important;
     }
 
+    .supaste-shelf__tabs,
+    .supaste-notch__tabs {
+        display: flex !important;
+        margin-bottom: 10px !important;
+        padding: 0 2px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        gap: 4px !important;
+    }
+
+    .supaste-shelf__tabs .tab,
     .supaste-notch__tabs .tab {
         font-size: 11px !important;
-        padding: 5px 12px !important;
+        padding: 4px 10px !important;
         white-space: nowrap !important;
         border-radius: 999px !important;
+        color: #94a3b8 !important;
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .supaste-shelf__tabs .tab.is-active,
+    .supaste-notch__tabs .tab.is-active {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-weight: 600 !important;
     }
 
     /* Swipeable Inset White Shelf Cards inside Black Box (Ample margins, never touching borders) */

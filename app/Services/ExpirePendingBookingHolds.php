@@ -18,10 +18,8 @@ class ExpirePendingBookingHolds
                 return false;
             }
 
-            $createdAt = $booking->getAttribute($booking->getCreatedAtColumn());
-
             if ($booking->status !== 'pending' || $booking->payment_status !== 'pending'
-                || !$createdAt || $createdAt->gt(now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))) {
+                || !$booking->paymentHoldExpired()) {
                 return false;
             }
 
@@ -46,12 +44,13 @@ class ExpirePendingBookingHolds
     public function expireStale(): int
     {
         $expiredCount = 0;
-        $createdAt = (new Booking)->getCreatedAtColumn();
+        $bookingModel = new Booking;
+        $holdAt = $bookingModel->getUpdatedAtColumn() ?: $bookingModel->getCreatedAtColumn();
 
         Booking::query()
             ->where('status', 'pending')
             ->where('payment_status', 'pending')
-            ->where($createdAt, '<=', now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))
+            ->where($holdAt, '<=', now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))
             ->orderBy('id')
             ->chunkById(100, function ($bookings) use (&$expiredCount): void {
                 foreach ($bookings as $booking) {

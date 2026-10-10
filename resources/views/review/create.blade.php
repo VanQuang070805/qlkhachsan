@@ -1,11 +1,11 @@
 @extends('client.layouts.app')
 
-@section('title', 'Đánh giá trải nghiệm · ' . ($roomType->type_name ?? 'Phòng') . ' · Posh Boutique')
+@section('title', 'Đánh giá trải nghiệm · ' . ($roomType->type_name ?? 'Phòng') . ' · Rosaliza Hotel')
 
 @push('styles')
 <style>
 /* ==========================================================================
-   Posh Boutique — Customer Room Review Experience (Apple macOS Quiet Luxury)
+   Rosaliza Hotel — Customer Room Review Experience (Apple macOS Quiet Luxury)
    ========================================================================== */
 .review-wrapper {
     max-width: 760px;
@@ -429,7 +429,7 @@
     {{-- Hero Section --}}
     <div class="review-hero">
         <span class="review-badge">Trải nghiệm lưu trú</span>
-        <h1>Cảm nhận của quý khách <em>tại Posh Boutique</em></h1>
+        <h1>Cảm nhận của quý khách <em>tại Rosaliza Hotel</em></h1>
         <p>Mỗi chia sẻ chân thành của quý khách là nguồn cảm hứng quý báu giúp chúng tôi nâng tầm chất lượng kỳ nghỉ ngày một hoàn hảo hơn.</p>
     </div>
 
@@ -442,7 +442,7 @@
                 <span class="ctrl-dot ctrl-yellow"></span>
                 <span class="ctrl-dot ctrl-green"></span>
             </div>
-            <p class="review-window-title">Posh Boutique — Phiếu đánh giá trải nghiệm #{{ $booking->id }}</p>
+            <p class="review-window-title">Rosaliza Hotel — Phiếu đánh giá trải nghiệm #{{ $booking->id }}</p>
         </header>
 
         <div class="review-body">
@@ -528,7 +528,7 @@
                 {{-- Trust Note --}}
                 <div class="review-trust-note">
                     <i class="bi bi-shield-check" aria-hidden="true"></i>
-                    <span>Đánh giá được bảo chứng bởi hệ thống xác thực kỳ nghỉ thực tế tại Posh Boutique.</span>
+                    <span>Đánh giá được bảo chứng bởi hệ thống xác thực kỳ nghỉ thực tế tại Rosaliza Hotel.</span>
                 </div>
 
                 {{-- Submit CTA --}}

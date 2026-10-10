@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Room extends Model
 {
@@ -19,7 +20,7 @@ class Room extends Model
     ];
 
     const STATUS_AVAILABLE   = 'available';
-    const STATUS_BOOKED      = 'soon_to_checkin';
+    const STATUS_BOOKED      = 'booked';
     const STATUS_OCCUPIED    = 'occupied';
     const STATUS_CLEANING    = 'cleaning';
     const STATUS_MAINTENANCE = 'maintenance';
@@ -43,5 +44,23 @@ class Room extends Model
     public function isAvailable(): bool
     {
         return $this->status === self::STATUS_AVAILABLE;
+    }
+
+    public function galleryImagePaths(): array
+    {
+        $paths = Storage::disk('public')->files('room-galleries/'.$this->getKey());
+        sort($paths, SORT_STRING);
+
+        return $paths;
+    }
+
+    public function galleryImageUrls(): array
+    {
+        return array_map(fn (string $path) => Storage::disk('public')->url($path), $this->galleryImagePaths());
+    }
+
+    public function getImageUrlAttribute(): string
+    {
+        return $this->galleryImageUrls()[0] ?? $this->roomType?->image_url ?? asset('images/rooms/default.jpg');
     }
 }

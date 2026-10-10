@@ -1,7 +1,13 @@
 <header class="internal-topbar">
     <div class="topbar-left">
+        <button type="button" class="sidebar-mobile-toggle" aria-label="Mở danh mục điều hướng" id="sidebarMobileToggle">
+            <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
         <div class="topbar-breadcrumb">
-            <span class="topbar-brand-label"><i class="bi bi-building me-1 text-primary"></i>Posh Boutique</span>
+            <span class="topbar-brand-label" style="display: inline-flex; align-items: center; gap: 6px;">
+                <img src="{{ asset('images/branding/rosa_mascot_flamingo_transparent.png') }}" alt="Rosa Hotel" style="height: 22px; width: auto; object-fit: contain;">
+                <span>Rosa Hotel</span>
+            </span>
             <span class="topbar-sep">/</span>
             <span class="topbar-current-page">@hasSection('page-title')@yield('page-title')@else @yield('title', 'Vận hành')@endif</span>
         </div>
@@ -28,7 +34,7 @@
             <span class="topbar-avatar">{{ mb_strtoupper(mb_substr(session('user.fullname', 'R'), 0, 1)) }}</span>
             <div class="topbar-user-meta">
                 <span class="topbar-user-name">{{ session('user.fullname', 'Nhân viên') }}</span>
-                <span class="topbar-user-role">{{ session('user.role') === 'admin' ? 'Quản trị viên' : 'Lễ tân' }}</span>
+                <span class="topbar-user-role">{{ auth()->user()?->role_label ?? (session('user.role') === 'admin' ? 'Quản trị viên' : 'Lễ tân') }}</span>
             </div>
         </div>
     </div>

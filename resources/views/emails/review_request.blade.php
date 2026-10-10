@@ -1,13 +1,9 @@
-@php
-    $logoPath = public_path('aura-logo-white.png');
-    $logoBase64 = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : '';
-@endphp
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cảm ơn quý khách và Đánh giá phòng tại Posh Boutique</title>
+    <title>Cảm ơn quý khách và Đánh giá phòng tại Rosaliza Hotel</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -145,17 +141,14 @@
 <body>
     <div class="email-wrapper">
         <div class="email-header">
-            @if($logoBase64)
-                <img src="data:image/png;base64,{{ $logoBase64 }}" alt="Posh Boutique Logo" class="header-logo" width="105">
-            @endif
-            <h1 class="hotel-name">POSH BOUTIQUE</h1>
+            <h1 class="hotel-name">ROSALIZA HOTEL</h1>
             <p class="header-sub">Lời Tri Ân Từ Ban Quản Lý</p>
         </div>
         <div class="email-content">
             <div class="greeting">Kính gửi quý khách <strong>{{ $booking->customer_name }}</strong>,</div>
 
             <p class="intro-text">
-                Posh Boutique xin gửi lời cảm ơn chân thành và sâu sắc nhất vì quý khách đã tin tưởng lựa chọn chúng tôi cho kỳ nghỉ vừa qua
+                Rosaliza Hotel xin gửi lời cảm ơn chân thành và sâu sắc nhất vì quý khách đã tin tưởng lựa chọn chúng tôi cho kỳ nghỉ vừa qua
                 (từ ngày <strong>{{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }}</strong> đến <strong>{{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }}</strong>).
             </p>
             <p class="intro-text">
@@ -173,18 +166,18 @@
             @endforeach
 
             <p class="closing-text">
-                Mỗi ý kiến đóng góp của quý khách là nguồn động lực quý báu giúp Posh Boutique trau chuốt và nâng tầm dịch vụ từng ngày. Kính chúc quý khách và gia đình luôn dồi dào sức khỏe, thành công và hy vọng sớm được đón tiếp quý khách trở lại.
+                Mỗi ý kiến đóng góp của quý khách là nguồn động lực quý báu giúp Rosaliza Hotel trau chuốt và nâng tầm dịch vụ từng ngày. Kính chúc quý khách và gia đình luôn dồi dào sức khỏe, thành công và hy vọng sớm được đón tiếp quý khách trở lại.
             </p>
 
             <div class="signoff">
                 Trân trọng tri ân,<br>
-                <strong style="color: #0f172a;">Ban Quản lý Posh Boutique</strong>
+                <strong style="color: #0f172a;">Ban Quản lý Rosaliza Hotel</strong>
             </div>
         </div>
         <div class="email-footer">
-            <p><strong>Posh Boutique</strong> — Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội</p>
-            <p>Hotline: 024 3828 9999 | Email: contact@poshboutique.vn</p>
-            <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">&copy; {{ date('Y') }} Posh Boutique. All rights reserved.</p>
+            <p><strong>Rosaliza Hotel</strong> — Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội</p>
+            <p>Hotline: 024 3828 9999 | Email: contact@rosalizahotel.vn</p>
+            <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">&copy; {{ date('Y') }} Rosaliza Hotel. All rights reserved.</p>
         </div>
     </div>
 </body>

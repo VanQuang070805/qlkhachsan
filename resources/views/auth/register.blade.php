@@ -3,7 +3,7 @@
 @section('content')
 <div class="sana-auth-card">
     <header class="sana-heading auth-intro">
-        <h1 class="sana-heading__title">Create your Posh Boutique account</h1>
+        <h1 class="sana-heading__title">Create your Rosaliza Hotel account</h1>
         <p class="sana-heading__sub">Begin your quiet luxury journey</p>
     </header>
 
@@ -27,6 +27,7 @@
 
         {{-- Full Name --}}
         <div class="sana-form-group">
+            <label class="sana-field-label" for="name">Họ và tên <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <input type="text"
                    class="sana-input @error('name') is-invalid @enderror"
                    id="name"
@@ -46,6 +47,7 @@
 
         {{-- Email --}}
         <div class="sana-form-group">
+            <label class="sana-field-label" for="email">Địa chỉ email <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <input type="email"
                    class="sana-input @error('email') is-invalid @enderror"
                    id="email"
@@ -66,6 +68,7 @@
 
         {{-- Phone --}}
         <div class="sana-form-group">
+            <label class="sana-field-label" for="phone">Số điện thoại <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <input type="tel"
                    class="sana-input @error('phone') is-invalid @enderror"
                    id="phone"
@@ -74,6 +77,7 @@
                    value="{{ old('phone') }}"
                    autocomplete="tel"
                    inputmode="numeric"
+                   data-digits-only
                    pattern="0[0-9]{9}"
                    maxlength="10"
                    required
@@ -88,12 +92,13 @@
 
         {{-- Password --}}
         <div class="sana-form-group">
+            <label class="sana-field-label" for="password">Mật khẩu <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <div class="sana-password-wrap">
                 <input type="password"
                        class="sana-input @error('password') is-invalid @enderror"
                        id="password"
                        name="password"
-                       placeholder="Ít nhất 10 ký tự, có chữ hoa, chữ thường và số"
+                       placeholder="Nhập mật khẩu"
                        autocomplete="new-password"
                        minlength="10"
                        pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{10,}"
@@ -102,11 +107,12 @@
                        data-required-message="Vui lòng tạo mật khẩu."
                        data-min-message="Mật khẩu cần có ít nhất 10 ký tự."
                        data-pattern-message="Mật khẩu phải có chữ hoa, chữ thường và số."
-                       aria-describedby="password-error">
+                       aria-describedby="password-hint password-error">
                 <button type="button" class="sana-password-toggle" aria-label="Hiện mật khẩu">
                     <i class="bi bi-eye" aria-hidden="true"></i>
                 </button>
             </div>
+            <p class="sana-field-help" id="password-hint">Tối thiểu 10 ký tự, gồm chữ hoa, chữ thường và số.</p>
             <p class="field-error" id="password-error" data-error-for="password">
                 @error('password')<i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}@enderror
             </p>
@@ -114,6 +120,7 @@
 
         {{-- Confirm Password --}}
         <div class="sana-form-group">
+            <label class="sana-field-label" for="password_confirmation">Xác nhận mật khẩu <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <div class="sana-password-wrap">
                 <input type="password"
                        class="sana-input"
@@ -138,7 +145,7 @@
 
         {{-- Terms Notice --}}
         <p class="sana-terms">
-            Bằng cách tạo tài khoản, bạn đồng ý với <a href="{{ route('contact') }}">Điều khoản dịch vụ</a> và <a href="{{ route('contact') }}">Chính sách bảo mật</a> của Posh Boutique.
+            Bằng cách tạo tài khoản, bạn đồng ý với <a href="{{ route('contact') }}">Điều khoản dịch vụ</a> và <a href="{{ route('contact') }}">Chính sách bảo mật</a> của Rosaliza Hotel.
         </p>
 
         <div class="sana-switch-link" style="margin-top: 14px;">

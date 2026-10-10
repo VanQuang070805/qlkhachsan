@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Entity Relationship Diagram - Hotel Management Model</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+    
+    /* Top Navigation / Controls Bar */
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 40;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+    .brand-badge {
+      font-size: 11px;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-weight: 500;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      cursor: pointer;
+      color: #334155;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+    .btn-primary {
+      background: #8faec5;
+      color: #ffffff;
+      border-color: #799db6;
+    }
+    .btn-primary:hover {
+      background: #799db6;
+      color: #ffffff;
+    }
+    
+    /* Canvas Area */
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      cursor: grab;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+    
+    /* SVG Element Styles */
+    .header-title {
+      font-size: 26px;
+      font-weight: 500;
+      fill: #1e293b;
+      text-anchor: middle;
+      letter-spacing: -0.01em;
+    }
+    
+    /* Entity Box (Pastel Soft Blue) */
+    .entity-rect {
+      fill: #d0e8f9;
+      stroke: #b5d7f1;
+      stroke-width: 0.5px;
+      rx: 2px;
+      ry: 2px;
+      cursor: pointer;
+      transition: fill 0.2s, filter 0.2s;
+    }
+    .entity-rect:hover {
+      fill: #bde0fa;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.08));
+    }
+    .entity-text {
+      font-size: 14px;
+      font-weight: 600;
+      fill: #1e293b;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+    
+    /* Relationship Diamond (Muted Steel Blue) */
+    .rel-diamond {
+      fill: #8faec5;
+      stroke: #7c9eb6;
+      stroke-width: 0.5px;
+      cursor: default;
+      transition: fill 0.2s;
+    }
+    .rel-diamond:hover {
+      fill: #7c9eb6;
+    }
+    .rel-text {
+      font-size: 12px;
+      font-weight: 600;
+      fill: #ffffff;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+    
+    /* Attribute Ellipse (Warm Sage / Cream) */
+    .attr-ellipse {
+      fill: #e8ece1;
+      stroke: #d4ded0;
+      stroke-width: 0.5px;
+      cursor: default;
+      transition: fill 0.15s;
+    }
+    .attr-ellipse:hover {
+      fill: #dbe4d3;
+    }
+    .attr-text {
+      font-size: 11px;
+      fill: #2d3748;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+    .attr-pk {
+      text-decoration: underline;
+      font-weight: 700;
+      fill: #0f172a;
+    }
+    
+    /* Straight Spoke & Connection Lines */
+    .conn-line {
+      stroke: #555555;
+      stroke-width: 1.25px;
+      fill: none;
+    }
+    .attr-line {
+      stroke: #555555;
+      stroke-width: 1px;
+      fill: none;
+    }
+    
+    /* Cardinality Markers */
+    .card-symbol {
+      stroke: #555555;
+      stroke-width: 1.3px;
+      fill: none;
+    }
+    
+    /* Legend Box */
+    .legend-box {
+      fill: #ffffff;
+      stroke: #cfd8dc;
+      stroke-width: 1.2px;
+      rx: 8px;
+      ry: 8px;
+    }
+    .legend-label {
+      font-size: 12px;
+      fill: #334155;
+      dominant-baseline: central;
+    }
+
+    /* Inspector Drawer */
+    #drawer {
+      position: fixed;
+      top: 57px;
+      right: -420px;
+      width: 400px;
+      height: calc(100vh - 57px);
+      background: #ffffff;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+      border-left: 1px solid #e2e8f0;
+      transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+    }
+    #drawer.open {
+      right: 0;
+    }
+    .drawer-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+    }
+    .drawer-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .drawer-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #64748b;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .drawer-close:hover {
+      color: #0f172a;
+    }
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .attr-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .attr-badge.is-pk {
+      background: #eef8ff;
+      border-color: #b5d7f1;
+    }
+    .attr-name {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .attr-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .tag-pk {
+      background: #0284c7;
+      color: #ffffff;
+    }
+    .tag-fk {
+      background: #8faec5;
+      color: #ffffff;
+    }
+    .tag-std {
+      background: #e2e8f0;
+      color: #475569;
+    }
+    .hint-bar {
+      position: absolute;
+      bottom: 16px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(4px);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Controls Header -->
+  <header>
+    <div class="brand">
+      <span class="brand-title">Hotel Management ERD</span>
+      <span class="brand-badge">Internet Sales Model Style</span>
+    </div>
+    <div class="controls">
+      <button class="btn" onclick="zoomIn()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+        Phóng to
+      </button>
+      <button class="btn" onclick="zoomOut()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+        Thu nhỏ
+      </button>
+      <button class="btn" onclick="resetZoom()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        Đặt lại
+      </button>
+      <button class="btn btn-primary" onclick="exportSvg()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Xuất file SVG
+      </button>
+    </div>
+  </header>
+
+  <!-- Interactive SVG Canvas -->
+  <div id="canvas-container">
+    <svg id="erd-svg" width="100%" height="100%" viewBox="0 0 1600 1150" xmlns="http://www.w3.org/2000/svg">
+      <g id="viewport" transform="matrix(1 0 0 1 0 0)">
+        
+        <!-- Canvas Background -->
+        <rect width="1600" height="1150" fill="#ffffff" />
+
+        <!-- Title matching media_1791009244631.png -->
+        <text x="800" y="45" class="header-title">Entity Relationship Diagram - Hotel Management Model</text>
+
+        <!-- ================= CHÚ THÍCH / LEGEND (TOP-LEFT) ================= -->
+        <g transform="translate(60, 75)">
+          <rect width="460" height="85" class="legend-box" />
+          
+          <rect x="25" y="24" width="75" height="35" class="entity-rect" />
+          <text x="62.5" y="41.5" class="entity-text" font-size="12">Entity</text>
+
+          <polygon points="160,22 198,41.5 160,61 122,41.5" class="rel-diamond" />
+          <text x="160" y="41.5" class="rel-text" font-size="11">Action</text>
+
+          <ellipse cx="250" cy="41.5" rx="38" ry="17" class="attr-ellipse" />
+          <text x="250" y="41.5" class="attr-text" font-size="11">Attribute</text>
+
+          <!-- Cardinality Symbols -->
+          <line x1="330" y1="26" x2="365" y2="26" stroke="#555" stroke-width="1.2" />
+          <line x1="350" y1="20" x2="350" y2="32" stroke="#555" stroke-width="1.2" />
+          <text x="375" y="26" class="legend-label">= One (1)</text>
+
+          <line x1="330" y1="46" x2="355" y2="46" stroke="#555" stroke-width="1.2" />
+          <circle cx="358" cy="46" r="3" fill="none" stroke="#555" stroke-width="1.2" />
+          <path d="M 365 41 L 361 46 L 365 51" fill="none" stroke="#555" stroke-width="1.2" />
+          <text x="375" y="46" class="legend-label">= Optional (0..N)</text>
+
+          <line x1="330" y1="66" x2="361" y2="66" stroke="#555" stroke-width="1.2" />
+          <path d="M 365 61 L 361 66 L 365 71" fill="none" stroke="#555" stroke-width="1.2" />
+          <text x="375" y="66" class="legend-label">= Many (N)</text>
+        </g>
+
+        <!-- ================= ĐƯỜNG NỐI QUAN HỆ & CHỈ SỐ BẬC (CONNECTIONS & CARDINALITY) ================= -->
+        <g id="connections">
+          <!-- 1. room_types <Bao gồm> amenities (N:N) -->
+          <line x1="910" y1="230" x2="1025" y2="230" class="conn-line" />
+          <line x1="1125" y1="230" x2="1240" y2="230" class="conn-line" />
+          <path d="M 918 225 L 911 230 L 918 235" class="card-symbol" />
+          <path d="M 1233 225 L 1239 230 L 1233 235" class="card-symbol" />
+
+          <!-- 2. rooms <Thuộc> room_types (N:1) -->
+          <line x1="840" y1="410" x2="840" y2="335" class="conn-line" />
+          <line x1="840" y1="285" x2="840" y2="255" class="conn-line" />
+          <line x1="834" y1="262" x2="846" y2="262" class="card-symbol" />
+          <path d="M 835 403 L 840 409 L 845 403" class="card-symbol" />
+
+          <!-- 3. reviews <Đánh giá> room_types (N:1) -->
+          <line x1="560" y1="310" x2="665" y2="260" class="conn-line" />
+          <line x1="735" y1="240" x2="770" y2="232" class="conn-line" />
+          <path d="M 567 305 L 561 310 L 569 314" class="card-symbol" />
+          <line x1="765" y1="227" x2="771" y2="238" class="card-symbol" />
+
+          <!-- 4. reviews <Được viết bởi> users (N:1) -->
+          <line x1="500" y1="360" x2="500" y2="445" class="conn-line" />
+          <line x1="500" y1="495" x2="500" y2="630" class="conn-line" />
+          <path d="M 495 367 L 500 361 L 505 367" class="card-symbol" />
+          <line x1="494" y1="622" x2="506" y2="622" class="card-symbol" />
+
+          <!-- 5. bookings <Đặt> rooms (N:N) -->
+          <line x1="840" y1="630" x2="840" y2="565" class="conn-line" />
+          <line x1="840" y1="515" x2="840" y2="460" class="conn-line" />
+          <path d="M 835 623 L 840 629 L 845 623" class="card-symbol" />
+          <path d="M 835 467 L 840 461 L 845 467" class="card-symbol" />
+
+          <!-- 6. bookings <Được tạo bởi> users (N:1) -->
+          <line x1="560" y1="655" x2="625" y2="655" class="conn-line" />
+          <line x1="735" y1="655" x2="770" y2="655" class="conn-line" />
+          <line x1="568" y1="649" x2="568" y2="661" class="card-symbol" />
+          <path d="M 763 650 L 769 655 L 763 660" class="card-symbol" />
+
+          <!-- 7. payment_logs <Thuộc> bookings (N:1) -->
+          <line x1="910" y1="655" x2="1020" y2="655" class="conn-line" />
+          <line x1="1100" y1="655" x2="1190" y2="655" class="conn-line" />
+          <line x1="918" y1="649" x2="918" y2="661" class="card-symbol" />
+          <path d="M 1183 650 L 1189 655 L 1183 660" class="card-symbol" />
+
+          <!-- 8. face_profiles <Thuộc> users (N:1) -->
+          <line x1="540" y1="680" x2="605" y2="765" class="conn-line" />
+          <line x1="675" y1="765" x2="765" y2="860" class="conn-line" />
+          <line x1="543" y1="675" x2="551" y2="685" class="card-symbol" />
+          <path d="M 758 854 L 764 859 L 760 866" class="card-symbol" />
+
+          <!-- 9. face_profiles <Gắn với> bookings (N:1) -->
+          <line x1="840" y1="680" x2="840" y2="765" class="conn-line" />
+          <line x1="840" y1="815" x2="840" y2="860" class="conn-line" />
+          <line x1="834" y1="688" x2="846" y2="688" class="card-symbol" />
+          <path d="M 835 853 L 840 859 L 845 853" class="card-symbol" />
+
+          <!-- 10. face_profiles <Gắn với> rooms (N:1) -->
+          <path d="M 890 445 C 970 515, 970 780, 890 865" class="conn-line" />
+          <line x1="892" y1="440" x2="901" y2="449" class="card-symbol" />
+          <path d="M 897 860 L 891 864 L 894 872" class="card-symbol" />
+
+          <!-- 11. face_sync_queue <Ghi nhận đồng bộ cho> face_profiles (N:1) -->
+          <line x1="915" y1="885" x2="990" y2="885" class="conn-line" />
+          <line x1="1150" y1="885" x2="1230" y2="885" class="conn-line" />
+          <line x1="923" y1="879" x2="923" y2="891" class="card-symbol" />
+          <path d="M 1223 880 L 1229 885 L 1223 890" class="card-symbol" />
+        </g>
+
+        <!-- ================= HÌNH THOI QUAN HỆ (ACTIONS / RELATIONSHIPS) ================= -->
+        <g id="relationships">
+          <!-- rel 1: Bao gồm -->
+          <polygon points="1075,205 1125,230 1075,255 1025,230" class="rel-diamond" />
+          <text x="1075" y="230" class="rel-text">Bao gồm</text>
+
+          <!-- rel 2: Thuộc -->
+          <polygon points="840,285 880,310 840,335 800,310" class="rel-diamond" />
+          <text x="840" y="310" class="rel-text">Thuộc</text>
+
+          <!-- rel 3: Đánh giá -->
+          <polygon points="700,235 735,255 700,275 665,255" class="rel-diamond" />
+          <text x="700" y="255" class="rel-text">Đánh giá</text>
+
+          <!-- rel 4: Được viết bởi -->
+          <polygon points="500,445 560,470 500,495 440,470" class="rel-diamond" />
+          <text x="500" y="470" class="rel-text" font-size="11">Được viết bởi</text>
+
+          <!-- rel 5: Đặt -->
+          <polygon points="840,515 875,540 840,565 805,540" class="rel-diamond" />
+          <text x="840" y="540" class="rel-text">Đặt</text>
+
+          <!-- rel 6: Được tạo bởi -->
+          <polygon points="680,630 735,655 680,680 625,655" class="rel-diamond" />
+          <text x="680" y="655" class="rel-text" font-size="11">Được tạo bởi</text>
+
+          <!-- rel 7: Thuộc -->
+          <polygon points="1060,630 1100,655 1060,680 1020,655" class="rel-diamond" />
+          <text x="1060" y="655" class="rel-text">Thuộc</text>
+
+          <!-- rel 8: Thuộc -->
+          <polygon points="640,740 675,765 640,790 605,765" class="rel-diamond" />
+          <text x="640" y="765" class="rel-text" font-size="11">Thuộc</text>
+
+          <!-- rel 9: Gắn với -->
+          <polygon points="840,765 880,790 840,815 800,790" class="rel-diamond" />
+          <text x="840" y="790" class="rel-text" font-size="11">Gắn với</text>
+
+          <!-- rel 11: Đồng bộ cho -->
+          <polygon points="1070,855 1150,885 1070,915 990,885" class="rel-diamond" />
+          <text x="1070" y="885" class="rel-text" font-size="11">Đồng bộ cho</text>
+        </g>
+
+        <!-- ================= THỰC THỂ & THUỘC TÍNH (ENTITIES & ATTRIBUTES) ================= -->
+
+        <!-- 1. room_types -->
+        <g id="ent-room_types" transform="translate(770, 205)" onclick="showEntityDetails('room_types')">
+          <rect width="140" height="50" class="entity-rect" />
+          <text x="70" y="25" class="entity-text">room_types</text>
+          
+          <line x1="20" y1="0" x2="-20" y2="-40" class="attr-line" />
+          <ellipse cx="-20" cy="-40" rx="35" ry="16" class="attr-ellipse" />
+          <text x="-20" y="-40" class="attr-text attr-pk">id</text>
+
+          <line x1="45" y1="0" x2="35" y2="-55" class="attr-line" />
+          <ellipse cx="35" cy="-55" rx="45" ry="16" class="attr-ellipse" />
+          <text x="35" y="-55" class="attr-text">type_name</text>
+
+          <line x1="70" y1="0" x2="80" y2="-55" class="attr-line" />
+          <ellipse cx="80" cy="-55" rx="32" ry="16" class="attr-ellipse" />
+          <text x="80" y="-55" class="attr-text">price</text>
+
+          <line x1="100" y1="0" x2="135" y2="-45" class="attr-line" />
+          <ellipse cx="135" cy="-45" rx="45" ry="16" class="attr-ellipse" />
+          <text x="135" y="-45" class="attr-text">max_guests</text>
+        </g>
+
+        <!-- 2. amenities -->
+        <g id="ent-amenities" transform="translate(1240, 205)" onclick="showEntityDetails('amenities')">
+          <rect width="130" height="50" class="entity-rect" />
+          <text x="65" y="25" class="entity-text">amenities</text>
+          
+          <line x1="40" y1="0" x2="25" y2="-40" class="attr-line" />
+          <ellipse cx="25" cy="-40" rx="32" ry="16" class="attr-ellipse" />
+          <text x="25" y="-40" class="attr-text attr-pk">id</text>
+
+          <line x1="90" y1="0" x2="105" y2="-40" class="attr-line" />
+          <ellipse cx="105" cy="-40" rx="50" ry="16" class="attr-ellipse" />
+          <text x="105" y="-40" class="attr-text">amenity_name</text>
+
+          <line x1="130" y1="25" x2="185" y2="25" class="attr-line" />
+          <ellipse cx="185" cy="25" rx="32" ry="16" class="attr-ellipse" />
+          <text x="185" y="25" class="attr-text">icon</text>
+        </g>
+
+        <!-- 3. rooms -->
+        <g id="ent-rooms" transform="translate(780, 410)" onclick="showEntityDetails('rooms')">
+          <rect width="120" height="50" class="entity-rect" />
+          <text x="60" y="25" class="entity-text">rooms</text>
+          
+          <line x1="0" y1="25" x2="-45" y2="15" class="attr-line" />
+          <ellipse cx="-45" cy="15" rx="30" ry="16" class="attr-ellipse" />
+          <text x="-45" y="15" class="attr-text attr-pk">id</text>
+
+          <line x1="120" y1="15" x2="175" y2="0" class="attr-line" />
+          <ellipse cx="175" cy="0" rx="45" ry="16" class="attr-ellipse" />
+          <text x="175" y="0" class="attr-text">room_number</text>
+
+          <line x1="120" y1="35" x2="175" y2="40" class="attr-line" />
+          <ellipse cx="175" cy="40" rx="35" ry="16" class="attr-ellipse" />
+          <text x="175" y="40" class="attr-text">status</text>
+
+          <line x1="60" y1="50" x2="60" y2="90" class="attr-line" />
+          <ellipse cx="60" cy="90" rx="32" ry="16" class="attr-ellipse" />
+          <text x="60" y="90" class="attr-text">floor</text>
+        </g>
+
+        <!-- 4. reviews -->
+        <g id="ent-reviews" transform="translate(440, 310)" onclick="showEntityDetails('reviews')">
+          <rect width="120" height="50" class="entity-rect" />
+          <text x="60" y="25" class="entity-text">reviews</text>
+          
+          <line x1="30" y1="0" x2="15" y2="-40" class="attr-line" />
+          <ellipse cx="15" cy="-40" rx="30" ry="16" class="attr-ellipse" />
+          <text x="15" y="-40" class="attr-text attr-pk">id</text>
+
+          <line x1="80" y1="0" x2="95" y2="-40" class="attr-line" />
+          <ellipse cx="95" cy="-40" rx="35" ry="16" class="attr-ellipse" />
+          <text x="95" y="-40" class="attr-text">rating</text>
+
+          <line x1="0" y1="25" x2="-50" y2="25" class="attr-line" />
+          <ellipse cx="-50" cy="25" rx="38" ry="16" class="attr-ellipse" />
+          <text x="-50" y="25" class="attr-text">comment</text>
+        </g>
+
+        <!-- 5. users -->
+        <g id="ent-users" transform="translate(440, 630)" onclick="showEntityDetails('users')">
+          <rect width="120" height="50" class="entity-rect" />
+          <text x="60" y="25" class="entity-text">users</text>
+          
+          <line x1="0" y1="15" x2="-55" y2="-5" class="attr-line" />
+          <ellipse cx="-55" cy="-5" rx="30" ry="16" class="attr-ellipse" />
+          <text x="-55" y="-5" class="attr-text attr-pk">id</text>
+
+          <line x1="0" y1="35" x2="-65" y2="35" class="attr-line" />
+          <ellipse cx="-65" cy="35" rx="42" ry="16" class="attr-ellipse" />
+          <text x="-65" y="35" class="attr-text">username</text>
+
+          <line x1="20" y1="50" x2="-20" y2="85" class="attr-line" />
+          <ellipse cx="-20" cy="85" rx="42" ry="16" class="attr-ellipse" />
+          <text x="-20" y="85" class="attr-text">fullname</text>
+
+          <line x1="60" y1="50" x2="60" y2="90" class="attr-line" />
+          <ellipse cx="60" cy="90" rx="35" ry="16" class="attr-ellipse" />
+          <text x="60" y="90" class="attr-text">email</text>
+
+          <line x1="90" y1="50" x2="125" y2="85" class="attr-line" />
+          <ellipse cx="125" cy="85" rx="32" ry="16" class="attr-ellipse" />
+          <text x="125" y="85" class="attr-text">role</text>
+        </g>
+
+        <!-- 6. bookings -->
+        <g id="ent-bookings" transform="translate(770, 630)" onclick="showEntityDetails('bookings')">
+          <rect width="140" height="50" class="entity-rect" />
+          <text x="70" y="25" class="entity-text">bookings</text>
+          
+          <line x1="120" y1="0" x2="160" y2="-30" class="attr-line" />
+          <ellipse cx="160" cy="-30" rx="30" ry="16" class="attr-ellipse" />
+          <text x="160" y="-30" class="attr-text attr-pk">id</text>
+
+          <line x1="140" y1="20" x2="195" y2="0" class="attr-line" />
+          <ellipse cx="195" cy="0" rx="45" ry="16" class="attr-ellipse" />
+          <text x="195" y="0" class="attr-text">total_price</text>
+
+          <line x1="140" y1="40" x2="200" y2="40" class="attr-line" />
+          <ellipse cx="200" cy="40" rx="42" ry="16" class="attr-ellipse" />
+          <text x="200" y="40" class="attr-text">check_in</text>
+
+          <line x1="120" y1="50" x2="170" y2="75" class="attr-line" />
+          <ellipse cx="170" cy="75" rx="45" ry="16" class="attr-ellipse" />
+          <text x="170" y="75" class="attr-text">check_out</text>
+
+          <line x1="30" y1="50" x2="20" y2="80" class="attr-line" />
+          <ellipse cx="20" cy="80" rx="35" ry="16" class="attr-ellipse" />
+          <text x="20" y="80" class="attr-text">status</text>
+        </g>
+
+        <!-- 7. payment_logs -->
+        <g id="ent-payment_logs" transform="translate(1190, 630)" onclick="showEntityDetails('payment_logs')">
+          <rect width="140" height="50" class="entity-rect" />
+          <text x="70" y="25" class="entity-text">payment_logs</text>
+          
+          <line x1="140" y1="10" x2="190" y2="-10" class="attr-line" />
+          <ellipse cx="190" cy="-10" rx="30" ry="16" class="attr-ellipse" />
+          <text x="190" y="-10" class="attr-text attr-pk">id</text>
+
+          <line x1="140" y1="25" x2="200" y2="25" class="attr-line" />
+          <ellipse cx="200" cy="25" rx="38" ry="16" class="attr-ellipse" />
+          <text x="200" y="25" class="attr-text">amount</text>
+
+          <line x1="140" y1="40" x2="195" y2="60" class="attr-line" />
+          <ellipse cx="195" cy="60" rx="40" ry="16" class="attr-ellipse" />
+          <text x="195" y="60" class="attr-text">gateway</text>
+
+          <line x1="70" y1="50" x2="70" y2="85" class="attr-line" />
+          <ellipse cx="70" cy="85" rx="35" ry="16" class="attr-ellipse" />
+          <text x="70" y="85" class="attr-text">status</text>
+        </g>
+
+        <!-- 8. face_profiles -->
+        <g id="ent-face_profiles" transform="translate(765, 860)" onclick="showEntityDetails('face_profiles')">
+          <rect width="150" height="50" class="entity-rect" />
+          <text x="75" y="25" class="entity-text">face_profiles</text>
+          
+          <line x1="15" y1="50" x2="-20" y2="90" class="attr-line" />
+          <ellipse cx="-20" cy="90" rx="30" ry="16" class="attr-ellipse" />
+          <text x="-20" y="90" class="attr-text attr-pk">id</text>
+
+          <line x1="50" y1="50" x2="40" y2="95" class="attr-line" />
+          <ellipse cx="40" cy="95" rx="45" ry="16" class="attr-ellipse" />
+          <text x="40" y="95" class="attr-text">guest_name</text>
+
+          <line x1="90" y1="50" x2="110" y2="95" class="attr-line" />
+          <ellipse cx="110" cy="95" rx="42" ry="16" class="attr-ellipse" />
+          <text x="110" y="95" class="attr-text">guest_cccd</text>
+
+          <line x1="130" y1="50" x2="175" y2="85" class="attr-line" />
+          <ellipse cx="175" cy="85" rx="45" ry="16" class="attr-ellipse" />
+          <text x="175" y="85" class="attr-text">embedding</text>
+        </g>
+
+        <!-- 9. face_sync_queue -->
+        <g id="ent-face_sync_queue" transform="translate(1230, 860)" onclick="showEntityDetails('face_sync_queue')">
+          <rect width="150" height="50" class="entity-rect" />
+          <text x="75" y="25" class="entity-text">face_sync_queue</text>
+          
+          <line x1="45" y1="50" x2="30" y2="95" class="attr-line" />
+          <ellipse cx="30" cy="95" rx="30" ry="16" class="attr-ellipse" />
+          <text x="30" y="95" class="attr-text attr-pk">id</text>
+
+          <line x1="95" y1="50" x2="105" y2="95" class="attr-line" />
+          <ellipse cx="105" cy="95" rx="35" ry="16" class="attr-ellipse" />
+          <text x="105" y="95" class="attr-text">action</text>
+
+          <line x1="150" y1="35" x2="195" y2="55" class="attr-line" />
+          <ellipse cx="195" cy="55" rx="35" ry="16" class="attr-ellipse" />
+          <text x="195" y="55" class="attr-text">status</text>
+        </g>
+
+        <!-- ================= BẢNG ĐỘC LẬP / STANDALONE ENTITIES ================= -->
+        <!-- 10. price_settings -->
+        <g id="ent-price_settings" transform="translate(80, 780)" onclick="showEntityDetails('price_settings')">
+          <rect width="140" height="48" class="entity-rect" />
+          <text x="70" y="24" class="entity-text">price_settings</text>
+          <line x1="140" y1="15" x2="190" y2="0" class="attr-line" />
+          <ellipse cx="190" cy="0" rx="30" ry="16" class="attr-ellipse" />
+          <text x="190" y="0" class="attr-text attr-pk">id</text>
+
+          <line x1="140" y1="35" x2="195" y2="35" class="attr-line" />
+          <ellipse cx="195" cy="35" rx="35" ry="16" class="attr-ellipse" />
+          <text x="195" y="35" class="attr-text">name</text>
+        </g>
+
+        <!-- 11. holidays -->
+        <g id="ent-holidays" transform="translate(80, 875)" onclick="showEntityDetails('holidays')">
+          <rect width="140" height="48" class="entity-rect" />
+          <text x="70" y="24" class="entity-text">holidays</text>
+          <line x1="140" y1="15" x2="190" y2="0" class="attr-line" />
+          <ellipse cx="190" cy="0" rx="30" ry="16" class="attr-ellipse" />
+          <text x="190" y="0" class="attr-text attr-pk">id</text>
+
+          <line x1="140" y1="35" x2="195" y2="35" class="attr-line" />
+          <ellipse cx="195" cy="35" rx="32" ry="16" class="attr-ellipse" />
+          <text x="195" y="35" class="attr-text">date</text>
+        </g>
+
+        <!-- 12. knowledge_chunks -->
+        <g id="ent-knowledge_chunks" transform="translate(80, 970)" onclick="showEntityDetails('knowledge_chunks')">
+          <rect width="150" height="48" class="entity-rect" />
+          <text x="75" y="24" class="entity-text">knowledge_chunks</text>
+          <line x1="150" y1="15" x2="200" y2="0" class="attr-line" />
+          <ellipse cx="200" cy="0" rx="30" ry="16" class="attr-ellipse" />
+          <text x="200" y="0" class="attr-text attr-pk">id</text>
+
+          <line x1="150" y1="35" x2="205" y2="35" class="attr-line" />
+          <ellipse cx="205" cy="35" rx="35" ry="16" class="attr-ellipse" />
+          <text x="205" y="35" class="attr-text">title</text>
+        </g>
+
+      </g>
+    </svg>
+
+    <div class="hint-bar">
+      💡 <b>Mẹo:</b> Kéo chuột để di chuyển • Cuộn chuột để phóng to/thu nhỏ • Nhấn vào thực thể bất kỳ để xem toàn bộ danh sách thuộc tính chi tiết
+    </div>
+  </div>
+
+  <!-- Inspector Slide-out Drawer -->
+  <aside id="drawer">
+    <div class="drawer-header">
+      <div>
+        <div id="drawer-entity-name" class="drawer-title">Tên thực thể</div>
+        <div id="drawer-entity-desc" style="font-size: 11px; color: #64748b; margin-top: 2px;">Chi tiết thuộc tính & cấu trúc</div>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div id="drawer-content" class="drawer-body">
+      <!-- Injected by JavaScript -->
+    </div>
+  </aside>
+
+  <script>
+    // Schema Dictionary containing ALL 124+ attributes across all 12 entities
+    const schemaDatabase = {
+      users: {
+        title: "users (Người dùng & Khách hàng)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã định danh duy nhất người dùng" },
+          { name: "username", type: "VARCHAR", tag: "STD", desc: "Tên đăng nhập" },
+          { name: "password", type: "VARCHAR", tag: "STD", desc: "Mật khẩu đã băm (Bcrypt)" },
+          { name: "fullname", type: "VARCHAR", tag: "STD", desc: "Họ và tên đầy đủ" },
+          { name: "email", type: "VARCHAR", tag: "STD", desc: "Địa chỉ email liên hệ" },
+          { name: "google_id", type: "VARCHAR", tag: "STD", desc: "ID tài khoản Google OAuth" },
+          { name: "avatar_url", type: "VARCHAR", tag: "STD", desc: "URL ảnh đại diện" },
+          { name: "phone", type: "VARCHAR", tag: "STD", desc: "Số điện thoại" },
+          { name: "role", type: "ENUM", tag: "STD", desc: "Vai trò: customer, staff, admin" },
+          { name: "verified", type: "BOOLEAN", tag: "STD", desc: "Trạng thái xác thực email/SĐT" },
+          { name: "otp_code", type: "VARCHAR", tag: "STD", desc: "Mã OTP xác thực" },
+          { name: "otp_expires_at", type: "DATETIME", tag: "STD", desc: "Thời điểm hết hạn OTP" },
+          { name: "remember_token", type: "VARCHAR", tag: "STD", desc: "Token duy trì phiên đăng nhập" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm khởi tạo bản ghi" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật bản ghi" }
+        ],
+        relations: [
+          "1:N với bookings (Người dùng tạo đặt phòng)",
+          "1:N với reviews (Khách viết đánh giá)",
+          "1:N với face_profiles (Hồ sơ khuôn mặt của tài khoản)"
+        ]
+      },
+      room_types: {
+        title: "room_types (Hạng phòng)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã định danh hạng phòng" },
+          { name: "type_name", type: "VARCHAR", tag: "STD", desc: "Tên hạng phòng (Deluxe, Suite,...)" },
+          { name: "price", type: "DECIMAL", tag: "STD", desc: "Giá phòng cơ sở theo đêm" },
+          { name: "max_adults", type: "INT", tag: "STD", desc: "Số người lớn tối đa" },
+          { name: "max_children", type: "INT", tag: "STD", desc: "Số trẻ em tối đa" },
+          { name: "max_guests", type: "INT", tag: "STD", desc: "Tổng khách tối đa cho phép" },
+          { name: "description", type: "TEXT", tag: "STD", desc: "Mô tả chi tiết và chính sách" },
+          { name: "image", type: "VARCHAR", tag: "STD", desc: "Hình ảnh đại diện hạng phòng" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm khởi tạo" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật" }
+        ],
+        relations: [
+          "N:1 với rooms (Các phòng thuộc hạng này)",
+          "N:N với amenities (Bao gồm các tiện nghi)",
+          "1:N với reviews (Nhận các đánh giá)"
+        ]
+      },
+      rooms: {
+        title: "rooms (Phòng vật lý)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã định danh phòng" },
+          { name: "room_number", type: "VARCHAR", tag: "STD", desc: "Số phòng thực tế (101, 202,...)" },
+          { name: "room_type_id", type: "BIGINT (FK)", tag: "FK", desc: "Thuộc hạng phòng nào" },
+          { name: "floor", type: "INT", tag: "STD", desc: "Tầng số mấy" },
+          { name: "status", type: "ENUM", tag: "STD", desc: "Trạng thái: available, occupied, maintenance" },
+          { name: "needs_cleaning", type: "BOOLEAN", tag: "STD", desc: "Cần dọn vệ sinh" },
+          { name: "cleaning_requested_at", type: "DATETIME", tag: "STD", desc: "Thời điểm yêu cầu dọn phòng" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm khởi tạo" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật" }
+        ],
+        relations: [
+          "N:1 với room_types (Thuộc loại phòng)",
+          "N:N với bookings (Được đặt qua đơn booking)",
+          "1:N với face_profiles (Gắn với hồ sơ khuôn mặt mở cửa)"
+        ]
+      },
+      amenities: {
+        title: "amenities (Tiện nghi & Dịch vụ kèm phòng)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã định danh tiện nghi" },
+          { name: "amenity_name", type: "VARCHAR", tag: "STD", desc: "Tên tiện nghi (Wifi, Minibar, Bồn tắm,...)" },
+          { name: "icon", type: "VARCHAR", tag: "STD", desc: "Tên biểu tượng / SVG icon" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm khởi tạo" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật" }
+        ],
+        relations: [
+          "N:N với room_types (Bao gồm trong các hạng phòng)"
+        ]
+      },
+      bookings: {
+        title: "bookings (Đơn đặt phòng)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã định danh đơn đặt phòng" },
+          { name: "user_id", type: "BIGINT (FK)", tag: "FK", desc: "Tài khoản khách đặt (nếu có)" },
+          { name: "customer_name", type: "VARCHAR", tag: "STD", desc: "Tên khách lưu trú đại diện" },
+          { name: "customer_email", type: "VARCHAR", tag: "STD", desc: "Email nhận xác nhận đặt phòng" },
+          { name: "customer_phone", type: "VARCHAR", tag: "STD", desc: "SĐT liên lạc" },
+          { name: "check_in", type: "DATE", tag: "STD", desc: "Ngày nhận phòng dự kiến" },
+          { name: "check_out", type: "DATE", tag: "STD", desc: "Ngày trả phòng dự kiến" },
+          { name: "actual_check_in", type: "DATETIME", tag: "STD", desc: "Giờ check-in thực tế" },
+          { name: "actual_check_out", type: "DATETIME", tag: "STD", desc: "Giờ check-out thực tế" },
+          { name: "adult_count", type: "INT", tag: "STD", desc: "Số lượng người lớn" },
+          { name: "child_count", type: "INT", tag: "STD", desc: "Số lượng trẻ em" },
+          { name: "total_price", type: "DECIMAL", tag: "STD", desc: "Tổng tiền đơn phòng" },
+          { name: "late_checkout_fee", type: "DECIMAL", tag: "STD", desc: "Phí phát sinh trễ giờ" },
+          { name: "waive_late_fee", type: "BOOLEAN", tag: "STD", desc: "Miễn trừ phí trễ hạn" },
+          { name: "deposit_amount", type: "DECIMAL", tag: "STD", desc: "Tiền đặt cọc" },
+          { name: "payment_method", type: "VARCHAR", tag: "STD", desc: "Phương thức thanh toán (VNPAY, MoMo, Tiền mặt)" },
+          { name: "payment_status", type: "ENUM", tag: "STD", desc: "Trạng thái thanh toán (pending, paid, refunded)" },
+          { name: "status", type: "ENUM", tag: "STD", desc: "Trạng thái đơn (confirmed, checked_in, checked_out, cancelled)" },
+          { name: "cancelled_at", type: "DATETIME", tag: "STD", desc: "Thời điểm hủy phòng" },
+          { name: "cancellation_reason", type: "TEXT", tag: "STD", desc: "Lý do hủy phòng" },
+          { name: "refund_status", type: "ENUM", tag: "STD", desc: "Trạng thái hoàn tiền" },
+          { name: "refund_amount", type: "DECIMAL", tag: "STD", desc: "Số tiền hoàn lại" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm tạo booking" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật booking" }
+        ],
+        relations: [
+          "N:1 với users (Được tạo bởi khách hàng)",
+          "N:N với rooms (Đặt một hoặc nhiều phòng)",
+          "1:N với payment_logs (Các giao dịch thanh toán)",
+          "1:N với face_profiles (Các hồ sơ nhận diện khách lưu trú)"
+        ]
+      },
+      payment_logs: {
+        title: "payment_logs (Nhật ký thanh toán)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã giao dịch nội bộ" },
+          { name: "booking_id", type: "BIGINT (FK)", tag: "FK", desc: "Thuộc về đơn đặt phòng nào" },
+          { name: "gateway", type: "VARCHAR", tag: "STD", desc: "Cổng thanh toán (VNPAY, MoMo, VietQR)" },
+          { name: "transaction_id", type: "VARCHAR", tag: "STD", desc: "Mã giao dịch từ phía cổng đối tác" },
+          { name: "reference_code", type: "VARCHAR", tag: "STD", desc: "Mã tham chiếu đơn hàng" },
+          { name: "amount", type: "DECIMAL", tag: "STD", desc: "Số tiền thực tế thanh toán" },
+          { name: "purpose", type: "VARCHAR", tag: "STD", desc: "Mục đích (deposit, final_payment, late_fee)" },
+          { name: "status", type: "ENUM", tag: "STD", desc: "Trạng thái: success, failed, pending" },
+          { name: "raw_response", type: "TEXT / JSON", tag: "STD", desc: "Dữ liệu phản hồi gốc từ cổng" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm thực hiện" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật" }
+        ],
+        relations: [
+          "N:1 với bookings (Thuộc về đơn đặt phòng)"
+        ]
+      },
+      reviews: {
+        title: "reviews (Đánh giá & Nhận xét)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã định danh đánh giá" },
+          { name: "user_id", type: "BIGINT (FK)", tag: "FK", desc: "Khách hàng viết đánh giá" },
+          { name: "room_type_id", type: "BIGINT (FK)", tag: "FK", desc: "Hạng phòng được đánh giá" },
+          { name: "rating", type: "INT", tag: "STD", desc: "Số sao đánh giá (1 - 5 sao)" },
+          { name: "comment", type: "TEXT", tag: "STD", desc: "Nội dung phản hồi chi tiết" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm gửi review" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm chỉnh sửa" }
+        ],
+        relations: [
+          "N:1 với users (Được viết bởi người dùng)",
+          "N:1 với room_types (Đánh giá cho loại phòng)"
+        ]
+      },
+      face_profiles: {
+        title: "face_profiles (Hồ sơ nhận diện khuôn mặt)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã hồ sơ nhận diện" },
+          { name: "booking_id", type: "BIGINT (FK)", tag: "FK", desc: "Gắn với đơn đặt phòng" },
+          { name: "room_id", type: "BIGINT (FK)", tag: "FK", desc: "Gắn với phòng được cấp quyền" },
+          { name: "user_id", type: "BIGINT (FK)", tag: "FK", desc: "Thuộc về người dùng" },
+          { name: "guest_name", type: "VARCHAR", tag: "STD", desc: "Tên khách trên CCCD" },
+          { name: "guest_cccd", type: "VARCHAR", tag: "STD", desc: "Số căn cước công dân" },
+          { name: "guest_phone", type: "VARCHAR", tag: "STD", desc: "Số điện thoại liên lạc" },
+          { name: "embedding", type: "BLOB / VECTOR", tag: "STD", desc: "Vector đặc trưng khuôn mặt (512D)" },
+          { name: "embedding_model", type: "VARCHAR", tag: "STD", desc: "Mô hình trích xuất (InsightFace / FaceNet)" },
+          { name: "embedding_dimension", type: "INT", tag: "STD", desc: "Số chiều vector (512)" },
+          { name: "sample_count", type: "INT", tag: "STD", desc: "Số lượng mẫu ảnh đã chụp" },
+          { name: "version", type: "INT", tag: "STD", desc: "Phiên bản vector" },
+          { name: "active", type: "BOOLEAN", tag: "STD", desc: "Trạng thái kích hoạt mở cửa" },
+          { name: "consent_at", type: "DATETIME", tag: "STD", desc: "Thời điểm khách đồng thuận sinh trắc" },
+          { name: "revoked_at", type: "DATETIME", tag: "STD", desc: "Thời điểm thu hồi quyền mở cửa" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm đăng ký" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật" }
+        ],
+        relations: [
+          "N:1 với bookings (Gắn với đơn đặt)",
+          "N:1 với rooms (Gắn với phòng được cấp quyền)",
+          "N:1 với users (Thuộc về tài khoản người dùng)",
+          "1:N với face_sync_queue (Đẩy lệnh đồng bộ xuống thiết bị IoT)"
+        ]
+      },
+      face_sync_queue: {
+        title: "face_sync_queue (Hàng đợi đồng bộ thiết bị IoT)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã hàng đợi đồng bộ" },
+          { name: "face_profile_id", type: "BIGINT (FK)", tag: "FK", desc: "Mã hồ sơ khuôn mặt cần sync" },
+          { name: "action", type: "ENUM", tag: "STD", desc: "Hành động: insert, update, revoke" },
+          { name: "status", type: "ENUM", tag: "STD", desc: "Trạng thái: pending, syncing, completed, failed" },
+          { name: "retry_count", type: "INT", tag: "STD", desc: "Số lần thử lại khi lỗi mạng" },
+          { name: "next_attempt_at", type: "DATETIME", tag: "STD", desc: "Thời điểm thử lại tiếp theo" },
+          { name: "last_attempt_at", type: "DATETIME", tag: "STD", desc: "Thời điểm thử gần nhất" },
+          { name: "last_error", type: "TEXT", tag: "STD", desc: "Mã lỗi hoặc thông báo lỗi từ khóa cửa" },
+          { name: "synced_at", type: "DATETIME", tag: "STD", desc: "Thời điểm hoàn tất đồng bộ" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm thêm vào hàng đợi" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật" }
+        ],
+        relations: [
+          "N:1 với face_profiles (Ghi nhận đồng bộ cho hồ sơ)"
+        ]
+      },
+      price_settings: {
+        title: "price_settings (Thiết lập quy tắc giá động)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã quy tắc định giá" },
+          { name: "name", type: "VARCHAR", tag: "STD", desc: "Tên chính sách (Mùa cao điểm, Giảm giá sớm)" },
+          { name: "start_date", type: "DATE", tag: "STD", desc: "Ngày áp dụng bắt đầu" },
+          { name: "end_date", type: "DATE", tag: "STD", desc: "Ngày kết thúc" },
+          { name: "adjustment_type", type: "ENUM", tag: "STD", desc: "Loại điều chỉnh (percentage, fixed_amount)" },
+          { name: "adjustment_value", type: "DECIMAL", tag: "STD", desc: "Giá trị tăng/giảm (+20%, -100k)" },
+          { name: "status", type: "ENUM", tag: "STD", desc: "Trạng thái: active, inactive" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm khởi tạo" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật" }
+        ],
+        relations: [
+          "Bảng độc lập (Standalone cấu hình giá toàn hệ thống)"
+        ]
+      },
+      holidays: {
+        title: "holidays (Lịch ngày lễ & Phụ thu)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã ngày lễ" },
+          { name: "name", type: "VARCHAR", tag: "STD", desc: "Tên dịp lễ (Tết Nguyên Đán, Giỗ Tổ, 30/4)" },
+          { name: "date", type: "DATE", tag: "STD", desc: "Ngày diễn ra" },
+          { name: "recurring", type: "BOOLEAN", tag: "STD", desc: "Có lặp lại theo chu kỳ năm" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm tạo" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật" }
+        ],
+        relations: [
+          "Bảng độc lập (Cung cấp dữ liệu tính phụ phí ngày lễ)"
+        ]
+      },
+      knowledge_chunks: {
+        title: "knowledge_chunks (Kho tri thức RAG Concierge)",
+        pk: "id",
+        attributes: [
+          { name: "id", type: "BIGINT (PK)", tag: "PK", desc: "Mã đoạn tri thức" },
+          { name: "source", type: "VARCHAR", tag: "STD", desc: "Nguồn tài liệu (Chính sách, Menu, Dịch vụ)" },
+          { name: "title", type: "VARCHAR", tag: "STD", desc: "Tiêu đề tài liệu" },
+          { name: "content", type: "TEXT", tag: "STD", desc: "Nội dung văn bản chi tiết" },
+          { name: "content_hash", type: "VARCHAR", tag: "STD", desc: "Mã băm SHA256 chống trùng lặp" },
+          { name: "embedding", type: "BLOB / VECTOR", tag: "STD", desc: "Vector ngữ nghĩa (Text-embedding-004)" },
+          { name: "embedding_model", type: "VARCHAR", tag: "STD", desc: "Tên model embedding" },
+          { name: "created_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm nhúng dữ liệu" },
+          { name: "updated_at", type: "TIMESTAMP", tag: "STD", desc: "Thời điểm cập nhật" }
+        ],
+        relations: [
+          "Bảng độc lập (Dùng cho Royal Concierge RAG Chatbot)"
+        ]
+      }
+    };
+
+    // Pan & Zoom Mechanics
+    let scale = 1;
+    let pointX = 0;
+    let pointY = 0;
+    let start = { x: 0, y: 0 };
+    let isPanning = false;
+    const viewport = document.getElementById('viewport');
+    const container = document.getElementById('canvas-container');
+
+    function setTransform() {
+      viewport.setAttribute('transform', `matrix(${scale} 0 0 ${scale} ${pointX} ${pointY})`);
+    }
+
+    container.addEventListener('mousedown', (e) => {
+      if (e.target.closest('#drawer')) return;
+      start = { x: e.clientX - pointX, y: e.clientY - pointY };
+      isPanning = true;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      pointX = e.clientX - start.x;
+      pointY = e.clientY - start.y;
+      setTransform();
+    });
+
+    window.addEventListener('mouseup', () => { isPanning = false; });
+
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const xs = (e.clientX - pointX) / scale;
+      const ys = (e.clientY - pointY) / scale;
+      const delta = -e.deltaY;
+      (delta > 0) ? (scale *= 1.15) : (scale /= 1.15);
+      scale = Math.min(Math.max(0.4, scale), 4);
+      pointX = e.clientX - xs * scale;
+      pointY = e.clientY - ys * scale;
+      setTransform();
+    });
+
+    function zoomIn() {
+      scale = Math.min(scale * 1.25, 4);
+      setTransform();
+    }
+    function zoomOut() {
+      scale = Math.max(scale / 1.25, 0.4);
+      setTransform();
+    }
+    function resetZoom() {
+      scale = 1;
+      pointX = 0;
+      pointY = 0;
+      setTransform();
+    }
+
+    // Entity Inspector Drawer Functionality
+    function showEntityDetails(entityKey) {
+      const data = schemaDatabase[entityKey];
+      if (!data) return;
+
+      document.getElementById('drawer-entity-name').textContent = data.title;
+      const contentEl = document.getElementById('drawer-content');
+      
+      let html = `
+        <div style="margin-bottom: 20px;">
+          <h4 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Quan hệ liên kết</h4>
+          <ul style="padding-left: 18px; font-size: 12px; color: #475569; line-height: 1.6;">
+            ${data.relations.map(r => `<li>${r}</li>`).join('')}
+          </ul>
+        </div>
+        <div>
+          <h4 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
+            Toàn bộ thuộc tính (${data.attributes.length})
+          </h4>
+      `;
+
+      data.attributes.forEach(attr => {
+        const isPk = attr.tag === 'PK';
+        const tagClass = isPk ? 'tag-pk' : (attr.tag === 'FK' ? 'tag-fk' : 'tag-std');
+        html += `
+          <div class="attr-badge ${isPk ? 'is-pk' : ''}">
+            <div>
+              <div class="attr-name" style="${isPk ? 'text-decoration: underline;' : ''}">${attr.name}</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${attr.desc}</div>
+            </div>
+            <div style="text-align: right;">
+              <span class="attr-tag ${tagClass}">${attr.type}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      contentEl.innerHTML = html;
+      document.getElementById('drawer').classList.add('open');
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer').classList.remove('open');
+    }
+
+    // Export SVG
+    function exportSvg() {
+      const svg = document.getElementById('erd-svg');
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svg);
+      source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+      const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = "hotel_management_erd.svg";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  </script>
+</body>
+</html>

@@ -19,7 +19,7 @@ class RoomController extends Controller
     {
         $now = now('Asia/Ho_Chi_Minh');
         $earliestCheckIn = $now->copy()->startOfDay();
-        if ($now->hour >= 17) {
+        if ($now->hour >= 16) {
             $earliestCheckIn->addDay();
         }
 
@@ -36,8 +36,8 @@ class RoomController extends Controller
         $checkOut = $filters['check_out'] ?? $earliestCheckIn->copy()->addDay()->toDateString();
         if ($searchSubmitted && $checkIn < $earliestCheckIn->toDateString()) {
             throw ValidationException::withMessages([
-                'check_in' => $now->hour >= 17
-                    ? 'Sau 17:00, vui lòng chọn ngày nhận phòng từ ngày mai.'
+                'check_in' => $now->hour >= 16
+                    ? 'Từ 16:00, vui lòng chọn ngày nhận phòng từ ngày mai.'
                     : 'Ngày nhận phòng không thể ở trong quá khứ.',
             ]);
         }
@@ -51,11 +51,16 @@ class RoomController extends Controller
 
         $roomTypes = RoomType::with(['amenities', 'rooms'])
             ->when(filled($filters['q'] ?? null), function ($query) use ($filters) {
-                $term = trim($filters['q']);
-                $query->where(function ($match) use ($term) {
-                    $match->where('type_name', 'like', "%{$term}%")
-                        ->orWhere('description', 'like', "%{$term}%")
-                        ->orWhereHas('amenities', fn ($amenities) => $amenities->where('amenity_name', 'like', "%{$term}%"));
+                $terms = array_values(array_filter(array_map('trim', explode(',', $filters['q']))));
+                $query->where(function ($match) use ($terms) {
+                    foreach ($terms as $index => $term) {
+                        $clause = fn ($item) => $item
+                            ->where('type_name', 'like', "%{$term}%")
+                            ->orWhere('description', 'like', "%{$term}%")
+                            ->orWhereHas('amenities', fn ($amenities) => $amenities->where('amenity_name', 'like', "%{$term}%"));
+
+                        $index === 0 ? $match->where($clause) : $match->orWhere($clause);
+                    }
                 });
             })
             ->get()
@@ -95,9 +100,11 @@ class RoomController extends Controller
             'adults' => $adults,
             'children' => $children,
         ];
+        $roomTypeOptions = RoomType::query()->orderBy('type_name')->pluck('type_name');
 
         return view('room.index', [
             'rooms' => $roomTypes,
+            'roomTypeOptions' => $roomTypeOptions,
             'filters' => $filters,
             'earliestCheckIn' => $earliestCheckIn->toDateString(),
             'searchSubmitted' => $searchSubmitted,
@@ -116,9 +123,9 @@ class RoomController extends Controller
             'children'  => 'nullable|integer|min:0',
         ]);
 
-        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 17 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
+        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 16 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
         if ($request->check_in < $earliestCheckIn) {
-            return back()->withInput()->withErrors(['check_in' => 'Sau 17:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
+            return back()->withInput()->withErrors(['check_in' => 'Từ 16:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
         }
 
         $checkIn   = $request->check_in;
@@ -174,9 +181,9 @@ class RoomController extends Controller
             'children' => 'nullable|integer|min:0|max:20',
         ]);
 
-        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 17 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
+        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 16 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
         if ($request->filled('check_in') && $request->check_in < $earliestCheckIn) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['check_in' => 'Sau 17:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
+            throw \Illuminate\Validation\ValidationException::withMessages(['check_in' => 'Từ 16:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
         }
 
         $room      = RoomType::with(['amenities', 'reviews.user'])->findOrFail($id);

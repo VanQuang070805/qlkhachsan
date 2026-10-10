@@ -46,12 +46,13 @@ class VietQRService
             ->where('status', 'pending')
             ->whereNull('transaction_id')
             ->where('reference_code', 'like', 'KS%')
-            ->where('created_at', '>', now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))
+            ->where('updated_at', '>', now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))
             ->latest()
             ->first();
         
         $amount = $amount ?? (int) $booking->deposit_amount;
         if ($existing) {
+            $existing->touch();
             $referenceCode = $existing->reference_code;
         } else {
             $referenceCode = 'KS' . $booking->id . strtoupper(Str::random(4));
@@ -172,8 +173,8 @@ class VietQRService
         // Lấy reference_code từ payment_log pending gần nhất
         $log = \App\Models\PaymentLog::where('booking_id', $booking->id)
             ->where('gateway', 'vietqr')
-            ->whereNull('transaction_id')->where('reference_code', 'like', 'KS%')->where('status', 'pending')->where('created_at', '>', now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))
-            ->latest()
+            ->whereNull('transaction_id')->where('reference_code', 'like', 'KS%')->where('status', 'pending')->where('updated_at', '>', now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES))
+            ->orderByDesc('updated_at')
             ->first();
 
         if (!$log || !$log->reference_code) return null;

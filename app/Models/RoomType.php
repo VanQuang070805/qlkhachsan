@@ -20,6 +20,16 @@ class RoomType extends Model
         'max_guests'   => 'integer',
     ];
 
+    public function getImageUrlAttribute(): string
+    {
+        $image = trim((string) $this->image);
+        if ($image === '') {
+            return asset('images/rooms/default.jpg');
+        }
+
+        return filter_var($image, FILTER_VALIDATE_URL) ? $image : asset(ltrim($image, '/'));
+    }
+
     public function rooms()
     {
         return $this->hasMany(Room::class);

@@ -12,6 +12,7 @@
     <form action="{{ route('password.forgot') }}" method="POST" autocomplete="on" novalidate>
         @csrf
         <div class="sana-form-group">
+            <label class="sana-field-label" for="email">Địa chỉ email <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <input
                 type="email"
                 class="sana-input @error('email') is-invalid @enderror"
@@ -21,6 +22,7 @@
                 required
                 autocomplete="email"
                 inputmode="email"
+                aria-describedby="email-error"
                 value="{{ old('email') }}"
             >
             <p class="field-error" id="email-error" data-error-for="email">

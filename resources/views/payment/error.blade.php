@@ -1,5 +1,5 @@
 @extends('layouts.main')
-@section('title', 'Thanh toán chưa hoàn tất · Posh Boutique')
+@section('title', 'Thanh toán chưa hoàn tất · Rosaliza Hotel')
 @section('content')
 <section class="commerce-page payment-state" data-reveal aria-labelledby="payment-error-title">
     <span class="payment-state__icon payment-state__icon--error"><i class="bi bi-exclamation" aria-hidden="true"></i></span>

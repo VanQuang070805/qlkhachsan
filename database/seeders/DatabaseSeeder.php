@@ -4,9 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
-use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,54 +18,17 @@ class DatabaseSeeder extends Seeder
 
     private function seedDemoData(): void
     {
-        // ======================================
-        // USERS
-        // ======================================
-        DB::table('users')->insert([
-            [
-                'username'   => 'admin',
-                'password'   => Hash::make(env('LOCAL_ADMIN_PASSWORD', Str::password(32))),
-                'fullname'   => 'Quản trị hệ thống',
-                'email'      => 'admin@hotel.com',
-                'phone'      => '0900000001',
-                'role'       => 'admin',
-                'verified'   => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'username'   => 'reception',
-                'password'   => Hash::make(env('LOCAL_RECEPTION_PASSWORD', Str::password(32))),
-                'fullname'   => 'Lễ tân khách sạn',
-                'email'      => 'reception@hotel.com',
-                'phone'      => '0900000002',
-                'role'       => 'receptionist',
-                'verified'   => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'username'   => 'customer',
-                'password'   => Hash::make(env('LOCAL_CUSTOMER_PASSWORD', Str::password(32))),
-                'fullname'   => 'Nguyễn Văn A',
-                'email'      => 'customer@gmail.com',
-                'phone'      => '0900000003',
-                'role'       => 'customer',
-                'verified'   => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+        $this->call(InternalAccountsSeeder::class);
 
         // ======================================
         // ROOM TYPES
         // ======================================
         DB::table('room_types')->insert([
-            ['type_name' => 'Phòng Đơn Tiêu Chuẩn', 'price' => 200000,  'max_adults' => 1, 'max_children' => 0, 'max_guests' => 1, 'description' => 'Phòng dành cho 1 khách', 'created_at' => now(), 'updated_at' => now()],
-            ['type_name' => 'Phòng Đôi Tiêu Chuẩn',  'price' => 650000,  'max_adults' => 2, 'max_children' => 1, 'max_guests' => 3, 'description' => 'Phòng dành cho 2 người lớn và 1 trẻ em', 'created_at' => now(), 'updated_at' => now()],
-            ['type_name' => 'Phòng Triple',            'price' => 900000,  'max_adults' => 3, 'max_children' => 1, 'max_guests' => 4, 'description' => 'Phòng dành cho nhóm khách', 'created_at' => now(), 'updated_at' => now()],
-            ['type_name' => 'Phòng Gia Đình',          'price' => 1200000, 'max_adults' => 4, 'max_children' => 2, 'max_guests' => 6, 'description' => 'Phòng dành cho gia đình', 'created_at' => now(), 'updated_at' => now()],
-            ['type_name' => 'Phòng VIP',               'price' => 2000000, 'max_adults' => 2, 'max_children' => 2, 'max_guests' => 4, 'description' => 'Phòng cao cấp với nhiều tiện nghi', 'created_at' => now(), 'updated_at' => now()],
+            ['type_name' => 'Phòng Đơn Tiêu Chuẩn', 'price' => 10000,  'max_adults' => 1, 'max_children' => 0, 'max_guests' => 1, 'description' => 'Phòng dành cho 1 khách', 'created_at' => now(), 'updated_at' => now()],
+            ['type_name' => 'Phòng Đôi Tiêu Chuẩn',  'price' => 20000,  'max_adults' => 2, 'max_children' => 1, 'max_guests' => 3, 'description' => 'Phòng dành cho 2 người lớn và 1 trẻ em', 'created_at' => now(), 'updated_at' => now()],
+            ['type_name' => 'Phòng Triple',            'price' => 50000,  'max_adults' => 3, 'max_children' => 1, 'max_guests' => 4, 'description' => 'Phòng dành cho nhóm khách', 'created_at' => now(), 'updated_at' => now()],
+            ['type_name' => 'Phòng Gia Đình',          'price' => 100000, 'max_adults' => 4, 'max_children' => 2, 'max_guests' => 6, 'description' => 'Phòng dành cho gia đình', 'created_at' => now(), 'updated_at' => now()],
+            ['type_name' => 'Phòng VIP',               'price' => 100000, 'max_adults' => 2, 'max_children' => 2, 'max_guests' => 4, 'description' => 'Phòng cao cấp với nhiều tiện nghi', 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         // ======================================
@@ -130,7 +90,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ======================================
-        // ROOMS (25 phòng, 5 tầng)
+        // 25 phòng đầu tiên (tầng 1–5); RoomCapacitySeeder thêm tầng 6–10.
         // ======================================
         DB::table('rooms')->insert([
             // Tầng 1
@@ -164,6 +124,7 @@ class DatabaseSeeder extends Seeder
             ['room_number' => '504', 'room_type_id' => 3, 'floor' => 5, 'status' => 'available', 'created_at' => now(), 'updated_at' => now()],
             ['room_number' => '505', 'room_type_id' => 3, 'floor' => 5, 'status' => 'available', 'created_at' => now(), 'updated_at' => now()],
         ]);
+        $this->call(RoomCapacitySeeder::class);
 
         // ======================================
         // HOLIDAYS (ngày lễ Việt Nam)
@@ -190,59 +151,5 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Dịp lễ Tết', 'start_date' => '2026-02-16', 'end_date' => '2026-02-21', 'adjustment_type' => 'percent', 'adjustment_value' => 50, 'status' => true, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
-        // ======================================
-        // BOOKINGS (data mẫu)
-        // ======================================
-        DB::table('bookings')->insert([
-            [
-                'user_id'          => 3,
-                'customer_name'    => 'Nguyễn Văn A',
-                'customer_email'   => 'customer@gmail.com',
-                'customer_phone'   => '0900000003',
-                'check_in'         => '2026-06-20',
-                'check_out'        => '2026-06-22',
-                'adult_count'      => 2,
-                'child_count'      => 1,
-                'total_price'      => 1300000,
-                'payment_method'   => 'vietqr',
-                'payment_status'   => 'paid',
-                'status'           => 'confirmed',
-                'refund_status'    => 'none',
-                'refund_amount'    => 0,
-                'created_at'       => now(),
-                'updated_at'       => now(),
-            ],
-            [
-                'user_id'          => 3,
-                'customer_name'    => 'Nguyễn Văn A',
-                'customer_email'   => 'customer@gmail.com',
-                'customer_phone'   => '0900000003',
-                'check_in'         => '2026-07-01',
-                'check_out'        => '2026-07-03',
-                'adult_count'      => 1,
-                'child_count'      => 0,
-                'total_price'      => 800000,
-                'payment_method'   => 'vietqr',
-                'payment_status'   => 'paid',
-                'status'           => 'completed',
-                'refund_status'    => 'none',
-                'refund_amount'    => 0,
-                'created_at'       => now(),
-                'updated_at'       => now(),
-            ],
-        ]);
-
-        DB::table('booking_rooms')->insert([
-            ['booking_id' => 1, 'room_id' => 16], // phòng 401
-            ['booking_id' => 2, 'room_id' => 1],  // phòng 101
-        ]);
-
-        // ======================================
-        // REVIEWS
-        // ======================================
-        DB::table('reviews')->insert([
-            ['user_id' => 3, 'room_type_id' => 2, 'rating' => 5, 'comment' => 'Phòng sạch sẽ, nhân viên thân thiện', 'created_at' => now(), 'updated_at' => now()],
-            ['user_id' => 3, 'room_type_id' => 1, 'rating' => 4, 'comment' => 'Giá hợp lý, đầy đủ tiện nghi',        'created_at' => now(), 'updated_at' => now()],
-        ]);
     }
 }

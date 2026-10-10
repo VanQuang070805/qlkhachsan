@@ -176,7 +176,7 @@ class AuthController extends Controller
         ]);
         session(['pending_verify_email' => $user->email]);
 
-        $this->scheduleOtpEmail($user, $otp, 'Xác thực tài khoản Posh Boutique');
+        $this->scheduleOtpEmail($user, $otp, 'Xác thực tài khoản Rosaliza Hotel');
         session()->flash('success', 'Đăng ký thành công! Mã OTP sẽ được gửi đến ' . $user->email . '.');
 
         if ($request->expectsJson()) {
@@ -307,7 +307,7 @@ class AuthController extends Controller
                     'otp_expires_at' => $expiresAt,
                 ]);
 
-                $this->scheduleOtpEmail($user, $otp, 'Đặt lại mật khẩu Posh Boutique');
+                $this->scheduleOtpEmail($user, $otp, 'Đặt lại mật khẩu Rosaliza Hotel');
             }
         } else {
             Hash::make(bin2hex(random_bytes(16)));
@@ -509,7 +509,7 @@ class AuthController extends Controller
     {
         try {
             Mail::raw(
-                "Mã OTP của bạn là: {$otp}\n\nMã có hiệu lực trong 10 phút.\n\nNếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.\n\nTrân trọng,\nPosh Boutique",
+                "Mã OTP của bạn là: {$otp}\n\nMã có hiệu lực trong 10 phút.\n\nNếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.\n\nTrân trọng,\nRosaliza Hotel",
                 function ($message) use ($toEmail, $subject) {
                     $message->to($toEmail)->subject($subject);
                 }
@@ -580,7 +580,7 @@ class AuthController extends Controller
             'otp_expires_at' => $expiresAt,
         ]);
 
-        $this->scheduleOtpEmail($user, $otp, 'Xác thực tài khoản Posh Boutique');
+        $this->scheduleOtpEmail($user, $otp, 'Xác thực tài khoản Rosaliza Hotel');
         session(['last_otp_sent' => time()]);
 
         if ($request->expectsJson()) {
@@ -623,7 +623,7 @@ class AuthController extends Controller
                     'otp_expires_at' => $expiresAt,
                 ]);
 
-                $this->scheduleOtpEmail($user, $otp, 'Đặt lại mật khẩu Posh Boutique');
+                $this->scheduleOtpEmail($user, $otp, 'Đặt lại mật khẩu Rosaliza Hotel');
                 session(['last_otp_sent' => time()]);
 
                 if ($request->expectsJson()) {

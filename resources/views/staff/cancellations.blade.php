@@ -1,23 +1,62 @@
 @extends('layouts.dashboard')
-@section('title', 'Hoàn tiền · Posh Boutique')
+@section('title', 'Hoàn tiền · Rosaliza Hotel')
 @section('content')
 @php
-    $refunds = collect($cancellations);
+    $cancelledBookings = collect($cancellations);
+    $refunds = $cancelledBookings->whereIn('refund_status', ['eligible', 'refunded']);
     $pending = $refunds->where('refund_status', 'eligible');
 @endphp
 <section class="refund-workspace internal-main">
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
-            <h1 class="h3 fw-bold mb-1" style="color: #0f172a; letter-spacing: -0.03em;">Xử lý hoàn tiền</h1>
-            <p class="text-muted small mb-0" style="color: #64748b;">Theo dõi yêu cầu và xác nhận các khoản đã hoàn trả cho khách hàng.</p>
+            <h1 class="h3 fw-bold mb-1" style="color: #0f172a; letter-spacing: -0.03em;">Hủy phòng &amp; hoàn tiền</h1>
+            <p class="text-muted small mb-0" style="color: #64748b;">Danh sách booking đã hủy và các khoản cần xử lý hoàn.</p>
         </div>
         <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 600; font-size: 0.76rem; padding: 6px 12px; border-radius: 999px;">
-            <i class="bi bi-shield-check me-1 text-primary"></i> {{ $refunds->count() }} yêu cầu
+            <i class="bi bi-shield-check me-1 text-primary"></i> {{ $cancelledBookings->count() }} booking đã hủy
         </span>
     </div>
 
     @if(session('success'))<div class="alert alert-success border-0 mb-3" role="status" style="border-radius: 12px;">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="alert alert-danger border-0 mb-3" role="alert" style="border-radius: 12px;">{{ session('error') }}</div>@endif
+
+    <div class="d-flex gap-2 mb-3" role="tablist" aria-label="Danh sách hủy phòng và hoàn tiền">
+        <button type="button" class="btn btn-sm btn-dark" data-cancellation-tab="cancellations" aria-selected="true">
+            Hủy phòng <span class="ms-1">{{ $cancelledBookings->count() }}</span>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-cancellation-tab="refunds" aria-selected="false">
+            Hoàn tiền <span class="ms-1">{{ $refunds->count() }}</span>
+        </button>
+    </div>
+
+    <div data-cancellation-panel="cancellations">
+        @if($cancelledBookings->isEmpty())
+            <div class="card border-0 p-5 text-center my-4" style="border-radius: 16px; background: #ffffff; border: 1px solid rgba(0,0,0,0.06) !important;">
+                <i class="bi bi-calendar2-x text-muted fs-1 mb-2"></i>
+                <h2 class="h6 fw-bold text-dark mb-1">Chưa có booking bị hủy</h2>
+            </div>
+        @else
+            <div class="table-responsive card border-0 p-2" style="border-radius: 16px; background:#fff; border:1px solid rgba(0,0,0,.06)!important;">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Booking</th><th>Khách hàng</th><th>Phòng</th><th>Kỳ nghỉ</th><th>Lý do hủy</th><th>Hoàn tiền</th></tr></thead>
+                    <tbody>
+                    @foreach($cancelledBookings as $cancelled)
+                        <tr>
+                            <td class="font-monospace fw-semibold">#{{ $cancelled->id }}<div class="small text-muted">{{ optional($cancelled->cancelled_at)->format('d/m/Y H:i') ?: '—' }}</div></td>
+                            <td>{{ $cancelled->customer_name }}<div class="small text-muted">{{ $cancelled->customer_phone }}</div></td>
+                            <td>{{ $cancelled->room_numbers ?: '—' }}</td>
+                            <td>{{ \Carbon\Carbon::parse($cancelled->check_in)->format('d/m/Y') }} → {{ \Carbon\Carbon::parse($cancelled->check_out)->format('d/m/Y') }}</td>
+                            <td>{{ $cancelled->cancellation_reason ?: 'Không ghi lý do' }}</td>
+                            <td>{{ ['eligible' => 'Đủ điều kiện', 'refunded' => 'Đã hoàn', 'none' => 'Không hoàn'][$cancelled->refund_status] ?? 'N/A' }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+
+    <div data-cancellation-panel="refunds" hidden>
 
     <div class="row g-3 mb-4">
         <div class="col-md-4">
@@ -127,6 +166,7 @@
         <i class="bi bi-inbox text-muted fs-1 mb-2"></i>
         <h2 class="h6 fw-bold text-dark mb-1">Không có yêu cầu phù hợp</h2>
         <p class="text-muted small m-0">Thử tìm tên khách khác hoặc chọn tất cả trạng thái.</p>
+    </div>
     </div>
 </section>
 <div class="modal fade" id="refundConfirm" tabindex="-1" aria-labelledby="refundConfirmTitle" aria-hidden="true">
