@@ -1046,7 +1046,7 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
 .account-menu__panel a i,
 .account-menu__panel button i {
     font-size: 16px !important;
-    color: #60a5fa !important;
+    color: #8c734b !important;
     width: 20px !important;
     text-align: center !important;
 }
@@ -1064,7 +1064,7 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
 .royal-chat__launcher {
     width: 58px !important;
     height: 58px !important;
-    filter: drop-shadow(0 12px 28px rgba(0, 113, 227, 0.35)) !important;
+    filter: drop-shadow(0 12px 28px rgba(140, 115, 75, 0.25)) !important;
 }
 
 .royal-chat__launcher-icon {
@@ -1073,7 +1073,7 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
     background: #0f172a !important;
     border: 1px solid rgba(255, 255, 255, 0.25) !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-    color: #60a5fa !important;
+    color: #8c734b !important;
     font-size: 22px !important;
 }
 
@@ -1096,10 +1096,10 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
     width: 36px !important;
     height: 36px !important;
     border-radius: 12px !important;
-    background: #0071e3 !important;
+    background: #1e3a5f !important;
     color: #ffffff !important;
     font-weight: 700 !important;
-    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(30, 58, 95, 0.25) !important;
 }
 
 .royal-chat__identity strong {
@@ -1114,12 +1114,12 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
 }
 
 .royal-chat__message--user {
-    background: #0071e3 !important;
+    background: #1e3a5f !important;
     color: #ffffff !important;
     border-radius: 20px 20px 4px 20px !important;
     padding: 12px 16px !important;
     font-size: 13px !important;
-    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.2) !important;
+    box-shadow: 0 4px 14px rgba(30, 58, 95, 0.15) !important;
 }
 
 .royal-chat__message--assistant {
@@ -1144,9 +1144,9 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
 }
 
 .royal-chat__suggestions button:hover {
-    background: #eff6ff !important;
-    color: #0066ff !important;
-    border-color: #bfdbfe !important;
+    background: rgba(140, 115, 75, 0.08) !important;
+    color: #8c734b !important;
+    border-color: #8c734b !important;
     transform: translateY(-1px) !important;
 }
 
@@ -1161,8 +1161,8 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
 
 .royal-chat__composer:focus-within {
     background: #ffffff !important;
-    border-color: #0071e3 !important;
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15) !important;
+    border-color: #8c734b !important;
+    box-shadow: 0 0 0 3px rgba(140, 115, 75, 0.18) !important;
 }
 
 /* Eliminates harsh black outline around chatbot panel, composer, and textarea */
@@ -1239,13 +1239,13 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
     width: 36px !important;
     height: 36px !important;
     border-radius: 50% !important;
-    background: #0071e3 !important;
+    background: #8c734b !important;
     color: #ffffff !important;
     transition: all 0.2s ease !important;
 }
 
 .royal-chat__composer button:hover:not(:disabled) {
-    background: #0056b3 !important;
+    background: #735c36 !important;
     transform: scale(1.05) !important;
 }
 
@@ -1572,19 +1572,25 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
 
 /* 1. Eliminate harsh black outlines and borders on focus/click everywhere on customer pages */
 .client-shell input:focus,
-.client-shell select:focus,
-.client-shell textarea:focus,
-.client-shell button:focus,
-.client-shell a:focus,
-.client-shell [tabindex]:focus,
-.client-shell input:focus-visible,
 .client-shell select:focus-visible,
 .client-shell textarea:focus-visible,
+.client-shell input:focus-visible {
+    outline: none !important;
+    border-color: #8c734b !important;
+    box-shadow: 0 0 0 3px rgba(140, 115, 75, 0.18) !important;
+}
+
 .client-shell button:focus-visible,
 .client-shell a:focus-visible,
-.client-shell [tabindex]:focus-visible {
-    outline: none !important;
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12) !important;
+.client-shell [tabindex]:focus-visible,
+.melia-faq-btn:focus-visible {
+    outline: 2px solid #151515 !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.72) !important;
+}
+
+.melia-faq-item.is-open {
+    border-color: #8c734b !important;
 }
 
 .rooms-select-trigger,
@@ -1636,4 +1642,616 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
+}
+
+/* =========================================================================
+   BE VIETNAM PRO GLOBAL FONT ENFORCEMENT & LUXURY CARD REFINEMENT
+   ========================================================================= */
+body.client-shell,
+body.client-shell * {
+    font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Chatbot neutral borders and complete yellow/gold elimination */
+.royal-chat__composer {
+    margin: 12px 16px 14px !important;
+    padding: 6px 6px 6px 16px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.2s ease !important;
+}
+
+.royal-chat__composer:focus-within {
+    background: #ffffff !important;
+    border-color: #0f172a !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
+}
+
+.royal-chat__composer textarea,
+#royal-chat-input,
+#royal-chat-input:focus,
+#royal-chat-input:focus-visible,
+.royal-chat__composer textarea:focus,
+.royal-chat__composer textarea:focus-visible {
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 8px 0 !important;
+    color: #0f172a !important;
+    font-size: 13.5px !important;
+}
+
+.royal-chat__composer button {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border: 0 !important;
+    transition: all 0.2s ease !important;
+}
+
+.royal-chat__composer button:hover:not(:disabled) {
+    background: #1e293b !important;
+    transform: scale(1.05) !important;
+}
+
+.royal-chat__close-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    border: 0 !important;
+    background: #f1f5f9 !important;
+    color: #64748b !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.royal-chat__close-btn:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+.client-shell img {
+    border: none !important;
+    outline: none !important;
+}
+
+
+/* =========================================================================
+   FIGMA ACCOMMODATION: HOTELS IN YOUR AREA CAROUSEL & COMPARE US SECTION
+   - 1:1 Match to Figma design: #F0EFEF background, gradient title, 300x336 cards
+   - Floating rate pill (4,93 with star), heart icon, slider dots
+   - Warm camel price (#C49C74), bed & area specs (#C9BEB3), period (#A1A7B0)
+   - Smooth carousel with circular navigation arrows (#C9BEB3)
+   - 3-column dark feature strip (#1D1D1D)
+   ========================================================================= */
+
+/* =========================================================================
+   FIGMA HOTELS IN YOUR AREA - 5-SLOT COVERFLOW CAROUSEL WITH ALBUMS
+   Exact specs from Figma and screenshots:
+   - Section background: #F0EFEF
+   - Compact vertical layout (no dark compare section, no bloated padding)
+   - 3 Center cards: 300px × 406px (media 336px), sharp, opacity 1, interactive photo album
+   - 2 Edge cards: 300px × 358px (media 264px), blurred (1.5px), opacity 0.72
+   - Flanked by circular navigation arrow buttons (#C9BEB3, 36px)
+   ========================================================================= */
+#hotel-accommodation-rooms.figma-rooms-section,
+.figma-rooms-section {
+    background: #F0EFEF !important;
+    padding: 38px 0 46px 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+.figma-rooms-header {
+    text-align: center !important;
+    margin-bottom: 28px !important;
+}
+
+.figma-rooms-title {
+    display: inline-block !important;
+    font-family: 'Be Vietnam Pro', 'Manrope', -apple-system, sans-serif !important;
+    font-style: normal !important;
+    font-weight: 700 !important;
+    font-size: clamp(26px, 3vw, 36px) !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.02em !important;
+    color: #252525 !important;
+    margin: 0 !important;
+}
+
+/* CAROUSEL WRAPPER */
+.figma-carousel-wrapper {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 1760px !important;
+    min-width: 1760px !important;
+    max-width: 1760px !important;
+    margin: 0 auto !important;
+    padding: 0 16px !important;
+    box-sizing: border-box !important;
+}
+
+/* NAVIGATION ARROW BUTTONS */
+.figma-carousel-btn {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: #C9BEB3 !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+    flex: 0 0 36px !important;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.12) !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.figma-carousel-btn:hover {
+    background: #b5a596 !important;
+    transform: scale(1.1) !important;
+    box-shadow: 0px 6px 14px rgba(0, 0, 0, 0.18) !important;
+}
+
+.figma-carousel-btn:active {
+    transform: scale(0.95) !important;
+}
+
+.figma-carousel-btn--prev {
+    margin-right: 22px !important;
+}
+
+.figma-carousel-btn--next {
+    margin-left: 22px !important;
+}
+
+/* CAROUSEL VIEWPORT: Exactly 1596px to hold the 5 visible cards (5 * 300 + 4 * 24) */
+.figma-carousel-viewport {
+    width: 1596px !important;
+    min-width: 1596px !important;
+    max-width: 1596px !important;
+    flex: 0 0 1596px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    padding: 10px 0 16px 0 !important;
+}
+
+.figma-carousel-track {
+    display: flex !important;
+    gap: 24px !important;
+    align-items: center !important;
+    width: max-content !important;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    will-change: transform !important;
+}
+
+/* ROOM CARD: DYNAMIC COVERFLOW */
+.figma-room-card {
+    width: 300px !important;
+    flex: 0 0 300px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* CENTER CARDS: 300px × 406px, sharp, full brightness */
+.figma-room-card.is-center {
+    height: 406px !important;
+    opacity: 1 !important;
+    transform: scale(1) !important;
+    z-index: 5 !important;
+}
+
+.figma-room-card.is-center .figma-room-card__media {
+    height: 336px !important;
+    box-shadow: 0px 4px 14px rgba(0, 0, 0, 0.16) !important;
+}
+
+.figma-room-card.is-center .figma-album-img {
+    filter: none !important;
+}
+
+/* EDGE CARDS: 300px × 358px, blurred (1.5px), lower opacity */
+.figma-room-card.is-edge {
+    height: 358px !important;
+    opacity: 0.72 !important;
+    transform: scale(0.96) !important;
+    z-index: 2 !important;
+}
+
+.figma-room-card.is-edge .figma-room-card__media {
+    height: 264px !important;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.10) !important;
+}
+
+.figma-room-card.is-edge .figma-album-img {
+    filter: blur(1.5px) !important;
+}
+
+/* MEDIA CONTAINER */
+.figma-room-card__media {
+    width: 300px !important;
+    border-radius: 24px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    background: #E5E5E5 !important;
+    transition: height 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s ease !important;
+    cursor: pointer !important;
+    user-select: none !important;
+}
+
+/* IN-CARD ALBUM IMAGES (CROSSFADE) */
+.figma-album-img {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 24px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.4s ease, visibility 0.4s ease, filter 0.45s ease !important;
+    pointer-events: none !important;
+}
+
+.figma-album-img.is-active {
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 1 !important;
+}
+
+/* RATING PILL (Top Left) */
+.figma-room-card__rating {
+    position: absolute !important;
+    left: 18px !important;
+    top: 18px !important;
+    z-index: 6 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 10px 5px 8px !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-radius: 50px !important;
+    color: #FFFFFF !important;
+    line-height: 1 !important;
+    pointer-events: none !important;
+}
+
+.figma-room-card__rating span {
+    font-family: 'Be Vietnam Pro', 'Manrope', sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 13.5px !important;
+    line-height: 19px !important;
+    color: #FFFFFF !important;
+}
+
+/* FAVORITE HEART BUTTON (Top Right) */
+.figma-room-card__fav {
+    position: absolute !important;
+    right: 18px !important;
+    top: 18px !important;
+    z-index: 7 !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    transition: transform 0.2s ease !important;
+}
+
+.figma-room-card__fav:hover {
+    transform: scale(1.2) !important;
+}
+
+.figma-room-card__fav.is-favorited svg {
+    fill: #ef4444 !important;
+    stroke: #ef4444 !important;
+}
+
+/* SLIDER DOTS (Bottom Center of Image) */
+.figma-room-card__dots {
+    position: absolute !important;
+    bottom: 14px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 8 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 8px !important;
+    border-radius: 20px !important;
+    background: rgba(0, 0, 0, 0.18) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.figma-room-card__dots .dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+    border: none !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+    transition: all 0.25s ease !important;
+}
+
+.figma-room-card__dots .dot:hover {
+    background: #FFFFFF !important;
+    transform: scale(1.25) !important;
+}
+
+.figma-room-card__dots .dot--active {
+    width: 8px !important;
+    height: 8px !important;
+    background: #FFFFFF !important;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* CARD INFO */
+.figma-room-card__info {
+    padding-top: 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+}
+
+.figma-room-card__row {
+    display: flex !important;
+    align-items: baseline !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+}
+
+.figma-room-card__title-link {
+    text-decoration: none !important;
+    color: inherit !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+}
+
+.figma-room-card__name {
+    font-family: 'Be Vietnam Pro', 'Manrope', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 700 !important;
+    font-size: 18px !important;
+    line-height: 24px !important;
+    color: #252525 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    transition: color 0.2s ease !important;
+}
+
+.figma-room-card__name:hover {
+    color: #C49C74 !important;
+}
+
+.figma-room-card__price {
+    font-family: 'Be Vietnam Pro', 'Manrope', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 800 !important;
+    font-size: 18px !important;
+    line-height: 24px !important;
+    color: #C49C74 !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+    flex: 0 0 auto !important;
+}
+
+.figma-room-card__specs {
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+}
+
+.figma-spec-item {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-family: 'Be Vietnam Pro', 'Manrope', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 500 !important;
+    font-size: 13.5px !important;
+    line-height: 20px !important;
+    color: #C9BEB3 !important;
+}
+
+.figma-room-card__unit {
+    font-family: 'Be Vietnam Pro', 'Manrope', sans-serif !important;
+    font-style: normal !important;
+    font-weight: 500 !important;
+    font-size: 10.5px !important;
+    line-height: 12px !important;
+    color: #A1A7B0 !important;
+    text-align: right !important;
+}
+
+/* RESPONSIVE BREAKPOINTS (Mobile & Tablets) */
+@media (max-width: 1024px) {
+    .figma-carousel-btn {
+        display: none !important;
+    }
+    .figma-carousel-wrapper {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 16px !important;
+        zoom: 1 !important;
+    }
+    .figma-carousel-viewport {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+        scrollbar-width: none !important;
+    }
+    .figma-carousel-viewport::-webkit-scrollbar {
+        display: none !important;
+    }
+    .figma-carousel-track {
+        transform: none !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        width: 100% !important;
+        gap: 28px 20px !important;
+    }
+    .figma-room-card {
+        width: 100% !important;
+        min-width: 0 !important;
+        flex: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+        height: auto !important;
+    }
+    .figma-room-card:nth-child(n + 5) { display: none !important; }
+    .figma-room-card .figma-room-card__media {
+        width: 100% !important;
+        height: 280px !important;
+    }
+    .figma-room-card .figma-album-img {
+        filter: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .figma-rooms-section {
+        padding: 32px 0 36px 0 !important;
+    }
+    .figma-rooms-header {
+        margin-bottom: 20px !important;
+    }
+    .figma-carousel-track { grid-template-columns: minmax(0, 1fr) !important; }
+    .figma-room-card .figma-room-card__media { height: min(78vw, 340px) !important; }
+}
+
+/* Chatbot Header: Close Button X in Top-Left Corner */
+.royal-chat__header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    background: #f8fafc !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    padding: 14px 18px !important;
+}
+
+.royal-chat__close-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    border: 0 !important;
+    background: #e2e8f0 !important;
+    color: #475569 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    flex: none !important;
+    order: -1 !important;
+    margin: 0 !important;
+}
+
+.royal-chat__close-btn:hover {
+    background: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+.royal-chat__identity {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+
+/* =========================================================================
+   CENTERED SECTION TITLES (UNIFIED LUXURY DESIGN LIKE "HOTELS IN YOUR AREA")
+   - All section headers (.melia-section-header, .melia-sec-header) centered
+   - Tags (.melia-tag) centered
+   - Headings (.melia-title-section, .melia-sec-title) bold, 26px - 36px, centered
+   - Subtitles (.melia-subtitle, .melia-sec-subtitle) max-width 680px, centered
+   ========================================================================= */
+.melia-section-header,
+.melia-sec-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    margin-bottom: 34px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+.melia-section-header > div,
+.melia-sec-header > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+}
+
+.melia-section-header .melia-tag,
+.melia-sec-header .melia-tag {
+    display: inline-block !important;
+    margin: 0 auto 10px auto !important;
+    text-align: center !important;
+}
+
+.melia-title-section,
+.melia-sec-title {
+    display: block !important;
+    font-family: 'Be Vietnam Pro', 'Manrope', -apple-system, sans-serif !important;
+    font-style: normal !important;
+    font-weight: 700 !important;
+    font-size: clamp(26px, 3vw, 36px) !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.02em !important;
+    color: #252525 !important;
+    text-align: center !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+}
+
+.melia-section-header .melia-subtitle,
+.melia-sec-header .melia-sec-subtitle,
+.melia-overview__body {
+    font-family: 'Be Vietnam Pro', 'Manrope', sans-serif !important;
+    text-align: center !important;
+    margin: 8px auto 0 auto !important;
+    max-width: 680px !important;
+    color: #666666 !important;
+    font-size: 15px !important;
+    line-height: 1.6 !important;
+}
+
+/* Ensure iPhone showcase header is cleanly separated and centered */
+.rb-iphone-showcase .melia-section-header {
+    margin-bottom: 40px !important;
 }

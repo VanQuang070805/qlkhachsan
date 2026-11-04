@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Database\QueryException;
 
 class AuthController extends Controller
 {
@@ -163,17 +164,27 @@ class AuthController extends Controller
 
         [$otp, $expiresAt] = $this->generateOtp();
 
-        $user = User::create([
-            'username'       => $email,
-            'fullname'       => $request->name,
-            'email'          => $email,
-            'phone'          => $request->phone,
-            'password'       => Hash::make($request->password),
-            'role'           => 'customer',
-            'verified'       => false,
-            'otp_code'       => Hash::make($otp),
-            'otp_expires_at' => $expiresAt,
-        ]);
+        try {
+            $user = User::create([
+                'username'       => $email,
+                'fullname'       => $request->name,
+                'email'          => $email,
+                'phone'          => $request->phone,
+                'password'       => Hash::make($request->password),
+                'role'           => 'customer',
+                'verified'       => false,
+                'otp_code'       => Hash::make($otp),
+                'otp_expires_at' => $expiresAt,
+            ]);
+        } catch (QueryException $exception) {
+            if (in_array((string) $exception->getCode(), ['23000', '23505'], true)) {
+                throw ValidationException::withMessages([
+                    'email' => 'Email này vừa được sử dụng. Vui lòng đăng nhập hoặc xác thực tài khoản đã tạo.',
+                ]);
+            }
+
+            throw $exception;
+        }
         session(['pending_verify_email' => $user->email]);
 
         $this->scheduleOtpEmail($user, $otp, 'Xác thực tài khoản Rosaliza Hotel');
@@ -443,9 +454,35 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        auth()->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $preservedStaffId = session('staff_user_id');
+        $preservedStaffData = session('staff_user');
+        $preservedAdminId = session('admin_user_id');
+        $preservedAdminData = session('admin_user');
+
+        \Illuminate\Support\Facades\Auth::guard('customer')->logout();
+
+        if ($preservedStaffId && ($staffUser = User::whereIn('role', ['receptionist', 'admin'])->find($preservedStaffId))) {
+            session()->forget(['customer_user_id', 'customer_user', 'user_id', 'auth_user_id', 'user']);
+            $request->session()->regenerate();
+            $request->session()->regenerateToken();
+            \Illuminate\Support\Facades\Auth::guard('staff')->login($staffUser);
+            if ($staffUser->isAdmin()) {
+                \Illuminate\Support\Facades\Auth::guard('admin')->login($staffUser);
+                session([
+                    'admin_user_id' => $staffUser->id,
+                    'admin_user'    => $preservedAdminData ?: $preservedStaffData,
+                ]);
+            }
+            \Illuminate\Support\Facades\Auth::guard('web')->forgetUser();
+            session([
+                'staff_user_id' => $staffUser->id,
+                'staff_user'    => $preservedStaffData,
+            ]);
+        } else {
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return redirect()->route('login');
     }
@@ -459,8 +496,14 @@ class AuthController extends Controller
      */
     private function loginUser(User $user, bool $remember = false): void
     {
+        $preservedStaffId = session('staff_user_id');
+        $preservedStaffData = session('staff_user');
+        $preservedAdminId = session('admin_user_id');
+        $preservedAdminData = session('admin_user');
+
         session()->regenerate();
         auth()->login($user, $remember);
+        \Illuminate\Support\Facades\Auth::guard('customer')->login($user, $remember);
         $userData = [
             'id'       => $user->id,
             'fullname' => $user->fullname,
@@ -487,6 +530,19 @@ class AuthController extends Controller
             'user_id'      => $user->id,
             'user'         => $userData,
         ]);
+
+        if ($preservedStaffId) {
+            session([
+                'staff_user_id' => $preservedStaffId,
+                'staff_user'    => $preservedStaffData,
+            ]);
+        }
+        if ($preservedAdminId) {
+            session([
+                'admin_user_id' => $preservedAdminId,
+                'admin_user'    => $preservedAdminData,
+            ]);
+        }
     }
 
     /**

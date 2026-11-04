@@ -32,7 +32,7 @@
                 </tr>
                 <tr style="border-top:1px solid #e5e7eb;">
                     <td style="padding:8px 0; color:#6b7280;">Số điện thoại</td>
-                    <td style="padding:8px 0; color:#1e3a8a; font-weight:bold;">{{ $phone ?? '—' }}</td>
+                    <td style="padding:8px 0; color:#1e3a8a; font-weight:bold;">{{ $phone ?? 'Chưa cập nhật' }}</td>
                 </tr>
                 <tr style="border-top:1px solid #e5e7eb;">
                     <td style="padding:8px 0; color:#6b7280;">Vai trò</td>

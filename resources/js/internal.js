@@ -1,7 +1,9 @@
+import './animated-toast';
 import { gsap } from 'gsap';
 import '../css/date-picker.css';
 import { enhanceDatePickers } from './date-picker';
 import './numeric-inputs';
+import { initReactBitsEffects } from './reactbits-effects';
 import { Flip } from 'gsap/Flip';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Chart from 'chart.js/auto';
@@ -14,6 +16,8 @@ gsap.registerPlugin(Flip, ScrollTrigger);
 document.addEventListener('DOMContentLoaded', () => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     document.body.classList.remove('internal-pending');
+
+    initReactBitsEffects({ reduceMotion });
 
     document.querySelectorAll('.modal-content').forEach((content) => {
         if (content.querySelector('.window-controls') || content.querySelector('.macos-traffic-lights')) return;
@@ -119,10 +123,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }));
 
+    const cancellationSearch = document.querySelector('[data-cancellation-search]');
+    const cancellationStatus = document.querySelector('[data-cancellation-status]');
+    const filterCancellations = () => {
+        const query = (cancellationSearch?.value || '').trim().toLocaleLowerCase('vi').replace(/^#/, '');
+        let visible = 0;
+        document.querySelectorAll('[data-cancellation-record]').forEach(record => {
+            record.hidden = !(record.dataset.search.toLocaleLowerCase('vi').includes(query) && (!cancellationStatus.value || record.dataset.status === cancellationStatus.value));
+            if (!record.hidden) visible++;
+        });
+        const empty = document.querySelector('[data-cancellation-empty]');
+        if (empty) empty.hidden = visible > 0;
+    };
+    cancellationSearch?.addEventListener('input', filterCancellations);
+    cancellationStatus?.addEventListener('change', filterCancellations);
+
     const search = document.querySelector('[data-refund-search]');
     const status = document.querySelector('[data-refund-status]');
     const filterRefunds = () => {
-        const query = (search?.value || '').trim().toLocaleLowerCase('vi');
+        const query = (search?.value || '').trim().toLocaleLowerCase('vi').replace(/^#/, '');
         let visible = 0;
         document.querySelectorAll('[data-refund-record]').forEach(record => {
             record.hidden = !(record.dataset.search.toLocaleLowerCase('vi').includes(query) && (!status.value || record.dataset.status === status.value));
@@ -181,38 +200,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
     });
 
-    // Mobile sidebar off-canvas drawer toggle
-    const mobileToggle = document.getElementById('sidebarMobileToggle');
-    const sidebar = document.getElementById('workspaceSidebar') || document.querySelector('.workspace-sidebar');
-    const backdrop = document.getElementById('sidebarBackdrop');
-
-    const closeMobileSidebar = () => {
-        sidebar?.classList.remove('is-open');
-        backdrop?.classList.remove('is-open');
-        document.body.classList.remove('sidebar-mobile-open');
-    };
-
-    if (mobileToggle && sidebar) {
-        mobileToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const willOpen = !sidebar.classList.contains('is-open');
-            sidebar.classList.toggle('is-open', willOpen);
-            backdrop?.classList.toggle('is-open', willOpen);
-            document.body.classList.toggle('sidebar-mobile-open', willOpen);
-        });
-
-        backdrop?.addEventListener('click', closeMobileSidebar);
-
-        sidebar.querySelectorAll('nav a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 768) closeMobileSidebar();
-            });
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
-                closeMobileSidebar();
-            }
-        });
-    }
 });

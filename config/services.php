@@ -6,12 +6,6 @@ return [
     |--------------------------------------------------------------------------
     | Third Party Services
     |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
     */
 
     'postmark' => [
@@ -35,21 +29,42 @@ return [
         ],
     ],
 
-    'royal_ai' => [
-        'key' => env('ROYAL_AI_API_KEY'),
-        'endpoint' => env('ROYAL_AI_ENDPOINT', 'https://api.openai.com/v1/chat/completions'),
-        'model' => env('ROYAL_AI_MODEL', 'gpt-4o-mini'),
-        'embedding_model' => env('ROYAL_AI_EMBEDDING_MODEL', 'text-embedding-3-small'),
-        'vector_store_id' => env('ROYAL_AI_VECTOR_STORE_ID'),
-        'moderation_enabled' => env('ROYAL_AI_MODERATION', true),
+    'gemini' => [
+        'api_key' => env('GOOGLE_API_KEY', env('GEMINI_API_KEY')),
+        'chat_model' => env('GEMINI_CHAT_MODEL', 'gemini-2.5-flash'),
+        'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'text-embedding-004'),
     ],
 
-    'dify' => [
-        'base_url' => env('DIFY_BASE_URL'),
-        'api_key' => env('DIFY_API_KEY'),
-        'timeout' => (int) env('DIFY_TIMEOUT', 90),
-        'tool_api_key' => env('DIFY_TOOL_API_KEY'),
-        'live_tools_enabled' => env('DIFY_LIVE_TOOLS_ENABLED', false),
+    'langgraph' => [
+        'enabled' => env('LANGGRAPH_ENABLED', true),
+        'base_url' => env('LANGGRAPH_BASE_URL', 'http://127.0.0.1:2024'),
+        'internal_api_key' => env('LANGGRAPH_INTERNAL_API_KEY'),
+        'api_key' => env('LANGGRAPH_INTERNAL_API_KEY'),
+        'timeout' => (int) env('LANGGRAPH_TIMEOUT', 60),
+        'retrieval_assistant_id' => env('LANGGRAPH_RETRIEVAL_ASSISTANT_ID', 'retrieval_graph'),
+        'ingestion_assistant_id' => env('LANGGRAPH_INGESTION_ASSISTANT_ID', 'ingestion_graph'),
+        'vector_provider' => env('LANGGRAPH_VECTOR_PROVIDER', 'mysql'),
+        'query_model' => env('LANGGRAPH_QUERY_MODEL', 'google-genai/'.env('GEMINI_CHAT_MODEL', 'gemini-flash-latest')),
+        'tool_api_key' => env('LANGGRAPH_TOOL_API_KEY'),
+        'live_tools_enabled' => env('LANGGRAPH_LIVE_TOOLS_ENABLED', true),
+        'capability_ttl' => (int) env('LANGGRAPH_CAPABILITY_TTL', 90),
+        'require_capability_for_public_tools' => env('LANGGRAPH_REQUIRE_CAPABILITY_PUBLIC', false),
+    ],
+
+    'portal' => [
+        'context' => env('PORTAL_CONTEXT', 'all'),
+        'customer_url' => env('CUSTOMER_PORTAL_URL', 'http://localhost:18080'),
+        'staff_url' => env('STAFF_PORTAL_URL', 'http://localhost:18081'),
+        'admin_url' => env('ADMIN_PORTAL_URL', 'http://localhost:18082'),
+    ],
+
+    'devices' => [
+        'api_key' => env('DEVICE_API_KEY', ''),
+    ],
+
+    'kafka' => [
+        'brokers' => env('KAFKA_BROKERS', 'kafka:9092'),
+        'client_id' => env('KAFKA_CLIENT_ID', 'royal-hotel-nhom10-v2'),
     ],
 
     'google' => [

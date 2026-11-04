@@ -553,8 +553,17 @@ class PaymentController extends Controller
     {
         app(ExpirePendingBookingHolds::class)->expireIfDue($booking);
         $booking->refresh();
-        abort_unless(in_array($booking->status, ['pending', 'confirmed'], true), 409, 'Đặt phòng không còn khả dụng để thanh toán.');
-        abort_if($booking->status === 'pending' && $booking->paymentHoldExpired(), 409, 'Thời gian giữ phòng đã hết.');
+        if (!in_array($booking->status, ['pending', 'confirmed'], true)
+            || ($booking->status === 'pending' && $booking->paymentHoldExpired())) {
+            $message = 'Đặt phòng đã kết thúc, bị hủy hoặc hết thời gian giữ phòng. Vui lòng kiểm tra lịch sử đặt phòng.';
+            if (request()->expectsJson()) {
+                abort(409, $message);
+            }
+
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                redirect()->route('booking.mine')->with('error', $message)
+            );
+        }
     }
 
     private function confirmCheckoutPayment(Booking $booking, string $gateway, string $transactionId, float $amount, array $rawData): bool

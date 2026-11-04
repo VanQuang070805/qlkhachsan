@@ -120,7 +120,7 @@
             onclick="if (window.toggleRoyalChat) { window.toggleRoyalChat(); } else if (window.openRoyalChat) { window.openRoyalChat(); } else { document.querySelector('.royal-chat__launcher')?.click(); }"
             aria-label="Chat với AI">
         <div class="ios-tab-icon-wrap">
-            <i class="bi bi-stars" aria-hidden="true"></i>
+            <span class="ios-tab-pico" aria-hidden="true"></span>
         </div>
         <span class="ios-tab-label">Chat với AI</span>
     </button>

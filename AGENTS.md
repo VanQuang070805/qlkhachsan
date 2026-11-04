@@ -11,5 +11,6 @@ The canonical agent instructions are stored in [`docs/AGENTS.md`](docs/AGENTS.md
   - [`royal-gsap-motion`](.agents/skills/royal-gsap-motion/SKILL.md) — GSAP v3 (`ScrollTrigger`, `ScrollToPlugin`, `SplitText`, `Flip`, `Draggable`) and `Lenis` motion rules for `resources/js/app.js` and `resources/js/internal.js`.
   - [`royal-ops-security-rag`](.agents/skills/royal-ops-security-rag/SKILL.md) — Booking/payment/checkout business logic, Customer vs Staff/Admin session boundaries, Google OAuth, Royal Concierge RAG (`RoyalKnowledgeService`, `ChatbotController`), and QA verification commands.
   - [`graphify`](.agents/skills/graphify/SKILL.md) — Knowledge graph extraction, community clustering, HTML/Obsidian visualization, and audit report generation (`graphify-out/`). Trigger: `/graphify`.
+  - [`pipeline-sketch`](.agents/skills/pipeline-sketch/SKILL.md) — Architecture & pipeline diagram generator in Excalidraw/Draw.io hybrid style (pastel dashed STREAM/BATCH swimlanes, floating yellow category tags, hand-drawn hachure sub-boxes, numbered red-dashed & blue-solid step arrows, and curly-brace orchestration callouts).
   - [`antislop`](.agents/skills/antislop/SKILL.md) — Mandatory anti-slop rules (R-01 to R-38), Liveliness Toolkit, and human-centered design filters to prevent generic AI UI, placeholder copy, and repetitive layout patterns.
 

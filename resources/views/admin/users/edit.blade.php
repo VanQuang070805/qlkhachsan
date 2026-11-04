@@ -124,7 +124,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <small class="text-muted">
                                 <i class="bi bi-clock me-1"></i>
-                                Tạo lúc: {{ $user->created_at ? $user->created_at->format('d/m/Y H:i') : '—' }}
+                                Tạo lúc: {{ $user->created_at ? $user->created_at->format('d/m/Y H:i') : 'Chưa cập nhật' }}
                             </small>
                             <div class="d-flex gap-2">
                                 <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">

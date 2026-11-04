@@ -116,7 +116,7 @@ The admin and staff sidebar/header must remain persistent across their pages. Na
 
 ## 7. Authentication, email and account rules
 
-- Customer login accepts email/password and Google OAuth. Admin/staff login uses username/password only.
+- Customer login (`/login`) accepts email/password and Google OAuth for `customer` accounts only. Staff login (`/staff/login`) accepts `receptionist` username/password only. Admin login (`/admin/login`) accepts `admin` username/password only. Legacy `GET /internalauth/login` redirects to `/staff/login`, and `/receptionist/profile` redirects to `/staff/profile`.Customer and internal sessions are isolated via separate guards (`customer`, `staff`, `admin`) so signing in or out on one portal never overwrites or drops the other portal's session.
 - Google users are stored as verified customers with normalized email, stable `google_id` and optional `avatar_url`.
 - Never allow a Google customer flow to link to an admin/receptionist account or to two different customer rows.
 - Password managers use native autocomplete; the application must not store plaintext passwords in its own cookies or local storage.
@@ -163,7 +163,7 @@ The admin and staff sidebar/header must remain persistent across their pages. Na
 - Volatile facts such as availability, price, payment and a customer's bookings must be obtained from authorized live tools.
 - Booking tools derive customer identity from the authenticated session, never from a model-supplied user ID.
 - Never request or repeat passwords, OTPs, card data or secrets.
-- Optional Dify integration stays behind Laravel's existing chatbot routes; keep Dify API keys and conversation IDs server-side. Send only the current user message and an opaque session identifier to Dify. Use Dify for approved stable knowledge; keep live hotel data on the existing Laravel read-only tools and never provide Dify staff/admin or direct database access. See [`ops/dify/README.md`](../ops/dify/README.md).
+- Self-hosted LangGraph + Google Gemini integration (`services/royal-ai-chatbot/`) stays behind Laravel's chatbot routes (`/chatbot/stream` and `/chatbot/api`); keep `GOOGLE_API_KEY`, `LANGCHAIN_API_KEY`, `LANGGRAPH_INTERNAL_API_KEY`, and `LANGGRAPH_TOOL_API_KEY` server-side. Send only the current user message and server-managed thread ID to LangGraph. Use `resources/knowledge/*.md` (`php artisan knowledge:index`) for approved stable knowledge and `/api/chatbot/tools/*` (`HotelRoomToolService`) for live room pricing and availability. See [`docs/RAG_ARCHITECTURE.md`](RAG_ARCHITECTURE.md).
 - Responses distinguish retrieved hotel facts from general conversation and state uncertainty instead of inventing operational data.
 - Keep the customer chatbot icon-only when closed; opening/minimizing returns to the same launcher rather than creating duplicate icons.
 

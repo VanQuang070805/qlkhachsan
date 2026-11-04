@@ -101,8 +101,10 @@
             </div>
 
             <div class="sana-switch-link" style="margin-top: 8px;">
-                <span>Quản trị &amp; Nhân viên?</span>
-                <a href="{{ route('internalauth.login') }}">Đăng nhập hệ thống</a>
+                <span>Nội bộ khách sạn:</span>
+                <a href="{{ rtrim(config('services.portal.staff_url'), '/') . route('staff.login', [], false) }}">Cổng Nhân viên</a>
+                <span>·</span>
+                <a href="{{ rtrim(config('services.portal.admin_url'), '/') . route('admin.login', [], false) }}">Cổng Quản trị</a>
             </div>
         </form>
     </div>

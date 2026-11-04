@@ -548,6 +548,38 @@
         padding: 14px;
     }
 }
+.room-floor-layout { display: grid; grid-template-columns: 170px minmax(0, 1fr); align-items: stretch; }
+body.internal-shell .room-floor-layout .room-floor-rail-wrap { padding: 16px 12px !important; border: 0; border-right: 1px solid #e5eaf1; background: #f8fafc !important; }
+.room-floor-title { margin: 0 0 10px; padding: 0 8px; font-size: 12px; font-weight: 700; color: #596579; }
+.room-floor-layout .room-floor-rail { display: flex; flex-direction: column; align-items: stretch; gap: 6px; overflow: visible; }
+body.internal-shell .room-floor-layout .room-floor-tab { justify-content: flex-start; min-height: 44px; width: 100%; padding: 8px 10px !important; }
+.room-floor-layout .room-floor-tab__badge { margin-left: auto; }
+.room-floor-content { min-width: 0; }
+.room-floor-layout .room-floor-tab:focus-visible { outline: 3px solid #4880ff; outline-offset: 2px; }
+body.internal-shell .room-type-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 235px), 1fr)); gap: 12px; padding: 16px; }
+.room-type-card-bento__thumb { height: 110px; }
+.room-type-card-bento__body { padding: 12px; gap: 8px; }
+.room-type-card-bento__header { flex-wrap: wrap; }
+.room-type-card-bento__name, .room-type-card-bento__price .price-num { font-size: .9rem; }
+@media (max-width: 767px) {
+  .room-floor-layout { grid-template-columns: minmax(0, 1fr); }
+  body.internal-shell .room-floor-layout .room-floor-rail-wrap { border-right: 0; border-bottom: 1px solid #e5eaf1; padding: 12px !important; }
+  .room-floor-layout .room-floor-rail { flex-direction: row; overflow-x: auto; }
+  body.internal-shell .room-floor-layout .room-floor-tab { width: auto; flex: 0 0 auto; }
+}
+
+.room-admin-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 390px); gap: 18px; align-items: start; }
+.room-admin-columns > .room-panel { min-width: 0; }
+.room-admin-columns #admin-room-inventory { position: sticky; top: 88px; max-height: calc(100vh - 105px); display: flex; flex-direction: column; }
+.room-admin-columns #admin-room-inventory .room-panel__head { flex-wrap: wrap; gap: 8px; }
+.room-admin-columns #admin-room-inventory .room-floor-layout { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+body.internal-shell .room-admin-columns .room-floor-rail-wrap { border-right: 0; border-bottom: 1px solid #e5eaf1; }
+.room-admin-columns .room-floor-rail { flex-direction: row; overflow-x: auto; }
+body.internal-shell .room-admin-columns .room-floor-tab { width: auto; flex: 0 0 auto; }
+.room-admin-columns .room-table-desktop { min-width: 0; }
+.room-admin-columns #admin-room-inventory .table-responsive { display: none !important; }
+.room-admin-columns #admin-room-inventory .room-cards-mobile { display: block !important; }
+@media (max-width: 1050px) { .room-admin-columns { grid-template-columns: minmax(0, 1fr); } .room-admin-columns #admin-room-inventory { position: static; max-height: none; } }
 </style>
 @endpush
 
@@ -577,141 +609,6 @@
         </div>
     @endif
 
-    {{-- Section 1: Quản lý phòng theo tầng --}}
-    <section class="room-panel" id="admin-room-inventory">
-        <header class="room-panel__head">
-            <div class="room-panel__head-info">
-                <h2>Danh sách phòng · Tầng {{ $selectedFloor }}</h2>
-                <p>Quản lý trạng thái và hạng phòng</p>
-            </div>
-            <span class="room-panel-badge"><i class="bi bi-door-closed"></i> {{ $rooms->count() }} phòng hoạt động</span>
-        </header>
-
-        {{-- Floor Navigation Rail --}}
-        <div class="room-floor-rail-wrap">
-            <nav class="room-floor-rail" aria-label="Chọn tầng">
-                @foreach($availableFloors as $floor)
-                    <a class="room-floor-tab @if($selectedFloor === $floor) is-active @endif" href="{{ route('admin.rooms.index', ['floor' => $floor]) }}" @if($selectedFloor === $floor) aria-current="page" @endif>
-                        <span class="room-floor-tab__num">{{ str_pad((string) $floor, 2, '0', STR_PAD_LEFT) }}</span>
-                        <span>Tầng {{ $floor }}</span>
-                        <span class="room-floor-tab__badge">{{ (int) ($floorCounts[$floor] ?? 0) }}p</span>
-                    </a>
-                @endforeach
-            </nav>
-        </div>
-
-        {{-- Desktop Room Table --}}
-        <div class="table-responsive d-none d-md-block">
-            <table class="room-table-desktop">
-                <thead>
-                    <tr>
-                        <th style="width: 140px;">Số phòng</th>
-                        <th>Hạng phòng</th>
-                        <th style="width: 160px;">Trạng thái</th>
-                        <th style="width: 140px; text-align: right;">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($rooms as $room)
-                        @php
-                            $isReservedToday = $room->status === 'available' && $reservedToday->contains($room->id);
-                            $statusKey = $isReservedToday ? 'reserved' : $room->status;
-                            $statusLabel = match($statusKey) {
-                                'available' => 'Trống',
-                                'occupied' => 'Đang ở',
-                                'cleaning' => 'Đang dọn',
-                                'maintenance' => 'Bảo trì',
-                                'overdue' => 'Quá giờ trả',
-                                'reserved' => 'Đã đặt',
-                                default => 'Đã đặt'
-                            };
-                            $statusClass = match($statusKey) {
-                                'available' => 'apple-status-pill--available',
-                                'occupied' => 'apple-status-pill--occupied',
-                                'reserved' => 'apple-status-pill--reserved',
-                                'cleaning' => 'apple-status-pill--cleaning',
-                                'maintenance' => 'apple-status-pill--maintenance',
-                                default => 'apple-status-pill--reserved'
-                            };
-                        @endphp
-                        <tr>
-                            <td>
-                                <span class="room-num-badge">P.{{ $room->room_number }}</span>
-                            </td>
-                            <td>
-                                <div class="room-type-meta">
-                                    <span class="room-type-name">{{ $room->roomType?->type_name ?? 'Chưa gán hạng' }}</span>
-                                    <span class="room-type-sub">Tối đa {{ $room->roomType?->max_guests ?? 2 }} khách · {{ $room->roomType?->max_adults ?? 1 }} người lớn</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="apple-status-pill {{ $statusClass }}">
-                                    <span class="apple-dot"></span>
-                                    <span>{{ $statusLabel }}</span>
-                                </span>
-                            </td>
-                            <td style="text-align: right;">
-                                <button class="btn-edit-room" type="button" data-bs-toggle="modal" data-bs-target="#editRoomModal-{{ $room->id }}">
-                                    <i class="bi bi-pencil-square" aria-hidden="true"></i> <span>Chỉnh sửa</span>
-                                </button>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="room-empty">Tầng {{ $selectedFloor }} chưa có phòng. Bạn có thể thêm phòng vào tầng này.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        {{-- Mobile Room Cards --}}
-        <div class="room-cards-mobile d-md-none">
-            @forelse($rooms as $room)
-                @php
-                    $isReservedToday = $room->status === 'available' && $reservedToday->contains($room->id);
-                    $statusKey = $isReservedToday ? 'reserved' : $room->status;
-                    $statusLabel = match($statusKey) {
-                        'available' => 'Trống',
-                        'occupied' => 'Đang ở',
-                        'cleaning' => 'Đang dọn',
-                        'maintenance' => 'Bảo trì',
-                        'overdue' => 'Quá giờ trả',
-                        'reserved' => 'Đã đặt',
-                        default => 'Đã đặt'
-                    };
-                    $statusClass = match($statusKey) {
-                        'available' => 'apple-status-pill--available',
-                        'occupied' => 'apple-status-pill--occupied',
-                        'reserved' => 'apple-status-pill--reserved',
-                        'cleaning' => 'apple-status-pill--cleaning',
-                        'maintenance' => 'apple-status-pill--maintenance',
-                        default => 'apple-status-pill--reserved'
-                    };
-                @endphp
-                <div class="room-card-mob">
-                    <div class="room-card-mob__top">
-                        <span class="room-num-badge">P.{{ $room->room_number }}</span>
-                        <span class="apple-status-pill {{ $statusClass }}">
-                            <span class="apple-dot"></span>
-                            <span>{{ $statusLabel }}</span>
-                        </span>
-                    </div>
-                    <div class="room-card-mob__body">
-                        <div class="room-type-meta">
-                            <span class="room-type-name">{{ $room->roomType?->type_name ?? 'Chưa gán hạng' }}</span>
-                            <span class="room-type-sub">Tối đa {{ $room->roomType?->max_guests ?? 2 }} khách</span>
-                        </div>
-                    </div>
-                    <button class="btn-edit-room" type="button" data-bs-toggle="modal" data-bs-target="#editRoomModal-{{ $room->id }}">
-                        <i class="bi bi-pencil-square" aria-hidden="true"></i> <span>Chỉnh sửa phòng</span>
-                    </button>
-                </div>
-            @empty
-                <div class="room-empty">Tầng {{ $selectedFloor }} chưa có phòng.</div>
-            @endforelse
-        </div>
-    </section>
 
     @foreach($rooms as $room)
         <div class="modal fade room-modal" id="editRoomModal-{{ $room->id }}" tabindex="-1" aria-labelledby="editRoomModalTitle-{{ $room->id }}" aria-hidden="true">
@@ -816,6 +713,7 @@
         </div>
     </div>
 
+    <div class="room-admin-columns">
     {{-- Section 2: Hạng phòng và tiện nghi --}}
     <section class="room-panel" id="admin-room-catalog">
         <header class="room-panel__head">
@@ -868,6 +766,133 @@
             @endforeach
         </div>
     </section>
+
+    {{-- Section 1: Quản lý phòng theo tầng --}}
+    <section class="room-panel" id="admin-room-inventory">
+        <header class="room-panel__head">
+            <div class="room-panel__head-info">
+                <h2>Danh sách phòng · Tầng {{ $selectedFloor }}</h2>
+                <p>Quản lý trạng thái và hạng phòng</p>
+            </div>
+            <span class="room-panel-badge"><i class="bi bi-door-closed"></i> {{ $rooms->count() }} phòng trên tầng</span>
+        </header>
+
+        <div class="room-floor-layout">
+        {{-- Floor Navigation Rail --}}
+        <div class="room-floor-rail-wrap">
+            <h3 class="room-floor-title">Tầng</h3>
+            <nav class="room-floor-rail" aria-label="Chọn tầng">
+                @foreach($availableFloors as $floor)
+                    <a class="room-floor-tab @if($selectedFloor === $floor) is-active @endif" href="{{ route('admin.rooms.index', ['floor' => $floor]) }}" @if($selectedFloor === $floor) aria-current="page" @endif>
+                        <span class="room-floor-tab__num">{{ str_pad((string) $floor, 2, '0', STR_PAD_LEFT) }}</span>
+                        <span>Tầng {{ $floor }}</span>
+                        <span class="room-floor-tab__badge">{{ (int) ($floorCounts[$floor] ?? 0) }}p</span>
+                    </a>
+                @endforeach
+            </nav>
+        </div>
+
+        <div class="room-floor-content">
+        {{-- Desktop Room Table --}}
+        <div class="table-responsive d-none d-md-block">
+            <table class="room-table-desktop">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Số phòng</th>
+                        <th>Hạng phòng</th>
+                        <th style="width: 160px;">Trạng thái</th>
+                        <th style="width: 140px; text-align: right;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($rooms as $room)
+                        @php
+                            $isReservedToday = $room->status === 'available' && $reservedToday->contains($room->id);
+                            $statusKey = $isReservedToday ? 'reserved' : $room->status;
+                            $statusLabel = config('statuses.room.'.$statusKey, 'Đã đặt');
+                            $statusClass = match($statusKey) {
+                                'available' => 'apple-status-pill--available',
+                                'occupied' => 'apple-status-pill--occupied',
+                                'reserved' => 'apple-status-pill--reserved',
+                                'cleaning' => 'apple-status-pill--cleaning',
+                                'maintenance' => 'apple-status-pill--maintenance',
+                                default => 'apple-status-pill--reserved'
+                            };
+                        @endphp
+                        <tr>
+                            <td>
+                                <span class="room-num-badge">P.{{ $room->room_number }}</span>
+                            </td>
+                            <td>
+                                <div class="room-type-meta">
+                                    <span class="room-type-name">{{ $room->roomType?->type_name ?? 'Chưa gán hạng' }}</span>
+                                    <span class="room-type-sub">Tối đa {{ $room->roomType?->max_guests ?? 'chưa cập nhật' }} khách · {{ $room->roomType?->max_adults ?? 'chưa cập nhật' }} người lớn</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="apple-status-pill {{ $statusClass }}">
+                                    <span class="apple-dot"></span>
+                                    <span>{{ $statusLabel }}</span>
+                                </span>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn-edit-room" type="button" data-bs-toggle="modal" data-bs-target="#editRoomModal-{{ $room->id }}">
+                                    <i class="bi bi-pencil-square" aria-hidden="true"></i> <span>Chỉnh sửa</span>
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="room-empty">Tầng {{ $selectedFloor }} chưa có phòng. Bạn có thể thêm phòng vào tầng này.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Mobile Room Cards --}}
+        <div class="room-cards-mobile d-md-none">
+            @forelse($rooms as $room)
+                @php
+                    $isReservedToday = $room->status === 'available' && $reservedToday->contains($room->id);
+                    $statusKey = $isReservedToday ? 'reserved' : $room->status;
+                    $statusLabel = config('statuses.room.'.$statusKey, 'Đã đặt');
+                    $statusClass = match($statusKey) {
+                        'available' => 'apple-status-pill--available',
+                        'occupied' => 'apple-status-pill--occupied',
+                        'reserved' => 'apple-status-pill--reserved',
+                        'cleaning' => 'apple-status-pill--cleaning',
+                        'maintenance' => 'apple-status-pill--maintenance',
+                        default => 'apple-status-pill--reserved'
+                    };
+                @endphp
+                <div class="room-card-mob">
+                    <div class="room-card-mob__top">
+                        <span class="room-num-badge">P.{{ $room->room_number }}</span>
+                        <span class="apple-status-pill {{ $statusClass }}">
+                            <span class="apple-dot"></span>
+                            <span>{{ $statusLabel }}</span>
+                        </span>
+                    </div>
+                    <div class="room-card-mob__body">
+                        <div class="room-type-meta">
+                            <span class="room-type-name">{{ $room->roomType?->type_name ?? 'Chưa gán hạng' }}</span>
+                            <span class="room-type-sub">Tối đa {{ $room->roomType?->max_guests ?? 'chưa cập nhật' }} khách</span>
+                        </div>
+                    </div>
+                    <button class="btn-edit-room" type="button" data-bs-toggle="modal" data-bs-target="#editRoomModal-{{ $room->id }}">
+                        <i class="bi bi-pencil-square" aria-hidden="true"></i> <span>Chỉnh sửa phòng</span>
+                    </button>
+                </div>
+            @empty
+                <div class="room-empty">Tầng {{ $selectedFloor }} chưa có phòng.</div>
+            @endforelse
+        </div>
+        </div>
+        </div>
+    </section>
+
+    </div>
 
     <div class="modal fade room-modal" id="addRoomTypeModal" tabindex="-1" aria-labelledby="addRoomTypeModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
@@ -969,7 +994,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const updateRoomNumberHint = () => {
             const first = Number(floorSelect.value) * 100 + 1;
-            numberInput.placeholder = `${first}–${first + 4}`;
+            numberInput.placeholder = `${first}-${first + 4}`;
         };
         floorSelect.addEventListener('change', updateRoomNumberHint);
         updateRoomNumberHint();

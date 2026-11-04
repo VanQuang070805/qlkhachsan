@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('otp-form');
     const cells = Array.from(document.querySelectorAll('.otp-cell'));
     const hiddenInput = document.getElementById('otp-hidden');
+    const mainInput = document.getElementById('otp-main-input');
     const grid = document.getElementById('otp-grid');
     const errorEl = document.getElementById('otp-error');
     const submitBtn = document.getElementById('btn-submit-otp');
@@ -10,50 +11,54 @@ document.addEventListener('DOMContentLoaded', function () {
     const resendForm = document.getElementById('resend-form');
     const countdownWrap = document.getElementById('otp-countdown');
     const countdownSec = document.getElementById('countdown-sec');
-    const toastEl = document.getElementById('otp-toast');
 
     const storageKey = '{{ $storageKey ?? "last_otp_resend_time" }}';
     let countdownTimer = null;
 
     // Synchronize cells to hidden input
     function syncCellsToHidden() {
-        const value = cells.map(cell => cell.value).join('');
+        const value = mainInput ? mainInput.value.replace(/\D/g, '').slice(0, 6) : cells.map(cell => cell.value).join('');
         if (hiddenInput) hiddenInput.value = value;
         return value;
+    }
+
+    if (mainInput) {
+        mainInput.value = (hiddenInput?.value || '').replace(/\D/g, '').slice(0, 6);
+        mainInput.addEventListener('input', () => { syncCellsToHidden(); setError(''); });
     }
 
     // Set error message without clearing values
     function setError(msg) {
         if (!errorEl) return;
         if (msg) {
+            mainInput?.setAttribute('aria-invalid', 'true');
             errorEl.innerHTML = `<i class="bi bi-exclamation-circle" aria-hidden="true"></i> <span>${msg}</span>`;
             errorEl.removeAttribute('data-empty');
             errorEl.style.removeProperty('display');
             errorEl.style.display = 'flex';
             cells.forEach(c => c.classList.add('is-invalid'));
             if (grid) {
+                grid.dataset.status = 'error';
                 grid.classList.remove('has-error');
                 void grid.offsetWidth;
                 grid.classList.add('has-error');
             }
         } else {
+            mainInput?.removeAttribute('aria-invalid');
             errorEl.innerHTML = '';
             errorEl.setAttribute('data-empty', 'true');
             errorEl.style.setProperty('display', 'none', 'important');
             cells.forEach(c => c.classList.remove('is-invalid'));
-            if (grid) grid.classList.remove('has-error');
+            if (grid) {
+                grid.dataset.status = 'idle';
+                grid.classList.remove('has-error');
+            }
         }
     }
 
     // Toast feedback helper
     function showToast(msg, isSuccess = true) {
-        if (!toastEl) return;
-        toastEl.className = 'otp-status-toast ' + (isSuccess ? 'is-success' : 'is-error');
-        toastEl.innerHTML = `<i class="bi bi-${isSuccess ? 'check-circle' : 'exclamation-circle'}" aria-hidden="true"></i> <span>${msg}</span>`;
-        toastEl.style.display = 'flex';
-        setTimeout(() => {
-            toastEl.style.display = 'none';
-        }, 5000);
+        window.royalToast(msg, isSuccess ? 'success' : 'error');
     }
 
     // Cell input handlers
@@ -135,8 +140,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const otp = syncCellsToHidden();
             if (otp.length < 6) {
                 setError('Vui lòng nhập đầy đủ 6 chữ số mã OTP.');
-                const firstEmpty = cells.find(c => !c.value) || cells[0];
-                firstEmpty.focus();
+                const firstEmpty = mainInput || cells.find(c => !c.value) || cells[0];
+                firstEmpty?.focus();
                 return;
             }
 

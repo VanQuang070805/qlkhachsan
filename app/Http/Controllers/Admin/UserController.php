@@ -32,7 +32,12 @@ class UserController extends Controller
 
         if ($request->filled('role')) {
             $roleId = Role::where('slug', $request->role)->value('id');
-            $query->where('role_id', $roleId ?? 0);
+            $query->where(function ($roleQuery) use ($request, $roleId) {
+                $roleQuery->where('role_id', $roleId ?? 0);
+                if (in_array($request->role, ['admin', 'receptionist', 'customer'], true)) {
+                    $roleQuery->orWhere(fn ($legacy) => $legacy->whereNull('role_id')->where('role', $request->role));
+                }
+            });
         }
 
         if ($request->filled('verified')) {
@@ -192,10 +197,11 @@ class UserController extends Controller
             return back()->with('error', 'Không thể xóa tài khoản này vì khách hàng vẫn còn lịch đặt phòng chưa hoàn thành (chờ xác nhận, đã xác nhận, hoặc đang ở)!');
         }
 
+        app(\App\Services\SessionRevocationService::class)->revoke($user);
         $user->delete();
 
         return redirect()->route('admin.users.index')
-                         ->with('success', 'Xóa tài khoản thành công!');
+                         ->with('success', 'Đã ngừng hoạt động tài khoản và giữ lại lịch sử liên quan.');
     }
 
     public function toggleVerified(User $user)

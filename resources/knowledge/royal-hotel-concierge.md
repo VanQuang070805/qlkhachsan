@@ -33,7 +33,8 @@ Sức chứa là căn cứ để gợi ý loại phòng; không tự suy ra di�
 
 - Thời gian nhận phòng được xác nhận trong hệ thống: 12:00–trước 16:00. Từ 16:00, không thể chọn ngày hiện tại làm ngày nhận phòng.
 - Trả phòng tiêu chuẩn trước 12:00. Trả phòng thực tế sau 13:00 phát sinh phụ thu bằng 50% giá một đêm của phòng.
-- Một đơn đang chờ thanh toán giữ phòng trong 30 phút.
+- Một đơn đang chờ thanh toán giữ phòng trong 10 phút.
+- Gia hạn lưu trú theo giờ tính 10% giá phòng mỗi đêm cho mỗi giờ đến 18:00; qua 18:00 chuyển thành một đêm đầy đủ (trừ phần phụ phí giờ đã tính). Gia hạn theo ngày sử dụng mức giá theo đêm của ngày đó.
 - Hướng dẫn khách vào mục **Tìm phòng trống** trên website để chọn ngày, số người, xem dữ liệu mới nhất và tự xác nhận đặt phòng.
 - Phương thức thanh toán khả dụng được hiển thị ở bước thanh toán của đơn; không yêu cầu khách gửi số thẻ, mật khẩu, OTP hoặc mã xác thực qua chat.
 

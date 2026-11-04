@@ -22,6 +22,7 @@ class IotPageTest extends TestCase
             $table->boolean('verified')->default(true);
             $table->string('password')->default('unused');
             $table->string('remember_token')->nullable();
+            $table->softDeletes();
         });
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
@@ -75,7 +76,7 @@ class IotPageTest extends TestCase
 
     public function test_guests_are_redirected_to_internal_login(): void
     {
-        $this->get('/staff/iot')->assertRedirect('/internalauth/login');
+        $this->get('/staff/iot')->assertRedirect('/staff/login');
     }
 
     public function test_customer_cannot_access_staff_iot_tools(): void
@@ -97,7 +98,7 @@ class IotPageTest extends TestCase
     {
         DB::table('users')->insert(['id' => 1, 'role' => 'receptionist', 'verified' => false]);
         $this->withSession(['staff_user_id' => 1])
-            ->get('/staff/iot')->assertRedirect('/internalauth/login');
+            ->get('/staff/iot')->assertRedirect('/staff/login');
     }
 
     public function test_pi_camera_module_is_shown_without_an_external_stream_link(): void

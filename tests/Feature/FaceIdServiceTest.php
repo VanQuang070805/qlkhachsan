@@ -25,6 +25,7 @@ class FaceIdServiceTest extends TestCase
 
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->softDeletes();
         });
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();

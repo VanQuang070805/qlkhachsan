@@ -35,9 +35,9 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start;">
 
             {{-- ══ CỘT TRÁI: QR CODE CARD (CĂN GIỮA HOÀN TOÀN) ══ --}}
-            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05); text-align: center;">
+            <div style="background: #ffffff; border: 1px solid #E5E1D8; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(24, 23, 21, 0.05); text-align: center;">
                 {{-- Header --}}
-                <div style="background: linear-gradient(135deg, #0071e3 0%, #38bdf8 100%); padding: 18px 20px; color: #ffffff;">
+                <div style="background: linear-gradient(135deg, #181715 0%, #292524 100%); border-bottom: 2px solid #B89C72; padding: 18px 20px; color: #ffffff;">
                     <div style="font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
                         <i class="bi bi-qr-code-scan"></i> VietQR - Chuyển khoản tự động
                     </div>
@@ -47,25 +47,25 @@
                 {{-- Body (Căn giữa mã QR) --}}
                 <div style="padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     @if(!empty($qrData['qr_url']))
-                        <div style="background: #ffffff; padding: 12px; border-radius: 18px; border: 2px solid #e2e8f0; box-shadow: 0 8px 24px rgba(0, 113, 227, 0.12); display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                        <div style="background: #ffffff; padding: 12px; border-radius: 18px; border: 2px solid #E5E1D8; box-shadow: 0 8px 24px rgba(24, 23, 21, 0.08); display: flex; align-items: center; justify-content: center; margin: 0 auto;">
                             <img id="vietQrImage" src="{{ $qrData['qr_url'] }}"
                                  alt="VietQR Code"
                                  style="width: 250px; height: 250px; max-width: 100%; border-radius: 10px; display: block; margin: 0 auto; object-fit: contain;">
                         </div>
                     @else
-                        <div style="width: 250px; height: 250px; background: #f8fafc; border-radius: 18px; border: 2px dashed #cbd5e1; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; gap: 10px;">
+                        <div style="width: 250px; height: 250px; background: #FAF9F6; border-radius: 18px; border: 2px dashed #E5E1D8; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; gap: 10px;">
                             <i class="bi bi-bank text-primary" style="font-size: 48px;"></i>
                             <span style="font-size: 13px; color: #64748b; font-weight: 500;">Chưa tạo được QR tự động</span>
                         </div>
                     @endif
 
                     {{-- Nội dung chuyển khoản copy box --}}
-                    <div style="width: 100%; margin-top: 20px; background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; text-align: left;">
+                    <div style="width: 100%; margin-top: 20px; background: #F3EFE9; border: 1px solid #E5E1D8; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; text-align: left;">
                         <div>
-                            <div style="font-size: 11.5px; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.04em;">Nội dung chuyển khoản</div>
-                            <code id="refCodeText" style="font-size: 16px; font-weight: 800; color: #1e3a8a; letter-spacing: 0.02em;">{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}</code>
+                            <div style="font-size: 11.5px; font-weight: 700; color: #5C5852; text-transform: uppercase; letter-spacing: 0.04em;">Nội dung chuyển khoản</div>
+                            <code id="refCodeText" style="font-size: 16px; font-weight: 800; color: #181715; letter-spacing: 0.02em;">{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}</code>
                         </div>
-                        <button type="button" class="btn btn-sm btn-primary" onclick="copyRefCode()" style="border-radius: 8px; font-size: 12.5px; font-weight: 600; padding: 6px 14px; background: #0071e3; border: none;">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="copyRefCode()" style="border-radius: 8px; font-size: 12.5px; font-weight: 600; padding: 6px 14px; background: #181715; border: none; color: #ffffff;">
                             <i class="bi bi-clipboard me-1"></i> <span id="copyBtnText">Sao chép</span>
                         </button>
                     </div>
@@ -87,17 +87,17 @@
             <div style="display: flex; flex-direction: column; gap: 18px;">
 
                 {{-- Card Số tiền cọc --}}
-                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); text-align: center;">
+                <div style="background: #ffffff; border: 1px solid #E5E1D8; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px rgba(24, 23, 21, 0.04); text-align: center;">
                     <div style="color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">
                         Số tiền đặt cọc (50%)
                     </div>
-                    <div style="font-size: 34px; font-weight: 800; color: #0071e3; margin: 8px 0; letter-spacing: -0.03em;">
+                    <div style="font-size: 34px; font-weight: 800; color: #181715; margin: 8px 0; letter-spacing: -0.03em;">
                         {{ number_format($booking->deposit_amount, 0, ',', '.') }} đ
                     </div>
                     <div style="font-size: 12.5px; color: #64748b; margin-bottom: 8px;">
-                        Tổng giá trị: {{ number_format($booking->total_price, 0, ',', '.') }} đ — Phần còn lại thanh toán khi nhận phòng
+                        Tổng giá trị: {{ number_format($booking->total_price, 0, ',', '.') }} đ. Phần còn lại thanh toán khi nhận phòng
                     </div>
-                    <span class="badge bg-blue-50 text-primary border border-blue-200 rounded-pill px-3 py-1.5" style="font-size: 12px; font-weight: 600;">
+                    <span class="badge bg-stone-100 text-stone-800 border border-stone-200 rounded-pill px-3 py-1.5" style="font-size: 12px; font-weight: 600;">
                         {{ $nights }} đêm lưu trú · {{ $booking->adult_count }} khách
                     </span>
                 </div>
@@ -129,7 +129,7 @@
                         ['🏦', 'Mở ứng dụng ngân hàng', 'Chọn Quét mã QR hoặc Chuyển khoản nhanh Napas 247'],
                         ['📷', 'Quét mã QR',           'Hướng camera điện thoại vào mã QR ở khung bên trái'],
                         ['✅', 'Kiểm tra & Xác nhận',  'Số tiền và nội dung chuyển khoản được tự động điền sẵn'],
-                        ['⚡', 'Xác nhận tức thì',     'Hệ thống tự động kích hoạt phòng và gửi mã QR nhận phòng'],
+                        ['⚡', 'Xác nhận giao dịch', 'Hệ thống kiểm tra giao dịch và cập nhật trạng thái đặt phòng'],
                     ] as [$icon, $title, $desc])
                         <div style="display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start;">
                             <div style="width: 34px; height: 34px; background: #eff6ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
@@ -181,6 +181,7 @@
     const keepAliveUrl = @json(route('payment.keep-alive', $booking->id));
     const cancelUrl = @json(route('payment.cancel-pending', $booking->id));
     const historyUrl = @json(route('booking.mine'));
+    const paymentFormUrl = @json(route('payment.form', $booking->id));
     const paymentCheckUrl = @json(route('payment.check', $booking->id));
     let secondsToRefresh = 600;
     let requestPending = false;
@@ -289,6 +290,12 @@
         if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target === '_blank' || link.hasAttribute('download')) return;
         const destination = new URL(link.href, window.location.href);
         if (destination.href === window.location.href) return;
+        // Changing the payment method stays within this booking's checkout flow.
+        if (destination.origin === window.location.origin && destination.pathname === new URL(paymentFormUrl, window.location.href).pathname) {
+            leaving = true;
+            stopTimers();
+            return;
+        }
         event.preventDefault();
         if (window.confirm('Nếu rời màn hình thanh toán, booking chưa thanh toán và giữ phòng sẽ bị hủy. Bạn có muốn tiếp tục?')) {
             cancelBeforeLeaving(destination.href);

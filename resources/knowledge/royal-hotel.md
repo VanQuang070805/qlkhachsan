@@ -4,7 +4,7 @@ Khách nhận phòng từ 12:00 đến trước 16:00. Từ 16:00, hệ thống 
 
 ## Tìm và đặt phòng
 
-Khách chọn ngày nhận, ngày trả và số người để hệ thống kiểm tra phòng trống theo dữ liệu hiện tại. Sức chứa của các phòng được chọn phải bằng hoặc lớn hơn tổng số khách. Một đơn chờ thanh toán giữ phòng trong 30 phút. Giá và phòng trống phải được tra cứu trực tiếp, không suy đoán từ tài liệu này.
+Khách chọn ngày nhận, ngày trả và số người để hệ thống kiểm tra phòng trống theo dữ liệu hiện tại. Sức chứa của các phòng được chọn phải bằng hoặc lớn hơn tổng số khách. Một đơn chờ thanh toán giữ phòng trong 10 phút. Giá và phòng trống phải được tra cứu trực tiếp, không suy đoán từ tài liệu này.
 
 ## Thanh toán
 

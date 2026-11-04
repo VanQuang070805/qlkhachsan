@@ -222,7 +222,7 @@
                             <div class="input-group">
                                 <input type="password" name="password" id="modalPassword"
                                        class="form-control @error('password') is-invalid @enderror"
-                                       placeholder="Tối thiểu 8 ký tự" minlength="8" required
+                                       placeholder="Tối thiểu 6 ký tự" minlength="6" required
                                        style="border-radius: 10px 0 0 10px; font-size: 0.86rem; border: 1px solid rgba(0,0,0,0.12); border-right: none; height: 42px; background: #ffffff; color: #0f172a;">
                                 <button class="btn btn-light border eye-btn" type="button" onclick="toggleModalPwd('modalPassword', this)" style="border-radius: 0 10px 10px 0; border-color: rgba(0,0,0,0.12) !important; color: #64748b; padding: 0 14px;">
                                     <i class="bi bi-eye"></i>
@@ -313,12 +313,11 @@
         </div>
     </div>
 </div>
-<div class="toast-container position-fixed bottom-0 end-0 p-3"><div id="statusToast" class="toast border-0"><div class="d-flex"><div class="toast-body" id="toastMessage"></div><button class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div></div>
 @endsection
 @push('scripts')
 <script>
 let deleteTargetId=null;const deleteModal=new bootstrap.Modal(document.getElementById('deleteModal'));document.querySelectorAll('.btn-delete').forEach(btn=>btn.addEventListener('click',()=>{deleteTargetId=btn.dataset.id;document.getElementById('delete-name').textContent=btn.dataset.name;deleteModal.show()}));document.getElementById('confirm-delete').addEventListener('click',()=>deleteTargetId&&document.getElementById('delete-form-'+deleteTargetId).submit());
-const toast=new bootstrap.Toast(document.getElementById('statusToast'));document.querySelectorAll('.btn-toggle-status').forEach(btn=>btn.addEventListener('click',async function(){if(this.disabled)return;this.disabled=true;try{const res=await fetch('/admin/users/'+this.dataset.id+'/toggle-verified',{method:'PATCH',headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}});const json=await res.json();if(!res.ok||!json.success)throw new Error(json.message||'Không thể cập nhật');this.className='status-pill '+(json.verified?'status-confirmed':'status-cancelled')+' btn-toggle-status';this.textContent=json.verified?'Đang hoạt động':'Đã khóa';document.getElementById('toastMessage').textContent=json.message;toast.show()}catch(error){document.getElementById('toastMessage').textContent=error.message;toast.show()}finally{this.disabled=false}}));
+document.querySelectorAll('.btn-toggle-status').forEach(btn=>btn.addEventListener('click',async function(){if(this.disabled)return;this.disabled=true;try{const res=await fetch('/admin/users/'+this.dataset.id+'/toggle-verified',{method:'PATCH',headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}});const json=await res.json();if(!res.ok||!json.success)throw new Error(json.message||'Không thể cập nhật');this.className='status-pill '+(json.verified?'status-confirmed':'status-cancelled')+' btn-toggle-status';this.textContent=json.verified?'Đang hoạt động':'Đã khóa';window.royalToast(json.message,'success')}catch(error){window.royalToast(error.message,'error')}finally{this.disabled=false}}));
 function toggleModalPwd(id, btn) {
     const input = document.getElementById(id);
     const icon = btn.querySelector('i');

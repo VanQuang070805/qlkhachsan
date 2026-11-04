@@ -27,8 +27,9 @@ Route::post('/webhook/vnpay',   [PaymentController::class, 'webhookVnpay'])->nam
 // VNPay return URL (người dùng được redirect về sau khi thanh toán)
 Route::get('/webhook/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('webhook.vnpay.return');
 
-// Dify may read public room information only. The endpoints use a separate bearer secret.
-Route::middleware('throttle:120,1')->prefix('chatbot/tools')->name('chatbot.tools.')->group(function () {
-    Route::post('/room-types', [ChatbotController::class, 'difyRoomTypes'])->name('room-types');
-    Route::post('/rooms/search', [ChatbotController::class, 'difySearchRooms'])->name('rooms.search');
+// LangGraph backend may read public room information and capability-scoped customer bookings.
+Route::middleware('throttle:chatbot-internal-tools')->prefix('chatbot/tools')->name('chatbot.tools.')->group(function () {
+    Route::match(['get', 'post'], '/room-types', [ChatbotController::class, 'roomTypes'])->name('room-types');
+    Route::post('/rooms/search', [ChatbotController::class, 'searchRooms'])->name('rooms.search');
+    Route::post('/my-bookings', [ChatbotController::class, 'myBookings'])->name('my-bookings');
 });

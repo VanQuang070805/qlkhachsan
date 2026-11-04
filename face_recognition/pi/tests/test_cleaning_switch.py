@@ -43,7 +43,7 @@ def test_client_posts_cleaning_state_to_laravel():
         return FakeResponse({"success": True, "room_number": "501", "message": "ok"})
 
     client = CleaningApiClient(
-        base_url="http://172.20.10.4:8000/",
+        base_url="http://172.20.10.4:18080/",
         api_key="device-secret",
         room_number="501",
         timeout=5,
@@ -52,7 +52,7 @@ def test_client_posts_cleaning_state_to_laravel():
 
     result = client.send(True)
 
-    assert captured["url"] == "http://172.20.10.4:8000/api/iot/rooms/501/cleaning-request"
+    assert captured["url"] == "http://172.20.10.4:18080/api/iot/rooms/501/cleaning-request"
     assert captured["headers"]["X-api-key"] == "device-secret"
     assert captured["body"] == {"needs_cleaning": True}
     assert result["room_number"] == "501"

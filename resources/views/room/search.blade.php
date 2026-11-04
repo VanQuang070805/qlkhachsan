@@ -1,4 +1,4 @@
-@extends('layouts.main')
+﻿@extends('layouts.main')
 
 @section('content')
 <?php $pageTitle = 'Tìm Phòng Trống'; ?>
@@ -819,7 +819,7 @@ body { background: var(--cream) !important; }
             <span class="ctrl-dot ctrl-yellow"></span>
             <span class="ctrl-dot ctrl-green"></span>
         </div>
-        <span class="macos-card-title">Tìm kiếm phòng trống — Rosaliza Concierge</span>
+        <span class="macos-card-title">Tìm kiếm phòng trống tại Rosaliza Hotel</span>
         <span style="font-size: 11px; color: #64748b;">macOS Finder Mode</span>
     </div>
     <form method="GET" action="{{ route('rooms.search') }}" id="searchForm" novalidate>
@@ -917,9 +917,9 @@ body { background: var(--cream) !important; }
                 $allPrices = $roomTypes->pluck('price')->all();
                 $minPrice  = $allPrices ? (int)min($allPrices) : 0;
                 $maxPrice  = $allPrices ? (int)max($allPrices) : 10000000;
-                $filterMin = (int)floor($minPrice / 100000) * 100000;
-                $filterMax = (int)ceil($maxPrice  / 100000) * 100000;
-                if ($filterMin === $filterMax) $filterMax = $filterMin + 500000;
+                $filterMin = (int)floor($minPrice / 1000) * 1000;
+                $filterMax = (int)ceil($maxPrice / 1000) * 1000;
+                if ($filterMin === $filterMax) $filterMax = $filterMin + 1000;
                 ?>
                 <div class="d-flex justify-content-between mb-1">
                     <small style="font-family:'Inter';font-size:.75rem;color:var(--muted)" id="priceMinLabel"><?= number_format($filterMin, 0, ',', '.') ?></small>
@@ -930,20 +930,20 @@ body { background: var(--cream) !important; }
                     <div class="price-range-wrap" style="position:relative;height:6px;">
                         <input type="range" id="priceRangeMin"
                                min="<?= $filterMin ?>" max="<?= $filterMax ?>"
-                               value="<?= $filterMin ?>" step="100000"
+                               value="<?= $filterMin ?>" step="1000"
                                style="margin:0;padding:0;height:20px;top:-7px;">
                         <input type="range" id="priceRangeMax"
                                min="<?= $filterMin ?>" max="<?= $filterMax ?>"
-                               value="<?= $filterMax ?>" step="100000"
+                               value="<?= $filterMax ?>" step="1000"
                                style="margin:0;padding:0;height:20px;top:-7px;position:absolute;left:0;width:100%">
                     </div>
                 </div>
                 <div class="price-inputs">
                     <input type="number" id="priceInputMin" class="price-input"
-                           value="<?= $filterMin ?>" min="<?= $filterMin ?>" max="<?= $filterMax ?>" step="100000">
-                    <span style="color:var(--muted);font-size:.9rem">—</span>
+                           value="<?= $filterMin ?>" min="<?= $filterMin ?>" max="<?= $filterMax ?>" step="1000">
+                    <span style="color:var(--muted);font-size:.9rem">Chưa chọn</span>
                     <input type="number" id="priceInputMax" class="price-input"
-                           value="<?= $filterMax ?>" min="<?= $filterMin ?>" max="<?= $filterMax ?>" step="100000">
+                           value="<?= $filterMax ?>" min="<?= $filterMin ?>" max="<?= $filterMax ?>" step="1000">
                 </div>
 
                 <hr style="border-color:var(--border);margin:18px 0">
@@ -989,8 +989,8 @@ body { background: var(--cream) !important; }
                         <p class="text-muted small mb-0">Hãy chọn thêm phòng bằng tính năng <strong>Giỏ phòng</strong> bên dưới để đủ sức chứa.</p>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid var(--border);justify-content:center">
-                        <button class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal">
-                            <i class="bi bi-arrow-left me-1"></i>OK – Chọn thêm phòng
+                        <button type="button" class="btn btn-warning fw-bold px-4" data-bs-dismiss="modal">
+                            <i class="bi bi-arrow-left me-1"></i>OK, chọn thêm phòng
                         </button>
                     </div>
                 </div>
@@ -1053,7 +1053,7 @@ body { background: var(--cream) !important; }
                         <span class="ctrl-dot ctrl-yellow"></span>
                         <span class="ctrl-dot ctrl-green"></span>
                     </div>
-                    <span class="macos-card-title"><?= htmlspecialchars($type['type_name']) ?> — Rosaliza Preview</span>
+                    <span class="macos-card-title"><?= htmlspecialchars($type['type_name']) ?> tại Rosaliza</span>
                 </div>
 
                 <!-- Header -->
@@ -1535,7 +1535,7 @@ function updateFill() {
     if (!rangeMin || !fillEl) return;
     const lo = parseInt(rangeMin.value);
     const hi = parseInt(rangeMax.value);
-    const pct = (v) => ((v - FILTER_MIN) / (FILTER_MAX - FILTER_MIN)) * 100;
+    const pct = (v) => FILTER_MAX === FILTER_MIN ? 0 : ((v - FILTER_MIN) / (FILTER_MAX - FILTER_MIN)) * 100;
     fillEl.style.left  = pct(Math.min(lo, hi)) + '%';
     fillEl.style.width = Math.abs(pct(hi) - pct(lo)) + '%';
 }
@@ -1543,17 +1543,19 @@ function updateFill() {
 function syncFromRange() {
     let lo = parseInt(rangeMin.value), hi = parseInt(rangeMax.value);
     if (lo > hi) { const t = lo; lo = hi; hi = t; }
+    rangeMin.value = lo; rangeMax.value = hi;
     inputMin.value = lo; inputMax.value = hi;
     labelMin.textContent = fmt(lo); labelMax.textContent = fmt(hi);
     updateFill(); applyFilters();
 }
 
 function syncFromInput() {
-    let lo = parseInt(inputMin.value) || FILTER_MIN;
-    let hi = parseInt(inputMax.value) || FILTER_MAX;
+    let lo = Number.isFinite(inputMin.valueAsNumber) ? inputMin.valueAsNumber : FILTER_MIN;
+    let hi = Number.isFinite(inputMax.valueAsNumber) ? inputMax.valueAsNumber : FILTER_MAX;
     lo = Math.max(FILTER_MIN, Math.min(lo, FILTER_MAX));
     hi = Math.max(FILTER_MIN, Math.min(hi, FILTER_MAX));
     if (lo > hi) { const t = lo; lo = hi; hi = t; }
+    inputMin.value = lo; inputMax.value = hi;
     rangeMin.value = lo; rangeMax.value = hi;
     labelMin.textContent = fmt(lo); labelMax.textContent = fmt(hi);
     updateFill(); applyFilters();
@@ -1570,8 +1572,8 @@ if (rangeMin) {
 document.querySelectorAll('.amenity-filter').forEach(cb => cb.addEventListener('change', applyFilters));
 
 function applyFilters() {
-    const lo = parseInt(inputMin?.value || FILTER_MIN);
-    const hi = parseInt(inputMax?.value || FILTER_MAX);
+    const lo = Number.isFinite(inputMin?.valueAsNumber) ? inputMin.valueAsNumber : FILTER_MIN;
+    const hi = Number.isFinite(inputMax?.valueAsNumber) ? inputMax.valueAsNumber : FILTER_MAX;
     const checked = [...document.querySelectorAll('.amenity-filter:checked')].map(cb => parseInt(cb.value));
     const cards = document.querySelectorAll('.room-type-card');
     let visible = 0;

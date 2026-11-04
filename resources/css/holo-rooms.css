@@ -1,0 +1,4 @@
+/* Holo-rooms canvas and badge layer styles */
+#hotel-accommodation-rooms .holo-room-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; opacity: 0; }
+#hotel-accommodation-rooms [data-holo-ready] .holo-room-canvas { opacity: 1; }
+#hotel-accommodation-rooms .melia-room-card__badge { z-index: 2; }

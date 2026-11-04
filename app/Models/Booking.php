@@ -202,6 +202,11 @@ class Booking extends Model
         return $this->hasMany(PaymentLog::class);
     }
 
+    public function refundTransaction()
+    {
+        return $this->hasOne(RefundTransaction::class);
+    }
+
     public function faceProfiles()
     {
         return $this->hasMany(FaceProfile::class);
@@ -275,11 +280,11 @@ class Booking extends Model
         $params = [];
 
         if (!empty($filters['start_date'])) {
-            $where[] = "b.check_in >= ?";
+            $where[] = "DATE(b.check_in) >= ?";
             $params[] = $filters['start_date'];
         }
         if (!empty($filters['end_date'])) {
-            $where[] = "b.check_in <= ?";
+            $where[] = "DATE(b.check_in) <= ?";
             $params[] = $filters['end_date'];
         }
         if (!empty($filters['status'])) {
@@ -295,18 +300,42 @@ class Booking extends Model
         return [$whereSql, $params];
     }
 
+    private function reportReceivedAmountSql(): string
+    {
+        return "CASE WHEN b.status = 'cancelled' THEN 0 ELSE COALESCE(
+            NULLIF((SELECT SUM(pl.amount) FROM payment_logs pl WHERE pl.booking_id = b.id AND pl.status = 'success'), 0),
+            CASE WHEN b.payment_status = 'paid' THEN b.deposit_amount ELSE 0 END
+        ) END";
+    }
+
     public function getReportStats(array $filters): array
     {
         list($whereSql, $params) = $this->buildReportConditions($filters);
 
-        $nightExpression = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite'
+        $isSqlite = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite';
+        $nightExpression = $isSqlite
             ? "julianday(b.check_out) - julianday(b.check_in)"
             : "DATEDIFF(b.check_out, b.check_in)";
+        $nonNegativeNights = $isSqlite
+            ? "MAX(0, $nightExpression)"
+            : "GREATEST(0, $nightExpression)";
+        $roomTypeClause = ! empty($filters['room_type_id'])
+            ? ' AND report_rooms.room_type_id = '.(int) $filters['room_type_id']
+            : '';
+        $roomCountExpression = "(SELECT COUNT(*)
+                                   FROM booking_rooms report_br
+                                   JOIN rooms report_rooms ON report_rooms.id = report_br.room_id
+                                  WHERE report_br.booking_id = b.id$roomTypeClause)";
+        $receivedAmount = $this->reportReceivedAmountSql();
 
         $sql = "SELECT 
-                    SUM(CASE WHEN b.payment_status = 'paid' AND b.status != 'cancelled' THEN b.total_price ELSE 0 END) AS total_revenue,
+                    SUM($receivedAmount) AS total_revenue,
                     COUNT(*) AS total_bookings,
-                    SUM($nightExpression) AS total_nights,
+                    SUM(CASE
+                        WHEN b.status IN ('confirmed', 'checked_in', 'completed')
+                        THEN $nonNegativeNights * $roomCountExpression
+                        ELSE 0
+                    END) AS total_nights,
                     SUM(CASE WHEN b.status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
                     SUM(CASE WHEN b.status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_count,
                     SUM(CASE WHEN b.status = 'checked_in' THEN 1 ELSE 0 END) AS checked_in_count,
@@ -342,14 +371,15 @@ class Booking extends Model
     public function getReportChartData(array $filters): array
     {
         list($whereSql, $params) = $this->buildReportConditions($filters);
+        $receivedAmount = $this->reportReceivedAmountSql();
         
-        $sql = "SELECT b.check_in AS date,
-                       SUM(CASE WHEN b.payment_status = 'paid' AND b.status != 'cancelled' THEN b.total_price ELSE 0 END) AS revenue,
+        $sql = "SELECT DATE(b.check_in) AS date,
+                       SUM($receivedAmount) AS revenue,
                        COUNT(*) AS bookings
                 FROM bookings b
                 WHERE $whereSql
-                GROUP BY b.check_in
-                ORDER BY b.check_in ASC";
+                GROUP BY DATE(b.check_in)
+                ORDER BY DATE(b.check_in) ASC";
         
         return \Illuminate\Support\Facades\DB::select($sql, $params);
     }
@@ -408,6 +438,7 @@ class Booking extends Model
     public function getFilteredBookings(array $filters): array
     {
         list($whereSql, $params) = $this->buildReportConditions($filters);
+        $receivedAmount = $this->reportReceivedAmountSql();
         
         $groupRooms = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite'
             ? "GROUP_CONCAT(r.room_number, ', ')"
@@ -419,7 +450,7 @@ class Booking extends Model
             ? "GROUP_CONCAT(DISTINCT rt.id)"
             : "GROUP_CONCAT(DISTINCT rt.id ORDER BY rt.id SEPARATOR ',')";
 
-        $sql = "SELECT b.*,
+        $sql = "SELECT b.*, $receivedAmount AS received_amount,
                        (SELECT $groupRooms
                           FROM booking_rooms br2 
                           JOIN rooms r ON br2.room_id = r.id 
@@ -439,5 +470,45 @@ class Booking extends Model
                  ORDER BY b.check_in DESC";
                  
         return \Illuminate\Support\Facades\DB::select($sql, $params);
+    }
+
+    public function paginateFilteredBookings(array $filters, int $perPage = 25)
+    {
+        $isSqlite = \Illuminate\Support\Facades\DB::getDriverName() === 'sqlite';
+        $groupRooms = $isSqlite ? "GROUP_CONCAT(r.room_number, ', ')" : "GROUP_CONCAT(r.room_number ORDER BY r.room_number SEPARATOR ', ')";
+        $groupTypes = $isSqlite ? "GROUP_CONCAT(rt.type_name, ', ')" : "GROUP_CONCAT(rt.type_name SEPARATOR ', ')";
+        $groupTypeIds = $isSqlite ? 'GROUP_CONCAT(DISTINCT rt.id)' : "GROUP_CONCAT(DISTINCT rt.id ORDER BY rt.id SEPARATOR ',')";
+
+        $query = self::query()->from('bookings as b')
+            ->select('b.*')
+            ->selectRaw($this->reportReceivedAmountSql().' AS received_amount')
+            ->selectSub(function ($rooms) use ($groupRooms): void {
+                $rooms->from('booking_rooms as br')->join('rooms as r', 'r.id', '=', 'br.room_id')
+                    ->whereColumn('br.booking_id', 'b.id')->selectRaw($groupRooms);
+            }, 'room_number')
+            ->selectSub(function ($types) use ($groupTypes): void {
+                $types->from('booking_rooms as br')->join('rooms as r', 'r.id', '=', 'br.room_id')
+                    ->join('room_types as rt', 'rt.id', '=', 'r.room_type_id')
+                    ->whereColumn('br.booking_id', 'b.id')->selectRaw($groupTypes);
+            }, 'type_name')
+            ->selectSub(function ($types) use ($groupTypeIds): void {
+                $types->from('booking_rooms as br')->join('rooms as r', 'r.id', '=', 'br.room_id')
+                    ->join('room_types as rt', 'rt.id', '=', 'r.room_type_id')
+                    ->whereColumn('br.booking_id', 'b.id')->selectRaw($groupTypeIds);
+            }, 'room_type_ids');
+
+        $query->when($filters['start_date'] ?? null, fn ($q, $date) => $q->whereDate('b.check_in', '>=', $date))
+            ->when($filters['end_date'] ?? null, fn ($q, $date) => $q->whereDate('b.check_in', '<=', $date))
+            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('b.status', $status))
+            ->when($filters['room_type_id'] ?? null, function ($q, $roomTypeId): void {
+                $q->whereExists(function ($rooms) use ($roomTypeId): void {
+                    $rooms->selectRaw('1')->from('booking_rooms as filter_br')
+                        ->join('rooms as filter_rooms', 'filter_rooms.id', '=', 'filter_br.room_id')
+                        ->whereColumn('filter_br.booking_id', 'b.id')
+                        ->where('filter_rooms.room_type_id', (int) $roomTypeId);
+                });
+            });
+
+        return $query->orderByDesc('b.check_in')->orderByDesc('b.id')->paginate($perPage)->withQueryString();
     }
 }

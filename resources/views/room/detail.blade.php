@@ -17,6 +17,98 @@
     $multiRoomMode = $roomsNeeded > 1;
 
     $heroPhoto = $room->image_url;
+
+    $getAmenityIconClass = function($amenity) {
+        $icon = strtolower(trim($amenity->icon ?? ''));
+        $name = mb_strtolower(trim($amenity->amenity_name ?? ''));
+
+        $iconMap = [
+            'fa-wifi' => 'bi bi-wifi',
+            'wifi' => 'bi bi-wifi',
+            'fa-tv' => 'bi bi-tv',
+            'tv' => 'bi bi-tv',
+            'fa-snowflake' => 'bi bi-snow',
+            'snowflake' => 'bi bi-snow',
+            'fa-wind' => 'bi bi-wind',
+            'wind' => 'bi bi-wind',
+            'fa-concierge-bell' => 'bi bi-bell',
+            'bell' => 'bi bi-bell',
+            'fa-cube' => 'bi bi-snow2',
+            'cube' => 'bi bi-snow2',
+            'fa-bath' => 'bi bi-droplet',
+            'bath' => 'bi bi-droplet',
+            'fa-bathtub' => 'bi bi-droplet',
+            'fa-shower' => 'bi bi-droplet-half',
+            'fa-film' => 'bi bi-film',
+            'film' => 'bi bi-film',
+            'fa-coffee' => 'bi bi-cup-hot',
+            'coffee' => 'bi bi-cup-hot',
+            'fa-utensils' => 'bi bi-egg-fried',
+            'fa-bed' => 'bi bi-moon-stars',
+            'fa-phone' => 'bi bi-telephone',
+            'fa-car' => 'bi bi-car-front',
+            'fa-swimming-pool' => 'bi bi-water',
+            'fa-pool' => 'bi bi-water',
+            'fa-shield-alt' => 'bi bi-shield-lock',
+            'fa-lock' => 'bi bi-shield-lock',
+        ];
+
+        if (!empty($icon) && isset($iconMap[$icon])) {
+            return $iconMap[$icon];
+        }
+
+        if (str_contains($name, 'wifi') || str_contains($name, 'mạng') || str_contains($name, 'internet')) {
+            return 'bi bi-wifi';
+        }
+        if (str_contains($name, 'tv') || str_contains($name, 'truyền hình') || str_contains($name, 'màn hình')) {
+            return 'bi bi-tv';
+        }
+        if (str_contains($name, 'điều hòa') || str_contains($name, 'máy lạnh') || str_contains($name, 'nhiệt độ')) {
+            return 'bi bi-snow';
+        }
+        if (str_contains($name, 'sấy tóc') || str_contains($name, 'máy sấy')) {
+            return 'bi bi-wind';
+        }
+        if (str_contains($name, 'dịch vụ phòng') || str_contains($name, 'phục vụ') || str_contains($name, 'chuông') || str_contains($name, 'quản gia')) {
+            return 'bi bi-bell';
+        }
+        if (str_contains($name, 'tủ lạnh') || str_contains($name, 'minibar') || str_contains($name, 'lạnh')) {
+            return 'bi bi-snow2';
+        }
+        if (str_contains($name, 'bồn tắm') || str_contains($name, 'vòi sen') || str_contains($name, 'tắm')) {
+            return 'bi bi-droplet';
+        }
+        if (str_contains($name, 'máy chiếu') || str_contains($name, 'chiếu phim') || str_contains($name, 'phim')) {
+            return 'bi bi-film';
+        }
+        if (str_contains($name, 'bữa sáng') || str_contains($name, 'ăn sáng') || str_contains($name, 'cà phê') || str_contains($name, 'trà')) {
+            return 'bi bi-cup-hot';
+        }
+        if (str_contains($name, 'két') || str_contains($name, 'an toàn') || str_contains($name, 'khóa')) {
+            return 'bi bi-shield-lock';
+        }
+        if (str_contains($name, 'bàn') || str_contains($name, 'làm việc') || str_contains($name, 'laptop')) {
+            return 'bi bi-laptop';
+        }
+        if (str_contains($name, 'bể bơi') || str_contains($name, 'hồ bơi')) {
+            return 'bi bi-water';
+        }
+        if (str_contains($name, 'ban công') || str_contains($name, 'cửa sổ') || str_contains($name, 'view')) {
+            return 'bi bi-brightness-high';
+        }
+        if (str_contains($name, 'áo choàng') || str_contains($name, 'khăn')) {
+            return 'bi bi-person-badge';
+        }
+        if (str_contains($name, 'điện thoại')) {
+            return 'bi bi-telephone';
+        }
+
+        if (str_starts_with($icon, 'bi-') || str_starts_with($icon, 'bi ')) {
+            return str_starts_with($icon, 'bi ') ? $icon : 'bi ' . $icon;
+        }
+
+        return 'bi bi-stars';
+    };
 @endphp
 
 <div class="aeth-canvas">
@@ -107,7 +199,7 @@
                     <div class="aeth-amenities-grid">
                         @forelse($room->amenities as $amenity)
                             <div class="aeth-amenity-card">
-                                <div class="aeth-amenity-icon"><i class="bi bi-check2-circle"></i></div>
+                                <div class="aeth-amenity-icon"><i class="{{ $getAmenityIconClass($amenity) }}"></i></div>
                                 <span class="aeth-amenity-name">{{ $amenity->amenity_name }}</span>
                             </div>
                         @empty

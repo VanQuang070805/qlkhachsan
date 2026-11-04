@@ -34,6 +34,8 @@ Homestead.yaml
 Thumbs.db
 
 /.env.testing
+/.env.docker
+/docker/backups/*.sql
 __pycache__/
 *.py[cod]
 **/.venv/
@@ -44,3 +46,5 @@ face_recognition/**/data/*.sqlite*
 raspberry-pi/*report.json
 /storage/app/private/local-demo-access.txt
 /.codex-docx-review
+/.playwright-cli/
+/output/

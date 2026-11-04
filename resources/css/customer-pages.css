@@ -1,5 +1,5 @@
 /* Shared finish for customer pages still backed by legacy Blade views. */
-body.client-shell { background:linear-gradient(180deg,#779bc1 0%,#9abfda 57%,#cbdcec 100%) fixed; }
+body.client-shell { background: #FAF9F6 fixed; }
 .legacy-main { min-height:55vh; width:min(1180px,calc(100% - 40px)); margin:0 auto; padding:clamp(32px,6vw,76px); border:1px solid rgba(255,255,255,.72); border-radius:0 0 24px 24px; background:rgba(255,255,255,.94); backdrop-filter:blur(14px); }
 .legacy-main:has(.search-hero),.legacy-main:has(.editorial-hero) { width:100%; max-width:none; padding:0; border:0; border-radius:0; background:transparent; backdrop-filter:none; }
 .legacy-main:has(.search-hero) > .container { width:min(1180px,calc(100% - 40px)); max-width:1180px; padding-right:12px; padding-left:12px; margin-right:auto; margin-left:auto; }

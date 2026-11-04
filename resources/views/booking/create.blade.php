@@ -2,7 +2,7 @@
 
 @section('content')
 @php
-    $pageTitle = 'Đặt Phòng — Thông Tin Khách Lưu Trú';
+    $pageTitle = 'Đặt phòng: Thông tin khách lưu trú';
     $adults = (int)($adults ?? 1);
     $children = (int)($children ?? 0);
     $nights = (int)($nights ?? 1);
@@ -192,7 +192,7 @@
                                     <span>Thời gian:</span>
                                 </span>
                                 <span class="fw-semibold text-slate-800 text-end">
-                                    {{ \Carbon\Carbon::parse($checkIn)->format('d/m/Y') }} – {{ \Carbon\Carbon::parse($checkOut)->format('d/m/Y') }}
+                                    {{ \Carbon\Carbon::parse($checkIn)->format('d/m/Y') }} đến {{ \Carbon\Carbon::parse($checkOut)->format('d/m/Y') }}
                                     <span class="text-slate-500 fw-normal">({{ $nights }} đêm)</span>
                                 </span>
                             </div>

@@ -6,12 +6,13 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class User extends Authenticatable
 {
-    use Notifiable;
+    use Notifiable, SoftDeletes;
     const UPDATED_AT = null;
 
     protected static function booted(): void
@@ -108,7 +109,7 @@ class User extends Authenticatable
 
     public function countCustomers(): int
     {
-        return self::where('role', 'customer')->orWhereNull('role')->count();
+        return self::where('role', 'customer')->count();
     }
 
     public function getRoleLabelAttribute(): string

@@ -31,9 +31,9 @@
 }
 
 .review-breadcrumb:hover {
-    color: #0071e3;
+    color: #181715;
     background: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.08);
+    box-shadow: 0 4px 12px rgba(24, 23, 21, 0.06);
     transform: translateX(-2px);
 }
 
@@ -47,14 +47,14 @@
     display: inline-block;
     padding: 5px 14px;
     border-radius: 999px;
-    background: rgba(0, 113, 227, 0.08);
-    color: #0071e3;
+    background: rgba(184, 156, 114, 0.12);
+    color: #84632b;
     font-size: 11.5px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     margin-bottom: 12px;
-    border: 1px solid rgba(0, 113, 227, 0.16);
+    border: 1px solid rgba(184, 156, 114, 0.25);
 }
 
 .review-hero h1 {
@@ -67,10 +67,10 @@
 }
 
 .review-hero h1 em {
-    font-family: 'Instrument Serif', Georgia, serif;
+    font-family: 'Playfair Display', Georgia, serif;
     font-style: italic;
     font-weight: 400;
-    color: #0071e3;
+    color: #B89C72;
 }
 
 .review-hero p {
@@ -288,9 +288,9 @@
 }
 
 .quick-tag-chip.is-selected {
-    background: rgba(0, 113, 227, 0.1);
-    border-color: #0071e3;
-    color: #0071e3;
+    background: rgba(184, 156, 114, 0.15);
+    border-color: #B89C72;
+    color: #84632b;
     font-weight: 600;
 }
 
@@ -334,8 +334,8 @@
 .comment-box:focus {
     outline: none;
     background: #ffffff;
-    border-color: #0071e3;
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    border-color: #B89C72;
+    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.2);
 }
 
 .comment-box::placeholder {
@@ -366,13 +366,13 @@
     width: 100%;
     height: 48px;
     border-radius: 999px;
-    background: #0071e3;
+    background: #181715;
     color: #ffffff;
     font-size: 14.5px;
     font-weight: 700;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0, 113, 227, 0.28);
+    box-shadow: 0 4px 16px rgba(24, 23, 21, 0.18);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -382,8 +382,8 @@
 }
 
 .review-submit-btn:hover {
-    background: #0056b3;
-    box-shadow: 0 6px 20px rgba(0, 113, 227, 0.38);
+    background: #282725;
+    box-shadow: 0 6px 20px rgba(24, 23, 21, 0.25);
     transform: translateY(-1px);
 }
 
@@ -442,7 +442,7 @@
                 <span class="ctrl-dot ctrl-yellow"></span>
                 <span class="ctrl-dot ctrl-green"></span>
             </div>
-            <p class="review-window-title">Rosaliza Hotel — Phiếu đánh giá trải nghiệm #{{ $booking->id }}</p>
+            <p class="review-window-title">Rosaliza Hotel: Phiếu đánh giá trải nghiệm #{{ $booking->id }}</p>
         </header>
 
         <div class="review-body">
@@ -457,7 +457,7 @@
                     <div class="review-stay-dates">
                         <span class="review-stay-chip">
                             <i class="bi bi-calendar-check" aria-hidden="true"></i>
-                            {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} – {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }}
+                            {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} đến {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }}
                         </span>
                         <span class="review-stay-chip">
                             <i class="bi bi-hash" aria-hidden="true"></i>
@@ -474,24 +474,32 @@
                 <input type="hidden" name="room_type_id" value="{{ $roomType->id }}">
                 <input type="hidden" name="rating" id="ratingInput" value="{{ old('rating', 5) }}">
 
-                {{-- Star Rating Section --}}
+                {{-- Star Rating Section with React Bits PeekRating --}}
                 <div class="rating-section">
                     <label class="rating-section-label" id="rating-title">Mức độ hài lòng của quý khách</label>
-                    <div class="stars-interactive" role="radiogroup" aria-labelledby="rating-title">
-                        @for ($i = 1; $i <= 5; $i++)
-                            <button type="button"
-                                    class="star-btn {{ (int)old('rating', 5) >= $i ? 'is-active' : '' }}"
-                                    data-value="{{ $i }}"
-                                    role="radio"
-                                    aria-checked="{{ (int)old('rating', 5) === $i ? 'true' : 'false' }}"
-                                    aria-label="{{ $i }} sao"
-                                    title="{{ $i }} sao">
-                                ★
-                            </button>
-                        @endfor
+                    <div class="peek-rating" role="radiogroup" data-peek-rating data-count="5" data-default="{{ old('rating', 5) }}" aria-labelledby="rating-title">
+                        <div class="peek-rating__row">
+                            <span class="peek-rating__tip" aria-hidden="true"></span>
+                            @php($reviewLabels = ['1 sao · Chưa hài lòng', '2 sao · Tạm ổn', '3 sao · Hài lòng', '4 sao · Rất tốt', '5 sao · Tuyệt vời & Hoàn hảo'])
+                            @for ($i = 1; $i <= 5; $i++)
+                                <button type="button"
+                                        class="peek-rating__star"
+                                        data-star-index="{{ $i - 1 }}"
+                                        role="radio"
+                                        aria-checked="{{ (int)old('rating', 5) === $i ? 'true' : 'false' }}"
+                                        aria-label="{{ $reviewLabels[$i - 1] }}"
+                                        title="{{ $reviewLabels[$i - 1] }}">
+                                    <span class="peek-rating__lift">
+                                        <span class="peek-rating__glyph" data-lit="{{ (int)old('rating', 5) >= $i ? 'true' : 'false' }}">
+                                            ★
+                                        </span>
+                                    </span>
+                                </button>
+                            @endfor
+                        </div>
                     </div>
                     <div>
-                        <span class="rating-descriptor" id="ratingDescriptor">5 sao · Xuất sắc vượt mong đợi</span>
+                        <span class="rating-descriptor" id="ratingDescriptor">{{ (int)old('rating', 5) }} sao · {{ (int)old('rating', 5) === 5 ? 'Tuyệt vời & Hoàn hảo' : 'Hài lòng' }}</span>
                     </div>
                 </div>
 

@@ -83,10 +83,22 @@ class GoogleAuthController extends Controller
             ])->save();
         }
 
+        $preservedStaffId = session('staff_user_id');
+        $preservedStaffData = session('staff_user');
+        $preservedAdminId = session('admin_user_id');
+        $preservedAdminData = session('admin_user');
+
         session()->regenerate();
         auth()->login($user, true);
+        \Illuminate\Support\Facades\Auth::guard('customer')->login($user, true);
         $userData = ['id'=>$user->id, 'fullname'=>$user->fullname, 'email'=>$user->email, 'phone'=>$user->phone, 'role'=>$user->role, 'verified'=>$user->verified];
         session(['customer_user_id'=>$user->id, 'customer_user'=>$userData, 'auth_user_id'=>$user->id, 'user_id'=>$user->id, 'user'=>$userData]);
+        if ($preservedStaffId) {
+            session(['staff_user_id' => $preservedStaffId, 'staff_user' => $preservedStaffData]);
+        }
+        if ($preservedAdminId) {
+            session(['admin_user_id' => $preservedAdminId, 'admin_user' => $preservedAdminData]);
+        }
 
         return redirect()->intended(route('home'));
     }

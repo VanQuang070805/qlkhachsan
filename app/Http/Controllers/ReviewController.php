@@ -6,6 +6,8 @@ use App\Models\Booking;
 use App\Models\RoomType;
 use App\Models\Review;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 class ReviewController extends Controller
 {
@@ -24,8 +26,8 @@ class ReviewController extends Controller
         $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
         
         // Kiểm tra bảo mật: Phải là khách hàng sở hữu booking này
-        $userId = session('user_id');
-        if ($booking->user_id !== $userId) {
+        $userId = session('customer_user_id') ?: auth()->id() ?: session('user_id');
+        if ((int) $booking->user_id !== (int) $userId) {
             return redirect()->route('home')->with('error', 'Bạn không có quyền đánh giá phòng của booking này.');
         }
 
@@ -42,8 +44,9 @@ class ReviewController extends Controller
             return redirect()->route('home')->with('error', 'Bạn không sử dụng loại phòng này trong booking.');
         }
 
-        // Đảm bảo người dùng chưa đánh giá loại phòng này
+        // Mỗi kỳ lưu trú chỉ có một đánh giá cho mỗi hạng phòng.
         $existing = Review::where('user_id', $userId)
+            ->where('booking_id', $booking->id)
             ->where('room_type_id', $roomTypeId)
             ->first();
         
@@ -66,37 +69,44 @@ class ReviewController extends Controller
             'comment' => 'nullable|string|max:1000',
         ]);
 
-        $booking = Booking::findOrFail($request->booking_id);
-        $userId = session('user_id');
+        $userId = session('customer_user_id') ?: auth()->id() ?: session('user_id');
 
-        // Kiểm tra bảo mật
-        if ($booking->user_id !== $userId) {
-            return redirect()->route('home')->with('error', 'Bạn không có quyền đánh giá phòng của booking này.');
+        try {
+            $created = DB::transaction(function () use ($request, $userId): bool {
+                $booking = Booking::query()->lockForUpdate()->findOrFail($request->booking_id);
+
+                if ((int) $booking->user_id !== (int) $userId) {
+                    abort(403, 'Bạn không có quyền đánh giá phòng của booking này.');
+                }
+                if ($booking->status !== 'completed') {
+                    return false;
+                }
+                if (! $booking->rooms()->where('room_type_id', $request->room_type_id)->exists()) {
+                    abort(422, 'Loại phòng này không thuộc kỳ nghỉ của bạn.');
+                }
+
+                Review::create([
+                    'user_id' => $userId,
+                    'booking_id' => $booking->id,
+                    'room_type_id' => $request->room_type_id,
+                    'rating' => $request->rating,
+                    'comment' => $request->comment,
+                ]);
+
+                return true;
+            });
+        } catch (QueryException $exception) {
+            if (in_array((string) $exception->getCode(), ['23000', '23505'], true)) {
+                return redirect()->route('rooms.detail', $request->room_type_id)
+                    ->with('info', 'Bạn đã gửi đánh giá cho hạng phòng này trong kỳ lưu trú này.');
+            }
+
+            throw $exception;
         }
 
-        if ($booking->status !== 'completed') {
+        if (! $created) {
             return redirect()->route('home')->with('error', 'Chỉ có thể đánh giá sau khi đã hoàn tất thủ tục trả phòng.');
         }
-
-        if (!$booking->rooms()->where('room_type_id', $request->room_type_id)->exists()) {
-            return redirect()->route('home')->with('error', 'Loại phòng này không thuộc kỳ nghỉ của bạn.');
-        }
-
-        // Kiểm tra trùng lặp
-        $existing = Review::where('user_id', $userId)
-            ->where('room_type_id', $request->room_type_id)
-            ->first();
-
-        if ($existing) {
-            return redirect()->route('rooms.detail', $request->room_type_id)->with('info', 'Bạn đã gửi đánh giá cho loại phòng này trước đó.');
-        }
-
-        Review::create([
-            'user_id' => $userId,
-            'room_type_id' => $request->room_type_id,
-            'rating' => $request->rating,
-            'comment' => $request->comment,
-        ]);
 
         return redirect()->route('rooms.detail', $request->room_type_id)
             ->with('success', 'Cảm ơn quý khách đã gửi đánh giá! Ý kiến của quý khách sẽ giúp chúng tôi hoàn thiện dịch vụ tốt hơn.');

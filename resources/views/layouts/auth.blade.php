@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -71,7 +71,7 @@
                             </li>
                             <li class="sana-laptop__nav-item">
                                 <i class="bi bi-chat-dots"></i>
-                                <span>Concierge AI</span>
+                                <span>Trợ lý ảo AI</span>
                             </li>
                         </ul>
                     </div>
@@ -81,7 +81,7 @@
                         <div>
                             <div class="sana-laptop__greeting">
                                 <h3>Welcome to Rosaliza Hotel</h3>
-                                <p>Không gian lưu trú tinh tế &amp; dịch vụ chuẩn mực 5 sao</p>
+                                <p>Khám phá không gian và thông tin lưu trú</p>
                             </div>
 
                             <div class="sana-laptop__cards">
@@ -111,7 +111,7 @@
                         {{-- Bottom Prompt Bar --}}
                         <div class="sana-laptop__prompt-bar">
                             <i class="bi bi-stars" style="color: #60a5fa;"></i>
-                            <span>Hỏi Rosaliza Concierge về phòng nghỉ, đưa đón hoặc dịch vụ...</span>
+                            <span>Hỏi Rosaliza Hotel về phòng nghỉ, đưa đón hoặc dịch vụ...</span>
                         </div>
                     </div>
                 </div>
@@ -135,7 +135,7 @@
         <div class="sana-bottom-bar__right">
             <span>Curated for a quieter kind of stay</span>
             <span>·</span>
-            <strong>✦ 5-Star Luxury Retreat</strong>
+            <strong>✦ Rosaliza Hotel</strong>
         </div>
     </footer>
 
@@ -155,6 +155,7 @@
 
         document.querySelectorAll('form[data-inline-validation]').forEach((form) => {
             const fields = [...form.querySelectorAll('input[data-validate]')];
+            let hasAttemptedSubmit = false;
 
             const getFieldErrorMessage = (field) => {
                 const val = field.value.trim();
@@ -216,24 +217,40 @@
             };
 
             fields.forEach((field) => {
-                // Blur: show error if invalid, but NEVER clear value
+                // Do not report a required-field error just because a user focused
+                // an empty field and moved on. Validate after editing or submitting.
                 field.addEventListener('blur', () => {
+                    if (field.dataset.dirty !== 'true' && !hasAttemptedSubmit) return;
+
                     const msg = getFieldErrorMessage(field);
                     if (msg) {
                         setFieldError(field, msg);
+                    } else {
+                        clearFieldError(field);
                     }
                 });
 
-                // Input: clear error as soon as user types
+                // Once a field has been edited, keep any existing error in sync.
                 field.addEventListener('input', () => {
-                    if (field.classList.contains('is-invalid')) {
-                        clearFieldError(field);
+                    field.dataset.dirty = 'true';
+                    if (hasAttemptedSubmit || field.classList.contains('is-invalid')) {
+                        const msg = getFieldErrorMessage(field);
+                        if (msg) {
+                            setFieldError(field, msg);
+                        } else {
+                            clearFieldError(field);
+                        }
                     }
+                });
+
+                field.addEventListener('change', () => {
+                    field.dataset.dirty = 'true';
                 });
             });
 
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
+                hasAttemptedSubmit = true;
 
                 // 1. Client-side validation: check all fields
                 let hasError = false;

@@ -46,11 +46,12 @@
         "dev": [
             "@php artisan migrate --force",
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"php artisan schedule:work\" \"npm run dev\" --names=server,queue,logs,scheduler,vite --kill-others"
+            "npx concurrently \"php artisan serve --host=0.0.0.0 --port=18080\" \"php artisan serve --host=127.0.0.1 --port=18081\" \"php artisan serve --host=127.0.0.1 --port=18082\" \"php artisan serve --host=127.0.0.1 --port=18084\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"php artisan schedule:work\" \"npm run dev -- --host 127.0.0.1\" --names=customer,staff,admin,chatbot-tools,queue,logs,scheduler,vite --kill-others"
         ],
         "start": [
             "@php artisan migrate --force",
-            "@php artisan serve"
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently \"php artisan serve --host=0.0.0.0 --port=18080\" \"php artisan serve --host=127.0.0.1 --port=18081\" \"php artisan serve --host=127.0.0.1 --port=18082\" \"php artisan serve --host=127.0.0.1 --port=18084\" --names=customer,staff,admin,chatbot-tools --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi",

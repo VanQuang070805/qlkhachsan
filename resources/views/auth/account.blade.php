@@ -23,7 +23,7 @@
                 <i class="bi bi-shield-check" style="color:#10b981;"></i>
             </div>
             <div style="padding: 32px 24px; text-align: center; display: flex; flex-direction: column; align-items: center;">
-                <span class="account-avatar" style="margin: 0 auto 16px; width: 68px; height: 68px; font-size: 26px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #0071e3, #0056b3); color: #fff; box-shadow: 0 8px 20px rgba(0, 113, 227, 0.25);">{{ mb_strtoupper(mb_substr($user->fullname ?: 'R', 0, 1)) }}</span>
+                <span class="account-avatar" style="margin: 0 auto 16px; width: 68px; height: 68px; font-size: 26px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #181715, #3f3f46); color: #B89C72; box-shadow: 0 8px 20px rgba(24, 23, 21, 0.2);">{{ mb_strtoupper(mb_substr($user->fullname ?: 'R', 0, 1)) }}</span>
                 <p class="editorial-eyebrow" style="margin-bottom: 4px;">Royal member</p>
                 <h2 style="margin: 0 0 6px; font-size: 20px; font-weight: 700; color: #0f172a;">{{ $user->fullname }}</h2>
                 <p style="margin: 0 0 20px; font-size: 13px; color: #64748b;">{{ $user->email }}</p>

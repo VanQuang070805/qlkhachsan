@@ -639,7 +639,7 @@ class AdminManagementTest extends TestCase
         $permissionPage->assertOk()->assertSee('Kế toán');
         $permissionPage->assertSee(route('admin.roles.permissions.index', ['user_id' => $account->id]));
         $permissionPage->assertSee('name="permissions[]" value="tn_refund" checked', false);
-        $this->asInternal($account)->get(route('receptionist.profile'))
+        $this->asInternal($account)->get(route('staff.profile'))
             ->assertOk()
             ->assertSee('Kế toán');
         $rolePermissionPage = $this->asInternal($admin)->get(route('admin.roles.permissions.index', ['role_id' => $accountantRole->id]))
@@ -650,17 +650,35 @@ class AdminManagementTest extends TestCase
         );
     }
 
+    public function test_admin_portal_sidebar_opens_and_updates_its_own_profile(): void
+    {
+        $admin = $this->internalUser('admin', 'portal-profile-admin@example.test');
+        $this->asInternal($admin)
+            ->get('http://127.0.0.1:18082/admin/users')
+            ->assertOk()
+            ->assertSee('/staff/profile', false)
+            ->assertDontSee('/receptionist/profile', false);
+
+        $this->get('http://127.0.0.1:18082/staff/profile')->assertOk()->assertSee('Hồ Sơ Cá Nhân');
+        $this->post('http://127.0.0.1:18082/staff/profile/update-info', [
+            'fullname' => 'Admin Portal',
+            'email' => $admin->email,
+            'phone' => '0912345678',
+        ])->assertRedirect(route('staff.profile'));
+        $this->assertDatabaseHas('users', ['id' => $admin->id, 'fullname' => 'Admin Portal']);
+    }
+
     public function test_admin_can_update_internal_profile_and_staff_password(): void
     {
         Mail::fake();
         $admin = $this->internalUser('admin', 'profile-admin@example.test');
         $staff = $this->internalUser('receptionist', 'profile-staff@example.test');
 
-        $this->asInternal($admin)->post(route('receptionist.profile.update-info'), [
+        $this->asInternal($admin)->post(route('staff.profile.update-info'), [
             'fullname' => 'Admin Updated',
             'email' => '  ADMIN.UPDATED@example.test ',
             'phone' => '0912345678',
-        ])->assertRedirect(route('receptionist.profile'));
+        ])->assertRedirect(route('staff.profile'));
         $this->assertDatabaseHas('users', [
             'id' => $admin->id,
             'fullname' => 'Admin Updated',
@@ -685,11 +703,11 @@ class AdminManagementTest extends TestCase
         ]);
         $this->assertTrue(Hash::check('654321', $staff->fresh()->password));
 
-        $this->asInternal($admin)->post(route('receptionist.profile.update-password'), [
+        $this->asInternal($admin)->post(route('staff.profile.update-password'), [
             'current_password' => '123456',
             'new_password' => '654321',
             'new_password_confirmation' => '654321',
-        ])->assertRedirect(route('receptionist.profile'));
+        ])->assertRedirect(route('staff.profile'));
         $this->assertTrue(Hash::check('654321', $admin->fresh()->password));
     }
 
@@ -1022,6 +1040,7 @@ class AdminManagementTest extends TestCase
 
         $this->asInternal($admin)->get(route('admin.rooms.index', ['floor' => 2]))
             ->assertOk()
+            ->assertSee('room-floor-layout', false)
             ->assertSee('201')
             ->assertDontSee('101')
             ->assertDontSee('2 phòng · 2 tầng trong dữ liệu')
@@ -1123,6 +1142,20 @@ class AdminManagementTest extends TestCase
             ->assertSee('Tầng 6')
             ->assertSee('601')
             ->assertSee('data-floor="6"', false);
+    }
+
+    public function test_deleting_an_account_deactivates_it_without_erasing_history(): void
+    {
+        $admin = $this->internalUser('admin', 'soft-delete-admin@example.test');
+        $customer = $this->internalUser('customer', 'soft-delete-customer@example.test');
+
+        $this->asInternal($admin)
+            ->delete(route('admin.users.destroy', $customer))
+            ->assertSessionHas('success');
+
+        $this->assertSoftDeleted('users', ['id' => $customer->id]);
+        $this->assertNull(User::query()->find($customer->id));
+        $this->assertNotNull(User::withTrashed()->find($customer->id));
     }
 
     private function internalUser(string $role, string $email): User

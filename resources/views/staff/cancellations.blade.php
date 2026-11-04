@@ -3,7 +3,7 @@
 @section('content')
 @php
     $cancelledBookings = collect($cancellations);
-    $refunds = $cancelledBookings->whereIn('refund_status', ['eligible', 'refunded']);
+    $refunds = $cancelledBookings->whereIn('refund_status', ['eligible', 'processing', 'refunded']);
     $pending = $refunds->where('refund_status', 'eligible');
 @endphp
 <section class="refund-workspace internal-main">
@@ -36,20 +36,39 @@
                 <h2 class="h6 fw-bold text-dark mb-1">Chưa có booking bị hủy</h2>
             </div>
         @else
+            <form class="report-filter-bar mb-3" onsubmit="return false;">
+                <div class="report-filter-inputs">
+                    <label class="report-filter-field" style="min-width: 260px; flex: 1;">
+                        <span>Tìm booking đã hủy</span>
+                        <input type="search" data-cancellation-search class="report-input-pill w-100" placeholder="Mã đặt phòng, tên khách, số phòng…">
+                    </label>
+                    <label class="report-filter-field">
+                        <span>Trạng thái hoàn</span>
+                        <select data-cancellation-status class="report-select-pill">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="eligible">Chờ hoàn tiền</option>
+                            <option value="processing">Đang xử lý</option>
+                            <option value="refunded">Đã hoàn tiền</option>
+                            <option value="none">Không hoàn tiền</option>
+                        </select>
+                    </label>
+                </div>
+            </form>
             <div class="table-responsive card border-0 p-2" style="border-radius: 16px; background:#fff; border:1px solid rgba(0,0,0,.06)!important;">
                 <table class="table align-middle mb-0">
                     <thead><tr><th>Booking</th><th>Khách hàng</th><th>Phòng</th><th>Kỳ nghỉ</th><th>Lý do hủy</th><th>Hoàn tiền</th></tr></thead>
                     <tbody>
                     @foreach($cancelledBookings as $cancelled)
-                        <tr>
-                            <td class="font-monospace fw-semibold">#{{ $cancelled->id }}<div class="small text-muted">{{ optional($cancelled->cancelled_at)->format('d/m/Y H:i') ?: '—' }}</div></td>
+                        <tr data-cancellation-record data-status="{{ $cancelled->refund_status }}" data-search="{{ $cancelled->id }} {{ $cancelled->customer_name }} {{ $cancelled->customer_phone }} {{ $cancelled->room_numbers }}">
+                            <td class="font-monospace fw-semibold">#{{ $cancelled->id }}<div class="small text-muted">{{ optional($cancelled->cancelled_at)->format('d/m/Y H:i') ?: 'Chưa cập nhật' }}</div></td>
                             <td>{{ $cancelled->customer_name }}<div class="small text-muted">{{ $cancelled->customer_phone }}</div></td>
-                            <td>{{ $cancelled->room_numbers ?: '—' }}</td>
+                            <td>{{ $cancelled->room_numbers ?: 'Chưa gán phòng' }}</td>
                             <td>{{ \Carbon\Carbon::parse($cancelled->check_in)->format('d/m/Y') }} → {{ \Carbon\Carbon::parse($cancelled->check_out)->format('d/m/Y') }}</td>
                             <td>{{ $cancelled->cancellation_reason ?: 'Không ghi lý do' }}</td>
-                            <td>{{ ['eligible' => 'Đủ điều kiện', 'refunded' => 'Đã hoàn', 'none' => 'Không hoàn'][$cancelled->refund_status] ?? 'N/A' }}</td>
+                            <td>{{ config('statuses.refund.'.$cancelled->refund_status, 'Chưa xác định') }}</td>
                         </tr>
                     @endforeach
+                    <tr data-cancellation-empty hidden><td colspan="6" class="text-center text-muted py-4">Không có booking phù hợp</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -102,8 +121,8 @@
                 <select data-refund-status class="report-select-pill">
                     <option value="">Tất cả trạng thái</option>
                     <option value="eligible">Chờ hoàn tiền</option>
+                    <option value="processing">Đang xử lý</option>
                     <option value="refunded">Đã hoàn tiền</option>
-                    <option value="none">Không hoàn tiền</option>
                 </select>
             </label>
         </div>
@@ -130,7 +149,7 @@
                     <strong class="fs-5 fw-bold text-dark" style="letter-spacing: -0.02em;">{{ number_format($c->refund_amount, 0, ',', '.') }} đ</strong>
                     <div>
                         <span class="badge" style="background: {{ $c->refund_status === 'eligible' ? '#fffbeb' : ($c->refund_status === 'refunded' ? '#ecfdf5' : '#fef2f2') }}; color: {{ $c->refund_status === 'eligible' ? '#b45309' : ($c->refund_status === 'refunded' ? '#047857' : '#b91c1c') }}; font-size: 0.72rem; font-weight: 600; padding: 4px 8px; border-radius: 999px;">
-                            {{ ['eligible'=>'Chờ hoàn tiền','refunded'=>'Đã hoàn tiền','none'=>'Không hoàn tiền'][$c->refund_status] ?? 'Chưa xác định' }}
+                            {{ config('statuses.refund.'.$c->refund_status, 'Chưa xác định') }}
                         </span>
                     </div>
                 </div>
@@ -140,7 +159,7 @@
                 <div class="d-flex align-items-center gap-4 text-muted small" style="font-size: 0.78rem;">
                     <div>
                         <span class="text-muted">Phòng:</span>
-                        <strong class="text-dark">{{ $c->room_numbers ?: '—' }}</strong>
+                        <strong class="text-dark">{{ $c->room_numbers ?: 'Chưa gán phòng' }}</strong>
                     </div>
                     <div>
                         <span class="text-muted">Kỳ nghỉ:</span>
@@ -175,8 +194,6 @@
             <div class="modal-header d-flex align-items-center justify-content-between px-4 py-3" style="background: #ffffff; border-bottom: 1px solid rgba(0,0,0,0.06);">
                 <div class="window-controls window-controls--modal d-flex align-items-center gap-1" style="pointer-events: none; margin: 0; padding: 0;" aria-hidden="true">
                     <span class="ctrl-dot ctrl-red"></span>
-                    <span class="ctrl-dot ctrl-yellow"></span>
-                    <span class="ctrl-dot ctrl-green"></span>
                 </div>
                 <h5 class="modal-title fw-bold text-dark m-0 fs-6 text-center flex-grow-1" id="refundConfirmTitle" style="color: #0f172a;">Xác nhận khoản đã hoàn</h5>
                 <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Đóng" style="font-size: 0.75rem;"></button>
@@ -194,6 +211,11 @@
                             <span style="color: #64748b; font-size: 0.88rem;">Số tiền hoàn</span>
                             <span class="refund-confirm-amount fw-bold text-success" data-refund-total style="font-size: 1.25rem; font-variant-numeric: tabular-nums;"></span>
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="refund-provider-reference">Mã giao dịch hoàn tiền</label>
+                        <input class="form-control" id="refund-provider-reference" name="provider_reference" maxlength="120" autocomplete="off" placeholder="Để trống nếu hoàn thủ công">
+                        <div class="form-text">Nhập mã từ cổng thanh toán nếu có. Hệ thống sẽ tạo mã kiểm toán cho giao dịch thủ công.</div>
                     </div>
                     <div class="d-flex align-items-start gap-2 p-3 rounded" style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; font-size: 0.82rem; line-height: 1.5;">
                         <i class="bi bi-info-circle-fill text-warning mt-0 flex-shrink-0"></i>

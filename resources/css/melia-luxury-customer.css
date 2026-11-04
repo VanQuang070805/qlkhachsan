@@ -1,0 +1,377 @@
+/* ==========================================================================
+   MELIÁ QUIET LUXURY — CUSTOMER PORTAL COMPLETE THEME
+   Harmonizes all remaining customer surfaces:
+   - Room Detail (/rooms/{id})
+   - Booking Step 1 (/booking/create)
+   - Booking Step 2 Payment (/payment/{id}/form)
+   - VietQR Checkout (/payment/{id})
+   - Booking Success & Payment Success
+   - My Bookings Archive (/my-bookings)
+   - Booking Cancellation (/booking/{id}/cancel)
+   - Customer Account Profile (/account)
+   - Customer Review Experience (/reviews/create)
+   - Customer Auth Screens (/login, /register, etc.)
+   Rosaliza Hotel HaNoi • 5B Trần Quốc Toản, Hoàn Kiếm, Hà Nội
+   ========================================================================== */
+
+:root {
+    --melia-bg: #FAF9F6;
+    --melia-surface: #FFFFFF;
+    --melia-surface-stone: #F3EFE9;
+    --melia-surface-muted: #EBE6DE;
+    --melia-border: #E5E1D8;
+    --melia-border-subtle: #ECE8E0;
+    --melia-text: #181715;
+    --melia-text-muted: #5C5852;
+    --melia-text-soft: #8C877E;
+    --melia-gold: #B89C72;
+    --melia-gold-hover: #A08359;
+    --melia-dark: #141413;
+    --melia-dark-surface: #1E1D1B;
+}
+
+/* ── 1. GLOBAL CANVAS & LAYOUT RESETS ── */
+body.client-shell {
+    background: var(--melia-bg) !important;
+    color: var(--melia-text) !important;
+}
+
+.client-shell #main-content {
+    background: transparent !important;
+}
+
+.legacy-main {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.aeth-canvas {
+    background-color: var(--melia-bg) !important;
+    color: var(--melia-text) !important;
+}
+
+/* ── 2. TYPOGRAPHY & HEADINGS ── */
+.aeth-room-title,
+.commerce-heading h1,
+.review-hero h1,
+.sana-heading__title,
+h1, h2, h3, h4, h5 {
+    color: var(--melia-text);
+    letter-spacing: -0.025em;
+}
+
+.editorial-eyebrow,
+.aeth-breadcrumb {
+    color: var(--melia-text-soft) !important;
+}
+
+.aeth-breadcrumb a {
+    color: var(--melia-text-soft) !important;
+}
+
+.aeth-breadcrumb a:hover,
+.aeth-breadcrumb .highlight {
+    color: var(--melia-text) !important;
+}
+
+/* ── 3. CARDS, BENTOS & SURFACES ── */
+.aeth-form-card,
+.aeth-summary-card,
+.aeth-sticky-card,
+.aeth-amenity-card,
+.aeth-spec-card,
+.booking-card-horizontal,
+.aeth-modal-box,
+.review-card,
+.account-profile__identity,
+.account-profile__form,
+.booking-cancel-container .macos-card-bar + div {
+    background: var(--melia-surface) !important;
+    border: 1px solid var(--melia-border) !important;
+    box-shadow: 0 4px 24px -2px rgba(24, 23, 21, 0.04), 0 2px 8px -1px rgba(24, 23, 21, 0.02) !important;
+}
+
+/* macOS Header Bar Harmonization */
+.macos-card-bar {
+    background: var(--melia-surface-stone) !important;
+    border-bottom: 1px solid var(--melia-border) !important;
+}
+
+.macos-card-title {
+    color: var(--melia-text) !important;
+    font-weight: 600 !important;
+}
+
+/* ── 4. PRIMARY BUTTONS & CTAS (QUIET CHARCOAL PILLS) ── */
+.btn-primary,
+.aeth-btn-primary,
+.booking-submit-btn,
+#btnSubmitBooking,
+.booking-extension-submit,
+#btnConfirmPay,
+.review-submit-btn,
+.sana-submit-btn,
+.client-shell button.btn-dark {
+    background: var(--melia-dark) !important;
+    background-color: var(--melia-dark) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 4px 16px rgba(20, 20, 19, 0.16) !important;
+    font-weight: 600 !important;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn-primary:hover,
+.aeth-btn-primary:hover:not(:disabled),
+.booking-submit-btn:hover,
+#btnSubmitBooking:hover,
+.booking-extension-submit:hover,
+#btnConfirmPay:hover,
+.review-submit-btn:hover,
+.sana-submit-btn:hover,
+.client-shell button.btn-dark:hover {
+    background: #282725 !important;
+    background-color: #282725 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 8px 24px rgba(20, 20, 19, 0.24) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Check-in QR & Secondary Action Buttons */
+.btn-checkin-qr,
+button[onclick*="showQrModal"],
+.booking-card-horizontal button.btn-primary {
+    background: var(--melia-dark) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 4px 14px rgba(20, 20, 19, 0.18) !important;
+}
+
+.btn-checkin-qr:hover,
+button[onclick*="showQrModal"]:hover,
+.booking-card-horizontal button.btn-primary:hover {
+    background: #282725 !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── 5. FORM INPUTS & SELECTS ── */
+.aeth-input,
+.client-shell input.form-control,
+.client-shell select.form-select,
+.client-shell textarea.form-control,
+.booking-extension-field input,
+.review-textarea {
+    background-color: var(--melia-surface) !important;
+    border: 1px solid var(--melia-border) !important;
+    color: var(--melia-text) !important;
+    border-radius: 12px !important;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.aeth-input:focus,
+.client-shell input.form-control:focus,
+.client-shell select.form-select:focus,
+.client-shell textarea.form-control:focus,
+.booking-extension-field input:focus,
+.review-textarea:focus {
+    border-color: var(--melia-gold) !important;
+    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.2) !important;
+    outline: none !important;
+}
+
+/* ── 6. STEPPER CAPSULE (BOOKING STEP 1 & 2) ── */
+.aeth-step-capsule {
+    background: var(--melia-surface) !important;
+    border: 1px solid var(--melia-border) !important;
+    box-shadow: 0 2px 8px rgba(24, 23, 21, 0.03) !important;
+}
+
+.aeth-capsule-item.is-active {
+    background: var(--melia-dark) !important;
+    color: #FFFFFF !important;
+}
+
+.aeth-capsule-item.is-active .aeth-capsule-num {
+    background: #FFFFFF !important;
+    color: var(--melia-dark) !important;
+}
+
+.aeth-capsule-item.is-done {
+    background: rgba(15, 118, 110, 0.08) !important;
+    color: #0F766E !important;
+}
+
+.aeth-capsule-item.is-done .aeth-capsule-num {
+    background: #0F766E !important;
+    color: #FFFFFF !important;
+}
+
+.aeth-capsule-item.is-inactive {
+    color: var(--melia-text-soft) !important;
+}
+
+/* ── 7. PAYMENT CHOICE (STEP 2) ── */
+.aeth-payment-choice {
+    background: var(--melia-surface) !important;
+    border: 1px solid var(--melia-border) !important;
+}
+
+.aeth-payment-choice:hover {
+    border-color: rgba(184, 156, 114, 0.5) !important;
+    box-shadow: 0 4px 14px rgba(24, 23, 21, 0.04) !important;
+}
+
+.aeth-payment-choice.is-selected {
+    border-color: var(--melia-dark) !important;
+    background: var(--melia-bg) !important;
+    box-shadow: 0 0 0 2px rgba(20, 20, 19, 0.12) !important;
+}
+
+.aeth-payment-choice.is-selected .aeth-radio-indicator {
+    border-color: var(--melia-dark) !important;
+}
+
+.aeth-radio-indicator::after {
+    background: var(--melia-dark) !important;
+}
+
+.aeth-payment-badge {
+    background: rgba(184, 156, 114, 0.12) !important;
+    color: #84632b !important;
+}
+
+/* ── 8. BADGES & STATUS INDICATORS ── */
+.aeth-badge-rank,
+.review-badge {
+    background: rgba(184, 156, 114, 0.12) !important;
+    border: 1px solid rgba(184, 156, 114, 0.25) !important;
+    color: #84632b !important;
+}
+
+.aeth-badge-urgency {
+    background: rgba(15, 118, 110, 0.08) !important;
+    border: 1px solid rgba(15, 118, 110, 0.22) !important;
+    color: #0F766E !important;
+}
+
+.aeth-badge-rating i,
+.review-star.is-active,
+.bi-star-fill.text-warning,
+.aeth-badge-rating .bi-star-fill {
+    color: var(--melia-gold) !important;
+}
+
+.aeth-pulse-dot,
+.aeth-pulse-dot::before {
+    background-color: #0F766E !important;
+}
+
+/* Replace generic tech blue icons with refined charcoal/gold */
+.client-shell .text-primary,
+.aeth-canvas .text-primary,
+.legacy-main .text-primary {
+    color: var(--melia-dark) !important;
+}
+
+.client-shell .text-blue-600,
+.aeth-canvas .text-blue-600 {
+    color: var(--melia-dark) !important;
+}
+
+.client-shell .bg-blue-50,
+.aeth-canvas .bg-blue-50,
+.aeth-canvas div[style*="#eff6ff"],
+.aeth-canvas span[style*="#eff6ff"] {
+    background-color: var(--melia-surface-stone) !important;
+    color: var(--melia-dark) !important;
+}
+
+/* ── 9. MY BOOKINGS ARCHIVE FILTER TABS ── */
+.filter-tab {
+    background: var(--melia-surface) !important;
+    border: 1px solid var(--melia-border) !important;
+    color: var(--melia-text-muted) !important;
+    transition: all 0.18s ease !important;
+}
+
+.filter-tab.is-active,
+.filter-tab:hover {
+    background: var(--melia-dark) !important;
+    color: #FFFFFF !important;
+    border-color: var(--melia-dark) !important;
+}
+
+.filter-tab.is-active .badge,
+.filter-tab:hover .badge {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #FFFFFF !important;
+}
+
+/* ── 10. ACCOUNT PROFILE SURFACES ── */
+.account-profile__identity {
+    border-radius: 24px !important;
+    overflow: hidden !important;
+}
+
+.account-avatar {
+    background: linear-gradient(135deg, #181715 0%, #3f3f46 100%) !important;
+    color: var(--melia-gold) !important;
+    box-shadow: 0 8px 20px rgba(24, 23, 21, 0.2) !important;
+}
+
+.account-switcher a {
+    color: var(--melia-text-muted) !important;
+    border-radius: 9999px !important;
+    padding: 6px 16px !important;
+    text-decoration: none !important;
+    transition: all 0.18s ease !important;
+}
+
+.account-switcher a.is-active {
+    background: var(--melia-dark) !important;
+    color: #FFFFFF !important;
+}
+
+/* ── 11. VIETQR HEADER HARMONIZATION ── */
+.vietqr-card-header,
+div[style*="linear-gradient(135deg, #0071e3"] {
+    background: linear-gradient(135deg, #181715 0%, #292524 100%) !important;
+    border-bottom: 2px solid var(--melia-gold) !important;
+}
+
+/* ── 12. MODAL & BACKDROP STYLING ── */
+.booking-success-backdrop,
+.aeth-modal-backdrop {
+    background: rgba(18, 17, 16, 0.78) !important;
+    backdrop-filter: blur(14px) !important;
+}
+
+.booking-card-modal,
+.qr-card-modal {
+    background: var(--melia-surface) !important;
+    border: 1px solid var(--melia-border) !important;
+    border-radius: 28px !important;
+    box-shadow: 0 25px 60px -15px rgba(24, 23, 21, 0.3) !important;
+}
+
+/* ── 13. DATE PICKER & GUEST SELECTOR POPUPS ── */
+.aeth-date-cell:hover,
+.aeth-date-cell:focus-within {
+    border-color: var(--melia-gold) !important;
+    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.18) !important;
+}
+
+.aeth-segment-btn.is-active {
+    background: var(--melia-surface) !important;
+    color: var(--melia-dark) !important;
+    box-shadow: 0 2px 8px rgba(24, 23, 21, 0.08) !important;
+}
+
+.aeth-ios-switch input:checked + .aeth-switch-slider {
+    background-color: var(--melia-dark) !important;
+}

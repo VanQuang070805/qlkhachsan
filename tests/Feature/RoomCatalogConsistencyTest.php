@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Models\PriceSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -14,6 +15,21 @@ use Tests\TestCase;
 class RoomCatalogConsistencyTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_home_phone_preview_uses_the_actual_price_policy_for_its_dates(): void
+    {
+        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(10, 0));
+        RoomType::query()->create([
+            'type_name' => 'Preview Room', 'price' => 50000,
+            'max_adults' => 2, 'max_children' => 0, 'max_guests' => 2,
+        ]);
+        PriceSetting::query()->create([
+            'name' => 'Preview date', 'start_date' => now('Asia/Ho_Chi_Minh')->toDateString(),
+            'end_date' => now('Asia/Ho_Chi_Minh')->toDateString(), 'adjustment_type' => 'percent',
+            'adjustment_value' => 20, 'status' => true,
+        ]);
+        $this->get(route('home'))->assertOk()->assertSee('60.000đ/đêm')->assertSee('Giá tham khảo');
+    }
 
     public function test_admin_room_type_changes_are_read_from_database_in_customer_and_staff_views(): void
     {
@@ -59,7 +75,7 @@ class RoomCatalogConsistencyTest extends TestCase
             ->assertOk()
             ->assertSee('Consistency Updated')
             ->assertSee('50.000 đ')
-            ->assertSee('5 khách · 3 người lớn · 2 trẻ em')
+            ->assertSee('5 khách tối đa')
             ->assertSee('Updated description')
             ->assertSee($updated->image, false);
 

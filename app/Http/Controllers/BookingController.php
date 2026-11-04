@@ -196,8 +196,15 @@ class BookingController extends Controller
     /**
      * Danh sách đặt phòng của khách hàng đang đăng nhập.
      */
-    public function myBookings()
+    public function myBookings(Request $request)
     {
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:all,upcoming,completed,cancelled'],
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+        $status = $filters['status'] ?? 'all';
+        $q = trim($filters['q'] ?? '');
+        $searchTerm = ltrim($q, '#');
         $noShows = app(\App\Services\ExpireNoShowBookings::class);
         Booking::query()->where('user_id', Auth::id())->where('status', 'confirmed')
             ->whereDate('check_in', '<=', now('Asia/Ho_Chi_Minh')->toDateString())
@@ -205,8 +212,23 @@ class BookingController extends Controller
 
         $bookings = Booking::with(['rooms.roomType', 'stayExtensionLogs'])
             ->where('user_id', Auth::id())
+            ->when($status !== 'all', fn ($query) => $query->whereIn('status', match ($status) {
+                'upcoming' => ['pending', 'confirmed', 'checked_in'],
+                'completed' => ['completed'],
+                'cancelled' => ['cancelled', 'rejected'],
+            }))
+            ->when($searchTerm !== '', function ($query) use ($searchTerm) {
+                $query->where(function ($match) use ($searchTerm) {
+                    $match->where('customer_name', 'like', "%{$searchTerm}%")
+                        ->orWhereHas('rooms', fn ($rooms) => $rooms->where('room_number', 'like', "%{$searchTerm}%")
+                            ->orWhereHas('roomType', fn ($types) => $types->where('type_name', 'like', "%{$searchTerm}%")));
+                    if (ctype_digit($searchTerm)) {
+                        $match->orWhereKey((int) $searchTerm);
+                    }
+                });
+            })
             ->orderByDesc((new Booking)->getCreatedAtColumn())
-            ->paginate(10);
+            ->paginate(10)->withQueryString();
 
         $bookingCounts = Booking::where('user_id', Auth::id())
             ->selectRaw(
@@ -223,7 +245,7 @@ class BookingController extends Controller
                 $booking->id => app(\App\Services\CheckInTokenService::class)->qrPayload($booking),
             ]);
 
-        return view('booking.my_bookings', compact('bookings', 'bookingCounts', 'checkinTokens'));
+        return view('booking.my_bookings', compact('bookings', 'bookingCounts', 'checkinTokens', 'status', 'q'));
     }
 
     public function extendCustomerStay(Request $request, Booking $booking)

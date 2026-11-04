@@ -148,6 +148,43 @@ class LogicRemediationTest extends TestCase
             ->assertDontSee('vietqr_timer_');
     }
 
+    public function test_cancelled_payment_navigation_redirects_without_reviving_the_booking(): void
+    {
+        [$booking] = $this->bookingWithRoom();
+        $booking->forceFill(['status' => 'cancelled', 'payment_status' => 'failed'])->saveQuietly();
+        $this->actingAs($booking->user)->withSession(['customer_user_id' => $booking->user_id]);
+
+        foreach (['payment.form', 'payment.show'] as $route) {
+            $this->get(route($route, $booking->id))
+                ->assertRedirect(route('booking.mine'))->assertSessionHas('error');
+        }
+        $this->patch(route('payment.update', $booking->id), ['payment_method' => 'momo'])
+            ->assertRedirect(route('booking.mine'))->assertSessionHas('error');
+        $this->patchJson(route('payment.update', $booking->id), ['payment_method' => 'momo'])->assertConflict();
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertSame('failed', $booking->fresh()->payment_status);
+        $this->assertNull($booking->fresh()->payment_method);
+    }
+
+    public function test_changing_payment_method_keeps_a_live_hold_but_expired_form_redirects(): void
+    {
+        [$booking] = $this->bookingWithRoom();
+        $booking->update(['payment_method' => 'vietqr']);
+        $this->actingAs($booking->user)->withSession(['customer_user_id' => $booking->user_id]);
+
+        $this->get(route('payment.form', $booking->id))->assertOk();
+        $this->patch(route('payment.update', $booking->id), ['payment_method' => 'momo'])
+            ->assertRedirect(route('payment.show', $booking->id));
+        $this->assertSame('pending', $booking->fresh()->status);
+        $this->assertSame('momo', $booking->fresh()->payment_method);
+
+        $booking->forceFill(['updated_at' => now()->subMinutes(11)])->saveQuietly();
+        $this->get(route('payment.form', $booking->id))
+            ->assertRedirect(route('booking.mine'))->assertSessionHas('error');
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertSame('failed', $booking->fresh()->payment_status);
+    }
+
     public function test_customer_leaving_vietqr_cancels_the_unpaid_booking_and_releases_its_room(): void
     {
         [$booking, $room] = $this->bookingWithRoom();
@@ -214,11 +251,11 @@ class LogicRemediationTest extends TestCase
             'staff_user_id' => $staff->id,
             'user_id' => $staff->id,
             'staff_user' => ['id' => $staff->id, 'role' => 'receptionist', 'verified' => true],
-        ])->post(route('receptionist.profile.update-info'), [
+        ])->post(route('staff.profile.update-info'), [
             'fullname' => $staff->fullname,
             'email' => 'profile-new@example.com',
             'phone' => $staff->phone,
-        ])->assertRedirect(route('receptionist.profile'))->assertSessionHas('success_info');
+        ])->assertRedirect(route('staff.profile'))->assertSessionHas('success_info');
 
         $this->assertSame('profile-new@example.com', $staff->fresh()->email);
     }
@@ -649,6 +686,7 @@ class LogicRemediationTest extends TestCase
 
     public function test_legacy_room_status_endpoint_cannot_check_in_unpaid_online_booking(): void
     {
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-04 13:00:00', 'Asia/Ho_Chi_Minh'));
         $staff = $this->internalUser('transition-unpaid-staff@example.com', 'receptionist');
         $session = ['staff_user_id' => $staff->id, 'staff_user' => ['id' => $staff->id, 'role' => 'receptionist', 'verified' => true]];
         [$booking, $room] = $this->bookingWithRoom();

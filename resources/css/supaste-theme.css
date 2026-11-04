@@ -18,7 +18,7 @@
     --supaste-black: #09090b;
     --supaste-dark-card: #0d0d0d;
     --supaste-border-light: rgba(255, 255, 255, 0.35);
-    --supaste-font-serif: 'Instrument Serif', Georgia, serif;
+    --supaste-font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
     --supaste-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -1277,7 +1277,7 @@
 
 .supaste-faq-item details[open] summary::after {
     content: "−" !important;
-    color: #0066ff !important;
+    color: #8c734b !important;
 }
 
 .supaste-faq-item p {

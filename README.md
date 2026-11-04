@@ -95,7 +95,7 @@ tests/
    composer dev
    ```
 
-   `composer dev` applies pending migrations, then starts the Laravel server, queue listener, log viewer, scheduler, and Vite. The default local URL is `http://127.0.0.1:8000`. `composer start` runs only the server after applying pending migrations; it does not start the scheduler. Expiring payment holds and no-show bookings require the scheduler.
+   `composer dev` applies pending migrations, then starts three Laravel web listeners, the queue listener, log viewer, scheduler, and Vite. Open the guest site at `http://127.0.0.1:18080`, the staff site at `http://127.0.0.1:18081`, and the admin site at `http://127.0.0.1:18082`; all three can stay open at once. `composer start` runs only the three web listeners after applying pending migrations; it does not start the scheduler. Expiring payment holds and no-show bookings require the scheduler.
 
 ## Data and booking behavior
 

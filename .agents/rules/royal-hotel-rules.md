@@ -30,3 +30,6 @@ Always follow the newest explicit user instruction first, then [`docs/PROJECT_RU
 - **Knowledge Graph (`graphify`)**:
   - Skill: [`.agents/skills/graphify/SKILL.md`](../skills/graphify/SKILL.md) (`https://github.com/Graphify-Labs/graphify`).
   - When the user types `/graphify` or asks for codebase/knowledge graph analysis, follow `.agents/skills/graphify/SKILL.md` to extract AST + semantic nodes/edges (`EXTRACTED`, `INFERRED`, `AMBIGUOUS`), cluster communities, and output `graphify-out/graph.html`, `graphify-out/graph.json`, `graphify-out/obsidian/`, and `graphify-out/GRAPH_REPORT.md`.
+- **Pipeline Sketch (`pipeline-sketch`)**:
+  - Skill: [`.agents/skills/pipeline-sketch/SKILL.md`](../skills/pipeline-sketch/SKILL.md).
+  - Whenever the user asks to draw or sketch a pipeline or system architecture diagram, always follow `.agents/skills/pipeline-sketch/SKILL.md` to render it in the Excalidraw/Draw.io hybrid style (pastel dashed swimlanes, floating yellow category tags on component borders, hand-drawn hachure sub-boxes, numbered red-dashed & blue-solid step arrows, and curly-brace orchestration callouts).

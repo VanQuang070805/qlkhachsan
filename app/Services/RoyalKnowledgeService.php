@@ -12,10 +12,6 @@ class RoyalKnowledgeService
 {
     public function search(string $query, int $limit = 3): array
     {
-        if ($remote = $this->searchVectorStore($query, $limit)) {
-            return $remote;
-        }
-
         $chunks = $this->indexedChunks();
         $queryEmbedding = collect($chunks)->contains(fn (array $chunk) => ! empty($chunk['embedding']))
             ? $this->queryEmbedding($query)
@@ -43,27 +39,39 @@ class RoyalKnowledgeService
 
     public function embedMany(array $texts): array
     {
-        $key = config('services.royal_ai.key');
-        if (! $key || $texts === []) {
+        $key = trim((string) config('services.gemini.api_key'));
+        if ($key === '' || $texts === []) {
             return [];
         }
 
-        try {
-            $response = Http::withToken($key)->acceptJson()->timeout(30)->retry(1, 250)
-                ->post('https://api.openai.com/v1/embeddings', [
-                    'model' => config('services.royal_ai.embedding_model'),
-                    'input' => array_values($texts),
-                    'encoding_format' => 'float',
-                ]);
+        $model = trim((string) config('services.gemini.embedding_model', 'text-embedding-004'));
+        $embeddings = [];
 
-            if (! $response->successful()) {
-                return [];
+        foreach (array_values($texts) as $index => $text) {
+            try {
+                $response = Http::acceptJson()
+                    ->withHeaders(['X-goog-api-key' => $key])
+                    ->timeout(15)
+                    ->retry(1, 200)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:embedContent?key={$key}", [
+                        'model' => "models/{$model}",
+                        'content' => [
+                            'parts' => [['text' => $text]],
+                        ],
+                    ]);
+
+                if ($response->successful()) {
+                    $values = $response->json('embedding.values');
+                    if (is_array($values) && $values !== []) {
+                        $embeddings[$index] = $values;
+                    }
+                }
+            } catch (\Throwable) {
+                continue;
             }
-
-            return collect($response->json('data', []))->sortBy('index')->pluck('embedding')->values()->all();
-        } catch (\Throwable) {
-            return [];
         }
+
+        return $embeddings;
     }
 
     public function documentChunks(): array
@@ -90,7 +98,9 @@ class RoyalKnowledgeService
                         $buffer = $candidate;
                     }
                 }
-                if ($buffer !== '') $chunks[] = $buffer;
+                if ($buffer !== '') {
+                    $chunks[] = $buffer;
+                }
 
                 return collect($chunks)->map(fn (string $content) => [
                     'title' => $title,
@@ -99,40 +109,6 @@ class RoyalKnowledgeService
                 ]);
             });
         })->values()->all();
-    }
-
-    private function searchVectorStore(string $query, int $limit): array
-    {
-        $storeId = config('services.royal_ai.vector_store_id');
-        $key = config('services.royal_ai.key');
-        if (! $storeId || ! $key) {
-            return [];
-        }
-
-        try {
-            $response = Http::withToken($key)->acceptJson()->timeout(8)
-                ->post("https://api.openai.com/v1/vector_stores/{$storeId}/search", [
-                    'query' => $query,
-                    'max_num_results' => $limit,
-                ]);
-
-            if (! $response->successful()) {
-                return [];
-            }
-
-            return collect($response->json('data', []))->map(function (array $result) {
-                $text = collect($result['content'] ?? [])->pluck('text')->filter()->implode("\n");
-
-                return [
-                    'title' => $result['filename'] ?? 'Tài liệu Rosaliza Hotel',
-                    'source' => $result['filename'] ?? 'Rosaliza Hotel knowledge base',
-                    'content' => Str::limit($text, 1600, ''),
-                    'score' => (float) ($result['score'] ?? 0),
-                ];
-            })->filter(fn (array $item) => $item['content'] !== '')->values()->all();
-        } catch (\Throwable) {
-            return [];
-        }
     }
 
     private function indexedChunks(): array
@@ -160,7 +136,9 @@ class RoyalKnowledgeService
 
     private function cosine(array $left, array $right): float
     {
-        if (count($left) !== count($right) || $left === []) return 0.0;
+        if (count($left) !== count($right) || $left === []) {
+            return 0.0;
+        }
         $dot = $leftNorm = $rightNorm = 0.0;
         foreach ($left as $index => $value) {
             $dot += $value * $right[$index];

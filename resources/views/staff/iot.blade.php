@@ -502,7 +502,7 @@
                         <td class="fw-medium">{{ $profile->guest_name ?: $profile->booking?->customer_name }}</td>
                         <td>
                             <span class="badge text-bg-light border fw-semibold">
-                                Phòng {{ $profile->room?->room_number ?? '—' }}
+                                Phòng {{ $profile->room?->room_number ?? 'Chưa gán' }}
                             </span>
                         </td>
                         <td class="text-secondary small">{{ optional($profile->updated_at)->format('d/m/Y H:i') }}</td>

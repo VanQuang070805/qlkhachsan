@@ -270,7 +270,7 @@
             <div class="detail-row">
                 <span class="label">Thời gian lưu trú:</span>
                 <span class="value">
-                    {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} (14:00) — {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }} (12:00) ({{ $nights }} đêm)
+                    {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} (14:00) đến {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }} (12:00) ({{ $nights }} đêm)
                 </span>
             </div>
             <div class="detail-row">
@@ -285,15 +285,9 @@
             </div>
             <div class="detail-row">
                 <span class="label">Trạng thái thanh toán:</span>
-                <span class="value">{{ $booking->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán đủ' }}</span>
+                <span class="value">{{ $booking->isFullyPaid() ? 'Đã thanh toán đủ' : ($booking->isPaid() ? 'Đã thanh toán cọc' : 'Chưa thanh toán đủ') }}</span>
             </div>
         </div>
-
-        {{-- Nút Thêm vào Apple Wallet --}}
-        <button type="button" class="btn-apple-wallet" id="btnAppleWallet" onclick="handleWalletClick()">
-            <i class="bi bi-apple fs-6"></i>
-            <span id="txtWalletBtn">Thêm thẻ phòng vào Apple Wallet</span>
-        </button>
 
         {{-- Cụm 2 nút: Mã Check-in & Xem Lịch Sử --}}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -404,17 +398,5 @@
         }
     }
 
-    function handleWalletClick() {
-        const btn = document.getElementById('btnAppleWallet');
-        const txt = document.getElementById('txtWalletBtn');
-        if (!btn || !txt) return;
-
-        btn.style.background = '#059669';
-        txt.textContent = 'Đã thêm vào Apple Wallet';
-        setTimeout(() => {
-            btn.style.background = '#0f172a';
-            txt.textContent = 'Thêm thẻ phòng vào Apple Wallet';
-        }, 3000);
-    }
 </script>
 @endsection

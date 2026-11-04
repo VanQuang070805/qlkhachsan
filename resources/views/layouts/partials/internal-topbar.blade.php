@@ -31,7 +31,6 @@
             <span>Trực tuyến</span>
         </div>
         <div class="topbar-user-chip">
-            <span class="topbar-avatar">{{ mb_strtoupper(mb_substr(session('user.fullname', 'R'), 0, 1)) }}</span>
             <div class="topbar-user-meta">
                 <span class="topbar-user-name">{{ session('user.fullname', 'Nhân viên') }}</span>
                 <span class="topbar-user-role">{{ auth()->user()?->role_label ?? (session('user.role') === 'admin' ? 'Quản trị viên' : 'Lễ tân') }}</span>
@@ -39,3 +38,43 @@
         </div>
     </div>
 </header>
+
+<script>
+(() => {
+    const toggle = document.getElementById('sidebarMobileToggle');
+    const sidebar = document.getElementById('workspaceSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (!toggle || !sidebar || toggle.dataset.sidebarBound === 'true') return;
+
+    const close = () => {
+        sidebar.classList.remove('is-open');
+        backdrop?.classList.remove('is-open');
+        document.body.classList.remove('sidebar-mobile-open');
+        toggle.setAttribute('aria-expanded', 'false');
+    };
+
+    toggle.dataset.sidebarBound = 'true';
+    toggle.setAttribute('aria-controls', sidebar.id);
+    toggle.setAttribute('aria-expanded', 'false');
+    window.toggleInternalSidebar = event => {
+        event.stopPropagation();
+        const open = !sidebar.classList.contains('is-open');
+        sidebar.classList.toggle('is-open', open);
+        backdrop?.classList.toggle('is-open', open);
+        document.body.classList.toggle('sidebar-mobile-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+    };
+    window.addEventListener('click', event => {
+        if (!(event.target instanceof Element)) return;
+        if (event.target.closest('#sidebarMobileToggle')) window.toggleInternalSidebar(event);
+        else if (event.target.closest('#sidebarBackdrop')) close();
+    }, { capture: true });
+    backdrop?.addEventListener('click', close);
+    sidebar.querySelectorAll('nav a').forEach(link => link.addEventListener('click', () => {
+        if (window.innerWidth <= 768) close();
+    }));
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && sidebar.classList.contains('is-open')) close();
+    });
+})();
+</script>

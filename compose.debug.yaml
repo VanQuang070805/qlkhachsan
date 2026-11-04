@@ -1,0 +1,24 @@
+name: royal-hotel-nhom10-v2
+
+# Optional debug override to expose internal services on non-conflicting localhost ports:
+# docker compose -f compose.yaml -f compose.debug.yaml --env-file .env.docker up -d
+services:
+  mysql:
+    ports:
+      - "${DEBUG_MYSQL_PORT:-13307}:3306"
+
+  redis-cache:
+    ports:
+      - "${DEBUG_REDIS_CACHE_PORT:-16379}:6379"
+
+  redis-queue:
+    ports:
+      - "${DEBUG_REDIS_QUEUE_PORT:-16380}:6379"
+
+  chatbot-api:
+    ports:
+      - "${DEBUG_CHATBOT_PORT:-12024}:2024"
+
+  kafka:
+    ports:
+      - "${DEBUG_KAFKA_PORT:-19092}:9092"

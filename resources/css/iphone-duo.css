@@ -1,0 +1,88 @@
+/* Pixeden iPhone Duo frame, with a live HTML screen above the hinge. */
+.rb-iphone-showcase__grid { grid-template-columns: minmax(0, 1fr); }
+.rb-iphone-showcase__grid > * { min-width: 0; }
+@media (min-width: 1024px) {
+    .rb-iphone-showcase__grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
+}
+
+.duo-fold-stage {
+    min-width: 0;
+    padding: 24px 0 40px;
+}
+
+.duo-fold-stage::before {
+    width: 90%;
+    height: 9%;
+    top: 86%;
+    background: rgba(20, 22, 28, .22);
+    filter: blur(22px);
+}
+
+.duo-fold-stage .iphone16-pro {
+    width: min(100%, 590px);
+    aspect-ratio: 3211 / 2410;
+    display: block;
+    padding: 0;
+    border-radius: 0;
+    background: var(--duo-frame) center / contain no-repeat;
+    box-shadow: none;
+    user-select: auto;
+}
+
+.duo-fold-stage .iphone16-pro::before { display: none; }
+.duo-fold-stage .iphone16-pro::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    left: 2.8%;
+    right: 2.8%;
+    top: 77%;
+    bottom: 7.2%;
+    height: auto;
+    background: linear-gradient(180deg, #182330 0%, #283847 42%, #111920 100%);
+    clip-path: polygon(9.3% 0, 90.7% 0, 100% 100%, 0 100%);
+    border-radius: 0 0 8% 8%;
+    box-shadow: none;
+    pointer-events: none;
+}
+
+.duo-fold-stage .iphone16-pro__btn-action,
+.duo-fold-stage .iphone16-pro__btn-vol-up,
+.duo-fold-stage .iphone16-pro__btn-vol-down,
+.duo-fold-stage .iphone16-pro__btn-power { display: none; }
+
+.duo-fold-stage .iphone16-pro__bezel {
+    position: absolute;
+    z-index: 3;
+    left: 10.7%;
+    top: 3%;
+    width: 78.6%;
+    height: 74.2%;
+    padding: 0;
+    border: 0;
+    border-radius: 8% 8% 0 0;
+    overflow: hidden;
+    box-shadow: none;
+    background: #fff;
+}
+
+.duo-fold-stage .iphone16-pro__viewport {
+    border-radius: 0;
+    background: #faf9f6;
+}
+
+.duo-fold-stage .iphone16-pro__statusbar { height: 25px; padding-top: 1px; }
+.duo-fold-stage .iphone16-pro__island { display: none; }
+.duo-fold-stage .iphone16-pro__navbar { height: 31px; }
+.duo-fold-stage .iphone16-pro__tabbar { min-height: 41px; }
+.duo-fold-stage .iphone16-pro__home-indicator { display: none; }
+.duo-fold-stage .iphone16-pro__screen { overscroll-behavior: contain; }
+.duo-fold-stage .iphone-tab-btn:focus-visible { outline: 2px solid #146ca5; outline-offset: -3px; }
+
+@media (max-width: 600px) {
+    .duo-fold-stage { padding: 10px 0 30px; }
+    .duo-fold-stage .iphone16-pro__statusbar { height: 20px; font-size: 9px; }
+    .duo-fold-stage .iphone16-pro__navbar { height: 27px; }
+    .duo-fold-stage .iphone16-pro__tabbar { min-height: 34px; }
+    .duo-fold-stage .iphone-tab-btn { font-size: 9px; }
+}

@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Cache;
 
 class IndexRoyalKnowledge extends Command
 {
-    protected $signature = 'knowledge:index {--no-embeddings : Chỉ lập chỉ mục văn bản, không gọi embedding API}';
-    protected $description = 'Phân đoạn và lập chỉ mục kho kiến thức Rosaliza Hotel';
+    protected $signature = 'knowledge:index {--no-embeddings : Chỉ lập chỉ mục văn bản, không gọi Gemini embedding API}';
+    protected $description = 'Phân đoạn và lập chỉ mục kho kiến thức Rosaliza Hotel bằng Gemini Embedding';
 
     public function handle(RoyalKnowledgeService $knowledge): int
     {
@@ -26,16 +26,22 @@ class IndexRoyalKnowledge extends Command
                 'title' => $chunk['title'],
                 'content' => $chunk['content'],
                 'embedding' => $embeddings[$index] ?? null,
-                'embedding_model' => isset($embeddings[$index]) ? config('services.royal_ai.embedding_model') : null,
+                'embedding_model' => isset($embeddings[$index]) ? config('services.gemini.embedding_model') : null,
             ]);
         }
 
         KnowledgeChunk::query()->whereNotIn('content_hash', $hashes)->delete();
         Cache::forget('royal-knowledge-v2');
+        $version = app(\App\Services\CacheVersionService::class)->bumpKnowledgeVersion();
+        app(\App\Services\OutboxService::class)->recordCatalogMutation('knowledge_indexed', [
+            'actor_type' => 'system',
+            'knowledge_version' => $version,
+            'chunk_count' => count($chunks),
+        ]);
         $embedded = count($embeddings);
-        $this->info('Đã lập chỉ mục '.count($chunks)." đoạn; {$embedded} đoạn có embedding.");
-        if (! config('services.royal_ai.key') && ! $this->option('no-embeddings')) {
-            $this->warn('Chưa có ROYAL_AI_API_KEY nên hệ thống dùng hybrid lexical retrieval cho đến lần index tiếp theo.');
+        $this->info('Đã lập chỉ mục '.count($chunks)." đoạn; {$embedded} đoạn có Gemini embedding.");
+        if (! config('services.gemini.api_key') && ! $this->option('no-embeddings')) {
+            $this->warn('Chưa có GOOGLE_API_KEY nên hệ thống lưu kho văn bản đã duyệt và dùng hybrid lexical retrieval cho đến khi cấu hình Gemini key.');
         }
 
         return self::SUCCESS;

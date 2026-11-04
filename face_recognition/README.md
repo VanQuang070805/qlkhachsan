@@ -26,19 +26,19 @@ python -m venv .venv
 .\.venv\Scripts\python.exe run_api.py
 ```
 
-Sau khi virtualenv trên đã được cài một lần, chạy toàn bộ hệ thống từ thư mục
-gốc bằng:
+Sau khi khởi động dịch vụ Face ID, mở terminal khác tại thư mục gốc và chạy web,
+queue cùng scheduler bằng:
 
 ```powershell
-.\serve82.bat
+composer dev
 ```
 
-Script tự khởi động và kiểm tra dịch vụ Face ID cổng 8001, bật Laravel scheduler
-để retry đồng bộ Pi, rồi mới bật web. Thay đổi Face ID của phòng 501 được gửi
-sang Pi ngay sau khi lưu; scheduler sẽ gửi lại nếu Pi từng mất kết nối.
+Laravel scheduler sẽ retry đồng bộ Pi nếu Pi từng mất kết nối. Dịch vụ Face ID
+chạy riêng trên cổng 8001. Thay đổi Face ID của phòng 501 được gửi sang Pi ngay
+sau khi lưu; scheduler sẽ gửi lại nếu lần gửi trước thất bại.
 
-Đăng nhập nhân viên tại `http://127.0.0.1:8000/internalauth/login`, sau đó mở
-`http://127.0.0.1:8000/staff/iot`.
+Đăng nhập nhân viên tại `http://127.0.0.1:18081/internalauth/login`, sau đó mở
+`http://127.0.0.1:18081/staff/iot`.
 
 ## Chạy trên Raspberry Pi
 

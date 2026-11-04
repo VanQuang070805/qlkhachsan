@@ -59,8 +59,16 @@ Route::post('/reset-password',        [AuthController::class, 'reset'])->middlew
 Route::get('/verify-reset-otp',       [AuthController::class, 'showVerifyOtp'])->name('password.verify-otp');
 Route::post('/verify-reset-otp',      [AuthController::class, 'verifyOtp'])->middleware('throttle:8,1');
 
-// Internal Auth (Nhân viên)
-Route::get('/internalauth/login',   [InternalAuthController::class, 'showLogin'])->name('internalauth.login');
+// Internal Auth (Nhân viên & Quản trị — 2 cổng riêng + tương thích đường dẫn cũ)
+Route::get('/staff/login',          [InternalAuthController::class, 'showStaffLogin'])->name('staff.login');
+Route::post('/staff/login',         [InternalAuthController::class, 'loginStaff'])->middleware('throttle:internal-login')->name('staff.login.submit');
+Route::post('/staff/logout',        [InternalAuthController::class, 'logoutStaff'])->name('staff.logout');
+
+Route::get('/admin/login',          [InternalAuthController::class, 'showAdminLogin'])->name('admin.login');
+Route::post('/admin/login',         [InternalAuthController::class, 'loginAdmin'])->middleware('throttle:internal-login')->name('admin.login.submit');
+Route::post('/admin/logout',        [InternalAuthController::class, 'logoutAdmin'])->name('admin.logout');
+
+Route::get('/internalauth/login',   [InternalAuthController::class, 'redirectLegacyLogin'])->name('internalauth.login');
 Route::post('/internalauth/login',  [InternalAuthController::class, 'login'])->middleware('throttle:internal-login');
 Route::post('/internalauth/logout', [InternalAuthController::class, 'logout'])->name('internalauth.logout');
 
@@ -104,19 +112,24 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
 });
 
 // ============================================================
-// RECEPTIONIST — Profile
+// RECEPTIONIST — Legacy profile redirect & POST compatibility
 // ============================================================
 use App\Http\Controllers\ReceptionUserController;
 
 Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('receptionist')->name('receptionist.')->group(function () {
-    Route::get('/profile',                  [ReceptionUserController::class, 'profile'])->name('profile');
+    Route::get('/profile', fn () => redirect()->route('staff.profile'))->name('profile');
     Route::post('/profile/update-info',     [ReceptionUserController::class, 'updateInfo'])->name('profile.update-info');
     Route::post('/profile/update-password', [ReceptionUserController::class, 'updatePassword'])->name('profile.update-password');
 });
 // ============================================================
-// RECEPTIONIST + ADMIN — Quản lý đặt phòng
+// RECEPTIONIST + ADMIN — Quản lý đặt phòng & Hồ sơ nhân viên
 // ============================================================
 Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->name('staff.')->group(function () {
+    Route::get('/profile',                  [ReceptionUserController::class, 'profile'])->name('profile');
+    Route::post('/profile/update-info',     [ReceptionUserController::class, 'updateInfo'])->name('profile.update-info');
+    Route::post('/profile/update-password', [ReceptionUserController::class, 'updatePassword'])->name('profile.update-password');
+    Route::get('/reports', [AdminController::class, 'reports'])->middleware('permission:rp_view_reports')->name('reports');
+
     Route::get('/iot', [FaceIdController::class, 'index'])->name('iot');
     Route::post('/face-id/sessions', [FaceIdController::class, 'createSession'])->middleware('throttle:10,1')->name('face-id.sessions.create');
     Route::post('/face-id/sessions/{sessionId}/samples', [FaceIdController::class, 'addSample'])->middleware('throttle:30,1')->name('face-id.samples.store');
@@ -200,3 +213,5 @@ Route::middleware(['auth.custom', 'role:admin'])->prefix('admin')->name('admin.'
     Route::patch('/roles/{user}/user-permissions', [AdminController::class, 'updateUserPermissions'])->name('roles.user-permissions.update');
     Route::patch('/roles/{user}/profile', [AdminController::class, 'assignRoleProfile'])->name('roles.profile.assign');
 });
+
+require __DIR__.'/portal_api.php';

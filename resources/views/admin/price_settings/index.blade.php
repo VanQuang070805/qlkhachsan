@@ -20,7 +20,7 @@
                 <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">Tổng chính sách</span>
                 <i class="bi bi-sliders text-muted" style="font-size: 1rem;"></i>
             </div>
-            <div class="fs-4 fw-bold text-dark" style="letter-spacing: -0.02em;">{{ $settings->count() }}</div>
+            <div class="fs-4 fw-bold text-dark" style="letter-spacing: -0.02em;">{{ $settingStats['total'] }}</div>
             <small class="text-muted" style="font-size: 0.72rem;">Cấu hình trong hệ thống</small>
         </div>
     </div>
@@ -30,7 +30,7 @@
                 <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">Đang áp dụng</span>
                 <i class="bi bi-check-circle text-success" style="font-size: 1rem;"></i>
             </div>
-            <div class="fs-4 fw-bold text-success" style="letter-spacing: -0.02em;">{{ $settings->where('status',1)->count() }}</div>
+            <div class="fs-4 fw-bold text-success" style="letter-spacing: -0.02em;">{{ $settingStats['active'] }}</div>
             <small class="text-muted" style="font-size: 0.72rem;">Chính sách đang bật</small>
         </div>
     </div>
@@ -40,7 +40,7 @@
                 <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">Sắp diễn ra</span>
                 <i class="bi bi-calendar-event text-primary" style="font-size: 1rem;"></i>
             </div>
-            <div class="fs-4 fw-bold text-primary" style="letter-spacing: -0.02em;">{{ $settings->where('start_date','>=',now()->toDateString())->count() }}</div>
+            <div class="fs-4 fw-bold text-primary" style="letter-spacing: -0.02em;">{{ $settingStats['upcoming'] }}</div>
             <small class="text-muted" style="font-size: 0.72rem;">Theo ngày bắt đầu</small>
         </div>
     </div>
@@ -84,9 +84,9 @@
                     </td>
                     <td class="py-3">
                         @if($setting->status)
-                            <span class="badge" style="background: #ecfdf5; color: #047857; font-size: 0.74rem; font-weight: 600; padding: 5px 10px; border-radius: 999px;">Đang bật</span>
+                            <span class="badge admin-tag-active">Đang bật</span>
                         @else
-                            <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 0.74rem; font-weight: 600; padding: 5px 10px; border-radius: 999px;">Đang tắt</span>
+                            <span class="badge admin-tag-inactive">Đang tắt</span>
                         @endif
                     </td>
                     <td class="pe-4 py-3 text-end">
@@ -113,4 +113,5 @@
         </table>
     </div>
 </section>
+{{ $settings->withQueryString()->links('pagination.royal') }}
 @endsection

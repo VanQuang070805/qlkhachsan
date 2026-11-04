@@ -64,7 +64,7 @@
                         {{ number_format($remaining, 0, ',', '.') }} đ
                     </div>
                     <div style="font-size:12px;color:#999;margin-bottom:8px">
-                        Tổng: {{ number_format($booking->total_price, 0, ',', '.') }} đ —
+                        Tổng: {{ number_format($booking->total_price, 0, ',', '.') }} đ.
                         Đã đặt cọc: {{ number_format($booking->deposit_amount ?? 0, 0, ',', '.') }} đ
                         @if($booking->late_checkout_fee > 0)
                            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
@@ -137,7 +137,7 @@
 
     <div class="alert alert-warning text-center">
         <i class="fa-solid fa-triangle-exclamation me-2"></i>
-        Booking sẽ được hoàn tất và phòng chuyển sang dọn dẹp sau khi nhận được thanh toán. Quá trình xác nhận có thể mất 1–2 phút.
+        Booking sẽ được hoàn tất và phòng chuyển sang dọn dẹp sau khi nhận được thanh toán. Quá trình xác nhận có thể mất 1 đến 2 phút.
     </div>
 </div>
 </main>
@@ -166,7 +166,7 @@
             clearInterval(pollTimer);
             localStorage.removeItem(timerKey);
             document.getElementById('pollStatus').innerHTML =
-                '<div class="alert alert-danger mt-2">⚠️ Mã QR đã hết hiệu lực. <button class="btn btn-sm btn-primary ms-2" onclick="location.reload()">Tạo lại mã</button></div>';
+                '<div class="alert alert-danger mt-2"><i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>Mã QR đã hết hiệu lực. <button type="button" class="btn btn-sm btn-primary ms-2" onclick="location.reload()">Tạo lại mã</button></div>';
             countdownEl.textContent = '0:00';
             return;
         }

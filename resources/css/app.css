@@ -12,6 +12,12 @@
 @import './sana-auth.css';
 @import './cupertino-luxury.css';
 @import './responsive-apple.css';
+@import './melia-luxury-home.css';
+@import './melia-luxury-pages.css';
+@import './melia-luxury-customer.css';
+@import './reactbits-luxury.css';
+@import './iphone-duo.css';
+@import './booking-preview.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -21,4 +27,33 @@
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* Accessible focus treatment shared by every customer interaction. */
+.client-shell :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid #6f5430 !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.96) !important;
+}
+
+.client-shell :is(input, select, textarea):focus-visible {
+    border-color: #6f5430 !important;
+}
+
+/* Long FAQ questions are content, not compact action labels. */
+@media (max-width: 575.98px) {
+    .client-shell .melia-faq-btn {
+        min-height: 44px !important;
+        max-height: none !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+
+    .client-shell .melia-faq-btn > span {
+        flex: 1 1 auto;
+        min-width: 0 !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+    }
 }

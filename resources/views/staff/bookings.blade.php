@@ -14,6 +14,8 @@
         'occupied' => 0,
         'cleaning' => 0,
         'booked' => 0,
+        'maintenance' => 0,
+        'overdue' => 0,
     ];
 
     foreach ($floors as $floor => $rooms) {
@@ -650,6 +652,23 @@
         color: #0f172a;
         text-align: right;
     }
+.staff-room-layout { display: grid; grid-template-columns: 165px minmax(0, 1fr); gap: 16px; align-items: start; }
+.staff-floor-nav { position: sticky; top: 90px; padding: 14px; border: 1px solid #e4eaf1; border-radius: 14px; background: #fff; }
+.staff-floor-nav h2 { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #475569; }
+.staff-floor-list { display: grid; gap: 6px; }
+.staff-floor-list button { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; width: 100%; padding: 8px 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #34445b; text-align: left; font-size: 13px; }
+.staff-floor-list button:hover { background: #f1f5fb; }
+.staff-floor-list button.is-active { background: #eaf1ff; border-color: #b8cfff; color: #174eb8; font-weight: 700; }
+.staff-floor-list button:focus-visible { outline: 3px solid #4880ff; outline-offset: 2px; }
+.staff-floor-list small { color: inherit; opacity: .8; }
+.staff-room-results { min-width: 0; }
+.staff-room-empty { padding: 32px 18px; border: 1px dashed #cbd5e1; border-radius: 12px; color: #64748b; text-align: center; }
+@media (max-width: 767px) {
+  .staff-room-layout { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .staff-floor-nav { position: static; padding: 10px; }
+  .staff-floor-list { display: flex; overflow-x: auto; }
+  .staff-floor-list button { width: auto; flex: 0 0 auto; white-space: nowrap; }
+}
 </style>
 
 <!-- Main Center Column -->
@@ -675,10 +694,10 @@
                     </button>
                 @endif
                 @if($permissions['bp_create_booking'])
-                    <button type="button" class="action-pill-btn btn-white" id="multi-select-btn" onclick="document.getElementById('multi-select-toggle').click()">
+                    <label class="action-pill-btn btn-white" id="multi-select-btn" for="multi-select-toggle">
                         <input class="form-check-input me-1" type="checkbox" id="multi-select-toggle" onchange="toggleMultiSelectMode()" style="cursor: pointer;">
                         <span>Chọn nhiều</span>
-                    </button>
+                    </label>
                 @endif
                 @if($permissions['tn_refund'])
                     <a href="{{ route('staff.cancellations') }}" class="action-pill-btn btn-white">
@@ -693,7 +712,7 @@
 
         <!-- Tier 2: Segmented Status Pills & Attribute Filters -->
         <div class="operations-tier-2">
-            <div class="status-segmented-group" role="tablist" aria-label="Lọc trạng thái phòng">
+            <div class="status-segmented-group" role="group" aria-label="Lọc trạng thái phòng">
                 <button type="button" class="legend-badge active-filter" data-status-val="Tất cả" onclick="toggleLegendFilter(this)">
                     <span>Tất cả</span>
                     <strong>{{ array_sum(array_map('count', $floors)) }}</strong>
@@ -718,10 +737,18 @@
                     <span>Dọn phòng</span>
                     <strong id="count-cleaning">{{ $counts['cleaning'] }}</strong>
                 </button>
+                <button type="button" class="legend-badge" data-status-val="maintenance" onclick="toggleLegendFilter(this)">
+                    <span class="status-dot" style="background: #b45309"></span><span>Bảo trì</span>
+                    <strong id="count-maintenance">{{ $counts['maintenance'] }}</strong>
+                </button>
+                <button type="button" class="legend-badge" data-status-val="overdue" onclick="toggleLegendFilter(this)">
+                    <span class="status-dot" style="background: #b91c1c"></span><span>Quá hạn</span>
+                    <strong id="count-overdue">{{ $counts['overdue'] }}</strong>
+                </button>
             </div>
 
             <div class="filter-dropdowns-group">
-                <select id="filter-floor" class="filter-select" aria-label="Lọc theo tầng" onchange="filterRooms()">
+                <select id="filter-floor" class="d-none" aria-label="Lọc theo tầng" onchange="filterRooms()">
                     <option value="Tất cả">Tất cả tầng</option>
                     @foreach ($allFloors as $fl)
                         <option value="{{ $fl }}">Tầng {{ $fl }}</option>
@@ -750,6 +777,8 @@
                     <option value="occupied">Đang ở</option>
                     <option value="booked">Đã đặt</option>
                     <option value="cleaning">Dọn phòng</option>
+                    <option value="maintenance">Bảo trì</option>
+                    <option value="overdue">Quá hạn</option>
                 </select>
 
                 <button type="button" class="btn-reset-filters" onclick="resetFilters()" title="Đặt lại toàn bộ bộ lọc">
@@ -761,6 +790,17 @@
     </div>
 
     <!-- Floors & Rooms Grid -->
+    <div class="staff-room-layout">
+    <nav class="staff-floor-nav" aria-label="Chọn tầng">
+        <h2>Tầng</h2>
+        <div class="staff-floor-list">
+            <button type="button" data-floor-tab="Tất cả" onclick="selectFloorTab(this)" aria-pressed="true"><span>Tất cả tầng</span><small>{{ array_sum(array_map('count', $floors)) }} phòng</small></button>
+            @foreach($allFloors as $floor)
+                <button type="button" data-floor-tab="{{ $floor }}" onclick="selectFloorTab(this)" aria-pressed="false"><span>Tầng {{ $floor }}</span><small>{{ count($floors[$floor]) }} phòng</small></button>
+            @endforeach
+        </div>
+    </nav>
+    <div class="staff-room-results">
     <div id="room-grid-container" class="room-grid-container-scrollable">
         @foreach ($floors as $floor => $rooms)
             <div class="floor-section" data-floor-num="{{ $floor }}">
@@ -795,7 +835,7 @@
                                  data-status="{{ $uiStatus }}"
                                  data-needs-cleaning="{{ !empty($room['needs_cleaning']) ? '1' : '0' }}"
                                  data-has-booking="{{ $room['has_today_booking'] ? '1' : '0' }}"
-                                 data-search="{{ htmlspecialchars(strtolower($room['room_number'] . ' ' . $room['type_name'] . ' ' . ($room['customer_name'] ?? '') . ' ' . ($room['customer_phone'] ?? ''))) }}"
+                                 data-search="{{ mb_strtolower($room['room_number'] . ' ' . $room['type_name'] . ' ' . ($room['customer_name'] ?? '') . ' ' . ($room['customer_phone'] ?? '') . ' ' . ($room['active_booking_id'] ?? '') . ' ' . ($room['today_booking_id'] ?? ''), 'UTF-8') }}"
                                  id="room-card-{{ $room['id'] }}"
                                  data-room="{{ json_encode($room) }}"
                                  onclick="selectRoom(this)">
@@ -842,6 +882,9 @@
                 </div>
             </div>
         @endforeach
+    </div>
+    <p id="room-filter-empty" class="staff-room-empty" hidden>Không có phòng phù hợp với bộ lọc.</p>
+    </div>
     </div>
 </main>
 
@@ -969,29 +1012,29 @@
             </div>
             <div class="d-flex flex-column gap-2">
                 @if($permissions['bp_checkin_checkout'])
-                    <button class="staff-action-btn staff-action-primary btn-action" id="btn-action-occupied" onclick="handleSingleCheckin()">
+                    <button type="button" class="staff-action-btn staff-action-primary btn-action" id="btn-action-occupied" onclick="handleSingleCheckin()">
                         <i class="bi bi-box-arrow-in-right"></i>
                         <span>Check-in (Nhận phòng)</span>
                     </button>
                 @endif
                 @if($permissions['bp_checkin_checkout'] && $permissions['tn_collect_payment'])
-                    <button class="staff-action-btn staff-action-success btn-action" id="btn-action-available" onclick="triggerStatusUpdate('available')">
+                    <button type="button" class="staff-action-btn staff-action-success btn-action" id="btn-action-available" onclick="triggerStatusUpdate('available')">
                         <i class="bi bi-box-arrow-left"></i>
                         <span>Trả phòng</span>
                     </button>
                 @endif
                 @if($permissions['bp_clean_status'])
-                    <button class="staff-action-btn staff-action-done btn-action" id="btn-action-cleaning-done" onclick="triggerStatusUpdate('available')">
+                    <button type="button" class="staff-action-btn staff-action-done btn-action" id="btn-action-cleaning-done" onclick="triggerStatusUpdate('available')">
                         <i class="bi bi-check2-circle"></i>
                         <span>Đã dọn dẹp xong</span>
                     </button>
-                    <button class="staff-action-btn staff-action-warning btn-action" id="btn-action-cleaning-request-done" onclick="completeCleaningRequest()">
+                    <button type="button" class="staff-action-btn staff-action-warning btn-action" id="btn-action-cleaning-request-done" onclick="completeCleaningRequest()">
                         <i class="bi bi-check2-circle"></i>
                         <span>Hoàn tất yêu cầu dọn</span>
                     </button>
                 @endif
                 @if($permissions['bp_extend_stay'])
-                    <button class="staff-action-btn staff-action-secondary btn-action" id="btn-action-extend" onclick="openExtendStayModal()">
+                    <button type="button" class="staff-action-btn staff-action-secondary btn-action" id="btn-action-extend" onclick="openExtendStayModal()">
                         <i class="bi bi-calendar-plus"></i>
                         <span>Gia hạn lưu trú</span>
                     </button>
@@ -1018,7 +1061,7 @@
         </div>
 
         <div class="d-flex flex-column gap-2 mt-auto">
-            <button class="staff-action-btn staff-action-primary py-2.5" onclick="openWalkinCheckinModal('hold')">
+            <button type="button" class="staff-action-btn staff-action-primary py-2.5" onclick="openWalkinCheckinModal('hold')">
                 <i class="bi bi-calendar-plus me-2"></i>Tạo đặt phòng tại quầy
             </button>
         </div>
@@ -1442,25 +1485,6 @@
     </div>
 </div>
 
-<!-- Luxury Floating Flash Toast Notification (macOS / Quiet Luxury) -->
-<div id="staffFlashToastWrap" class="staff-flash-wrap" aria-live="polite" role="status" style="position: fixed; z-index: 99999; top: 88px; left: 50%; transform: translateX(-50%) translateY(-12px); width: min(540px, calc(100% - 32px)); pointer-events: none; opacity: 0; transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1), transform 0.38s cubic-bezier(0.16, 1, 0.3, 1); display: none;">
-    <div id="staffFlashToastCard" class="staff-flash-card" style="pointer-events: auto; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px 16px 18px; border-radius: 18px; background: rgba(240, 253, 244, 0.97); border: 1.5px solid rgba(34, 197, 94, 0.32); color: #14532d; box-shadow: 0 20px 48px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.06); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
-        <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 600; line-height: 1.45;">
-            <div id="staffFlashIconWrap" style="width: 32px; height: 32px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px;">
-                <i id="staffFlashIcon" class="bi bi-check-circle-fill"></i>
-            </div>
-            <span id="staffFlashMessage">Cập nhật thành công!</span>
-        </div>
-        <button type="button" onclick="dismissStaffFlashToast()" aria-label="Đóng thông báo" style="background: none; border: none; padding: 4px 6px; color: currentColor; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; opacity: 0.65; transition: opacity 0.2s ease;">
-            <i class="bi bi-x-lg" style="font-size: 13px;"></i>
-        </button>
-        <!-- 5s animated countdown progress indicator line at the bottom -->
-        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(0,0,0,0.06);">
-            <div id="staffFlashProgressBar" style="height: 100%; width: 100%; background: #22c55e; transform-origin: left; transform: scaleX(1);"></div>
-        </div>
-    </div>
-</div>
-
 <script>
     // Laravel Base URL & CSRF Token
     const BASE_URL = "{{ url('/') }}";
@@ -1530,8 +1554,8 @@
         .then(html => {
             const doc = new DOMParser().parseFromString(html, 'text/html');
             const replacements = [
-                ['.legend-row', '.legend-row'],
-                ['.filter-card', '.filter-card'],
+                ['.operations-tier-2', '.operations-tier-2'],
+                ['.staff-floor-nav', '.staff-floor-nav'],
                 ['#room-grid-container', '#room-grid-container']
             ];
 
@@ -1548,10 +1572,13 @@
             const statusSelect = document.getElementById('filter-status');
 
             if (searchInput) searchInput.value = previousFilters.search;
-            if (floorSelect) floorSelect.value = previousFilters.floor;
-            if (typeSelect) typeSelect.value = previousFilters.type;
-            if (guestsSelect) guestsSelect.value = previousFilters.guests;
-            if (statusSelect) statusSelect.value = previousFilters.status;
+            const restoreSelect = (select, value) => {
+                if (select) select.value = [...select.options].some(option => option.value === value) ? value : 'Tất cả';
+            };
+            restoreSelect(floorSelect, previousFilters.floor);
+            restoreSelect(typeSelect, previousFilters.type);
+            restoreSelect(guestsSelect, previousFilters.guests);
+            restoreSelect(statusSelect, previousFilters.status);
 
             document.querySelectorAll('.legend-badge').forEach(el => {
                 el.classList.toggle('active-filter', el.getAttribute('data-status-val') === previousFilters.status);
@@ -1561,7 +1588,7 @@
 
             if (reselectCurrentRoom && previousSelectedRoomId && !isMultiSelectMode) {
                 const card = document.getElementById(`room-card-${previousSelectedRoomId}`);
-                if (card && card.style.display !== 'none') {
+                if (card && card.closest('.room-card-wrapper')?.style.display !== 'none') {
                     card.click();
                     if (focusedRoomCardId) card.focus({ preventScroll: true });
                 } else {
@@ -2338,84 +2365,14 @@
     });
     @endif
 
-    let staffFlashTimer = null;
-
     function showToast(message, typeOrClass = 'bg-success') {
-        const wrap = document.getElementById('staffFlashToastWrap');
-        const card = document.getElementById('staffFlashToastCard');
-        const msgEl = document.getElementById('staffFlashMessage');
-        const iconWrap = document.getElementById('staffFlashIconWrap');
-        const icon = document.getElementById('staffFlashIcon');
-        const bar = document.getElementById('staffFlashProgressBar');
-        if (!wrap || !card || !msgEl) return;
-
-        if (staffFlashTimer) {
-            clearTimeout(staffFlashTimer);
-            staffFlashTimer = null;
-        }
-
-        const isError = String(typeOrClass).includes('danger') || String(typeOrClass).includes('error');
-        const isWarning = String(typeOrClass).includes('warning');
-
-        if (isError) {
-            card.style.background = 'rgba(255, 245, 245, 0.97)';
-            card.style.borderColor = 'rgba(239, 68, 68, 0.32)';
-            card.style.color = '#991b1b';
-            if (iconWrap) { iconWrap.style.background = '#fee2e2'; iconWrap.style.color = '#dc2626'; }
-            if (icon) { icon.className = 'bi bi-exclamation-triangle-fill'; }
-            if (bar) { bar.style.background = '#ef4444'; }
-        } else if (isWarning) {
-            card.style.background = 'rgba(255, 251, 235, 0.97)';
-            card.style.borderColor = 'rgba(245, 158, 11, 0.32)';
-            card.style.color = '#92400e';
-            if (iconWrap) { iconWrap.style.background = '#fef3c7'; iconWrap.style.color = '#d97706'; }
-            if (icon) { icon.className = 'bi bi-exclamation-circle-fill'; }
-            if (bar) { bar.style.background = '#f59e0b'; }
-        } else {
-            card.style.background = 'rgba(240, 253, 244, 0.97)';
-            card.style.borderColor = 'rgba(34, 197, 94, 0.32)';
-            card.style.color = '#14532d';
-            if (iconWrap) { iconWrap.style.background = '#dcfce7'; iconWrap.style.color = '#16a34a'; }
-            if (icon) { icon.className = 'bi bi-check-circle-fill'; }
-            if (bar) { bar.style.background = '#22c55e'; }
-        }
-
-        msgEl.innerText = message;
-        wrap.style.display = 'block';
-
-        if (bar) {
-            bar.style.transition = 'none';
-            bar.style.transform = 'scaleX(1)';
-        }
-
-        requestAnimationFrame(() => {
-            wrap.style.opacity = '1';
-            wrap.style.transform = 'translateX(-50%) translateY(0)';
-            if (bar) {
-                requestAnimationFrame(() => {
-                    bar.style.transition = 'transform 5s linear';
-                    bar.style.transform = 'scaleX(0)';
-                });
-            }
-        });
-
-        staffFlashTimer = setTimeout(() => {
-            dismissStaffFlashToast();
-        }, 5000);
-    }
-
-    function dismissStaffFlashToast() {
-        const wrap = document.getElementById('staffFlashToastWrap');
-        if (!wrap) return;
-        wrap.style.opacity = '0';
-        wrap.style.transform = 'translateX(-50%) translateY(-14px)';
-        setTimeout(() => {
-            wrap.style.display = 'none';
-        }, 400);
+        const value = String(typeOrClass);
+        const type = /danger|error/.test(value) ? 'error' : /warning/.test(value) ? 'warning' : 'success';
+        window.royalToast(message, type);
     }
 
     function filterRooms() {
-        const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+        const searchVal = document.getElementById('search-input').value.toLowerCase().trim().replace(/^#/, '');
         const floorVal = document.getElementById('filter-floor').value;
         const typeVal = document.getElementById('filter-type').value;
         const guestsVal = document.getElementById('filter-guests').value;
@@ -2458,10 +2415,16 @@
             wrapper.style.display = match ? 'block' : 'none';
         });
         
+        let visibleCount = 0;
         document.querySelectorAll('.floor-section').forEach(section => {
             const visibleRooms = Array.from(section.querySelectorAll('.room-card-wrapper')).filter(el => el.style.display !== 'none');
+            visibleCount += visibleRooms.length;
+            const counter = section.querySelector('.floor-counter');
+            if (counter) counter.textContent = `${visibleRooms.length} phòng`;
             section.style.display = visibleRooms.length === 0 ? 'none' : 'block';
         });
+        const empty = document.getElementById('room-filter-empty');
+        if (empty) empty.hidden = visibleCount > 0;
 
         const params = new URLSearchParams();
         if (searchVal) params.set('q', searchVal);
@@ -2469,7 +2432,7 @@
         if (typeVal !== 'Tất cả') params.set('type', typeVal);
         if (guestsVal !== 'Tất cả') params.set('guests', guestsVal);
         if (statusVal !== 'Tất cả') params.set('status', statusVal);
-        history.replaceState({ roomFilters: true }, '', `${location.pathname}${params.size ? '?' + params : ''}`);
+        history.replaceState({ roomFilters: true }, '', `${location.pathname}${params.size ? '?' + params : ''}${location.hash}`);
     }
 
     function selectFloorTab(button) {
@@ -2498,6 +2461,17 @@
             if (field && (id === 'search-input' || [...(field.options || [])].some(option => option.value === value))) field.value = value;
         });
         filterRooms();
+    }
+
+    function focusRoomFromHash() {
+        const hash = decodeURIComponent(location.hash || '');
+        if (!hash.startsWith('#room-card-')) return;
+        const card = document.querySelector(hash);
+        if (!card) return;
+        const wrapper = card.closest('.room-card-wrapper');
+        if (wrapper) wrapper.style.display = 'block';
+        card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        card.focus({ preventScroll: true });
     }
 
     function toggleLegendFilter(element) {

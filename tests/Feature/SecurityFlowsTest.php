@@ -42,6 +42,21 @@ class SecurityFlowsTest extends TestCase
         $this->asCustomer($owner)->get(route('payment.preview', $booking->id))->assertOk();
     }
 
+    public function test_payment_form_shows_booking_refund_deadline_without_fabricated_insurance(): void
+    {
+        $owner = $this->customer('policy-owner@example.com');
+        $booking = $this->bookingFor($owner);
+        $this->asCustomer($owner)->get(route('payment.preview', $booking->id))
+            ->assertOk()
+            ->assertSee('trước ngày nhận phòng '.$booking->refundDeadlineDays().' ngày')
+            ->assertSee('Tiền cọc thanh toán lần này')
+            ->assertSee('500.000đ')
+            ->assertDontSee('TravelShield')
+            ->assertDontSee('Hoàn 100% trước 48h')
+            ->assertDontSee('Bảo mật FIDO2')
+            ->assertDontSee('PCI-DSS');
+    }
+
     public function test_payment_webhooks_fail_closed_when_signing_secrets_are_missing(): void
     {
         config([
@@ -94,36 +109,36 @@ class SecurityFlowsTest extends TestCase
 
     public function test_internal_routes_require_staff_context_and_role(): void
     {
-        $this->get(route('receptionist.profile'))->assertRedirect(route('internalauth.login'));
+        $this->get(route('staff.profile'))->assertRedirect(route('staff.login'));
 
         $customer = $this->customer('guest-only@example.com');
         $this->asCustomer($customer)
             ->get(route('admin.dashboard'))
-            ->assertRedirect(route('internalauth.login'));
+            ->assertRedirect(route('admin.login'));
     }
 
     public function test_internal_login_is_rate_limited(): void
     {
         for ($attempt = 0; $attempt < 8; $attempt++) {
-            $this->post('/internalauth/login', ['username' => 'missing', 'password' => 'wrong']);
+            $this->post('/staff/login', ['username' => 'missing', 'password' => 'wrong']);
         }
 
-        $this->post('/internalauth/login', ['username' => 'missing', 'password' => 'wrong'])
+        $this->post('/staff/login', ['username' => 'missing', 'password' => 'wrong'])
             ->assertStatus(429);
     }
 
     public function test_internal_login_errors_are_attached_to_the_relevant_field(): void
     {
-        $this->from(route('internalauth.login'))
-            ->post(route('internalauth.login'), ['username' => 'missing-user', 'password' => 'wrong-password'])
-            ->assertRedirect(route('internalauth.login'))
+        $this->from(route('staff.login'))
+            ->post(route('staff.login.submit'), ['username' => 'missing-user', 'password' => 'wrong-password'])
+            ->assertRedirect(route('staff.login'))
             ->assertSessionHasErrors(['username'])
             ->assertSessionMissing('error');
 
         $staff = $this->staff('inline-error@example.com', 'receptionist');
-        $this->from(route('internalauth.login'))
-            ->post(route('internalauth.login'), ['username' => $staff->username, 'password' => 'wrong-password'])
-            ->assertRedirect(route('internalauth.login'))
+        $this->from(route('staff.login'))
+            ->post(route('staff.login.submit'), ['username' => $staff->username, 'password' => 'wrong-password'])
+            ->assertRedirect(route('staff.login'))
             ->assertSessionHasErrors(['username'])
             ->assertSessionMissing('error');
     }
@@ -140,13 +155,14 @@ class SecurityFlowsTest extends TestCase
             ->assertSee('data-status-val="booked"', false)
             ->assertSee('window-controls--modal', false)
             ->assertSee('aria-label="Đóng trả phòng"', false)
-            ->assertDontSee('data-status-val="overdue"', false);
+            ->assertSee('data-status-val="overdue"', false);
         $this->asStaff($admin)->get(route('admin.users.index'))->assertOk()->assertDontSee('<th>Người dùng</th>', false)->assertSee('<th>Tài khoản</th>', false);
         $this->asStaff($admin)->get(route('admin.price-settings.index'))->assertOk();
 
         $receptionist = $this->staff('reception@example.com', 'receptionist');
         $this->asStaff($receptionist)->get(route('staff.bookings'))->assertOk();
-        $this->asStaff($receptionist)->get(route('receptionist.profile'))->assertOk();
+        $this->asStaff($receptionist)->get(route('staff.profile'))->assertOk();
+        $this->asStaff($receptionist)->get(route('receptionist.profile'))->assertRedirect(route('staff.profile'));
     }
 
     public function test_receptionist_cannot_open_admin_reports_without_report_permission(): void
@@ -155,7 +171,7 @@ class SecurityFlowsTest extends TestCase
 
         $this->asStaff($receptionist)
             ->get(route('admin.reports'))
-            ->assertRedirect(route('receptionist.profile'));
+            ->assertRedirect(route('staff.profile'));
     }
 
     public function test_secure_requests_receive_hsts_header(): void
@@ -166,7 +182,9 @@ class SecurityFlowsTest extends TestCase
 
     public function test_refund_workspace_and_internal_login_render(): void
     {
-        $this->get(route('internalauth.login'))->assertOk()->assertSee('auth-intro', false);
+        $this->get(route('staff.login'))->assertOk()->assertSee('auth-intro', false);
+        $this->get(route('admin.login'))->assertOk()->assertSee('auth-intro', false);
+        $this->get(route('internalauth.login'))->assertRedirect(route('staff.login'));
         $staff = $this->staff('refund-staff@example.com', 'receptionist');
         $this->asStaff($staff)->get(route('staff.cancellations'))->assertOk()->assertSee('data-refund-search', false);
     }
@@ -206,7 +224,14 @@ class SecurityFlowsTest extends TestCase
         $booking->update(['status' => 'cancelled']);
         $this->asStaff($staff)->patch(route('staff.bookings.refund', $booking->id))->assertSessionHas('success');
         $this->assertSame('refunded', $booking->fresh()->refund_status);
+        $this->assertDatabaseHas('refund_transactions', [
+            'booking_id' => $booking->id,
+            'processed_by' => $staff->id,
+            'amount' => 500000,
+            'status' => 'completed',
+        ]);
         $this->asStaff($staff)->patch(route('staff.bookings.refund', $booking->id))->assertSessionHas('error');
+        $this->assertDatabaseCount('refund_transactions', 1);
     }
 
     public function test_cash_booking_has_no_customer_payment_link_but_online_booking_keeps_it(): void
@@ -324,6 +349,7 @@ class SecurityFlowsTest extends TestCase
 
     public function test_staff_room_board_marks_today_reservations_and_uses_money_actually_collected(): void
     {
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-04 13:00:00', 'Asia/Ho_Chi_Minh'));
         $type = RoomType::create([
             'type_name' => 'Operations check', 'price' => 250000,
             'max_adults' => 2, 'max_children' => 1, 'max_guests' => 3,
@@ -384,6 +410,11 @@ class SecurityFlowsTest extends TestCase
 
         $this->asCustomer($customer)
             ->get(route('payment.show', $booking->id))
+            ->assertRedirect(route('booking.mine'))
+            ->assertSessionHas('error');
+
+        $this->asCustomer($customer)
+            ->getJson(route('payment.show', $booking->id))
             ->assertConflict();
 
         $this->assertSame('cancelled', $booking->fresh()->status);
@@ -761,7 +792,11 @@ class SecurityFlowsTest extends TestCase
 
     public function test_chatbot_validates_input_and_uses_current_room_data_without_an_ai_key(): void
     {
-        config(['services.royal_ai.key' => null]);
+        config([
+            'services.langgraph.enabled' => true,
+            'services.langgraph.base_url' => 'http://127.0.0.1:2024',
+            'services.langgraph.tool_api_key' => 'test-tool-secret',
+        ]);
         RoomType::create([
             'type_name' => 'Phòng Kiểm Thử',
             'price' => 765000,
@@ -771,16 +806,41 @@ class SecurityFlowsTest extends TestCase
             'description' => 'Không gian thử nghiệm',
         ]);
 
+        Http::fake([
+            '127.0.0.1:2024/threads' => Http::response(['thread_id' => 'thread-room-1'], 200),
+            '127.0.0.1:2024/threads/thread-room-1/runs/wait' => Http::response([
+                'messages' => [
+                    ['type' => 'ai', 'content' => 'Bảng giá phòng hiện tại của Rosaliza Hotel: Phòng Kiểm Thử 765.000 VNĐ/đêm (Tối đa 3 người).'],
+                ],
+                'documents' => [],
+            ], 200),
+        ]);
+
         $this->postJson(route('chatbot.api'), ['message' => ''])->assertUnprocessable();
         $this->postJson(route('chatbot.api'), ['message' => 'Giá phòng hiện tại?'])
             ->assertOk()
-            ->assertJsonPath('source', 'hotel')
-            ->assertJsonFragment(['reply' => "Bảng giá phòng hiện tại của Rosaliza Hotel:\n- Phòng Kiểm Thử: 765.000 VNĐ/đêm (Tối đa 3 người)\n\nBạn có thể nhấn vào mục 'Tìm phòng trống' trên thanh menu để chọn ngày và đặt phòng nhé."]);
+            ->assertJsonPath('source', 'gemini-langgraph')
+            ->assertJsonFragment(['reply' => 'Bảng giá phòng hiện tại của Rosaliza Hotel: Phòng Kiểm Thử 765.000 VNĐ/đêm (Tối đa 3 người).']);
+
+        $this->getJson('/api/chatbot/tools/room-types', ['Authorization' => 'Bearer test-tool-secret'])
+            ->assertOk()
+            ->assertJsonPath('room_types.0.type_name', 'Phòng Kiểm Thử')
+            ->assertJsonPath('room_types.0.base_price_vnd', 765000);
     }
 
     public function test_chatbot_has_a_dedicated_per_ip_rate_limit(): void
     {
-        config(['services.royal_ai.key' => null]);
+        config([
+            'services.langgraph.enabled' => true,
+            'services.langgraph.base_url' => 'http://127.0.0.1:2024',
+        ]);
+        Http::fake([
+            '127.0.0.1:2024/threads' => Http::response(['thread_id' => 'thread-rate-1'], 200),
+            '127.0.0.1:2024/threads/*/runs/wait' => Http::response([
+                'messages' => [['type' => 'ai', 'content' => 'Xin chào quý khách.']],
+                'documents' => [],
+            ], 200),
+        ]);
 
         for ($request = 0; $request < 12; $request++) {
             $this->postJson(route('chatbot.api'), ['message' => 'Xin chào'])->assertOk();
@@ -792,59 +852,47 @@ class SecurityFlowsTest extends TestCase
     public function test_chatbot_can_use_the_configured_ai_without_exposing_its_key(): void
     {
         config([
-            'services.royal_ai.key' => 'server-only-test-key',
-            'services.royal_ai.endpoint' => 'https://ai.example.test/chat',
-            'services.royal_ai.model' => 'royal-test-model',
+            'services.langgraph.enabled' => true,
+            'services.langgraph.base_url' => 'http://127.0.0.1:2024',
+            'services.langgraph.internal_api_key' => 'server-only-langgraph-key',
+            'services.gemini.api_key' => 'server-only-gemini-key',
         ]);
-        Http::fake(['ai.example.test/*' => Http::response([
-            'choices' => [['message' => ['content' => 'Bầu trời thường có màu xanh vì ánh sáng xanh bị tán xạ mạnh hơn trong khí quyển.']]],
-        ])]);
+        Http::fake([
+            '127.0.0.1:2024/threads' => Http::response(['thread_id' => 'thread-sec-1'], 200),
+            '127.0.0.1:2024/threads/thread-sec-1/runs/wait' => Http::response([
+                'messages' => [['type' => 'ai', 'content' => 'Rosaliza Hotel hỗ trợ nhận phòng từ 12:00 - 16:00.']],
+                'documents' => [],
+            ], 200),
+        ]);
 
         $this->postJson(route('chatbot.api'), [
-            'message' => 'Vì sao bầu trời có màu xanh?',
-            'history' => [['role' => 'assistant', 'content' => 'Bạn muốn trò chuyện về điều gì?']],
+            'message' => 'Giờ nhận phòng của khách sạn?',
         ])->assertOk()
-          ->assertJson(['source' => 'ai', 'reply' => 'Bầu trời thường có màu xanh vì ánh sáng xanh bị tán xạ mạnh hơn trong khí quyển.'])
-          ->assertDontSee('server-only-test-key');
+          ->assertJson(['source' => 'gemini-langgraph', 'reply' => 'Rosaliza Hotel hỗ trợ nhận phòng từ 12:00 - 16:00.'])
+          ->assertDontSee('server-only-langgraph-key')
+          ->assertDontSee('server-only-gemini-key');
 
-        Http::assertSent(fn ($request) => $request->url() === 'https://ai.example.test/chat'
-            && $request->hasHeader('Authorization', 'Bearer server-only-test-key')
-            && $request['model'] === 'royal-test-model');
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'http://127.0.0.1:2024/threads')
+            && $request->hasHeader('X-Internal-Api-Key', 'server-only-langgraph-key'));
     }
 
-    public function test_chatbot_tool_only_returns_bookings_for_the_signed_in_customer(): void
+    public function test_chatbot_tool_only_returns_public_room_availability_and_never_customer_bookings(): void
     {
         $owner = $this->customer('chat-owner@example.com');
         $other = $this->customer('chat-other@example.com');
         $ownedBooking = $this->bookingFor($owner);
         $otherBooking = $this->bookingFor($other);
         config([
-            'services.royal_ai.key' => 'server-only-test-key',
-            'services.royal_ai.endpoint' => 'https://ai.example.test/chat',
-            'services.royal_ai.model' => 'royal-test-model',
-        ]);
-        Http::fake(['ai.example.test/*' => Http::sequence()
-            ->push(['choices' => [['message' => [
-                'role' => 'assistant',
-                'content' => null,
-                'tool_calls' => [[
-                    'id' => 'call_booking',
-                    'type' => 'function',
-                    'function' => ['name' => 'get_booking_for_user', 'arguments' => '{}'],
-                ]],
-            ]]]])
-            ->push(['choices' => [['message' => ['role' => 'assistant', 'content' => "Kỳ nghỉ #{$ownedBooking->id}"]]]]),
+            'services.langgraph.tool_api_key' => 'internal-tool-secret',
         ]);
 
-        $this->asCustomer($owner)->postJson(route('chatbot.api'), ['message' => 'Cho tôi xem kỳ nghỉ của tôi'])
-            ->assertOk()->assertJsonPath('reply', "Kỳ nghỉ #{$ownedBooking->id}");
+        $this->getJson('/api/chatbot/tools/room-types')->assertUnauthorized();
+        $response = $this->getJson('/api/chatbot/tools/room-types', [
+            'Authorization' => 'Bearer internal-tool-secret',
+        ])->assertOk();
 
-        Http::assertSent(function ($request) use ($ownedBooking, $otherBooking) {
-            $toolMessage = collect($request['messages'] ?? [])->firstWhere('role', 'tool');
-            if (! $toolMessage) return false;
-            return str_contains($toolMessage['content'], '"booking_id":'.$ownedBooking->id)
-                && ! str_contains($toolMessage['content'], '"booking_id":'.$otherBooking->id);
-        });
+        $this->assertStringNotContainsString((string) $ownedBooking->customer_email, $response->getContent());
+        $this->assertStringNotContainsString((string) $otherBooking->customer_email, $response->getContent());
     }
 
     public function test_local_knowledge_retrieval_works(): void
@@ -861,9 +909,8 @@ class SecurityFlowsTest extends TestCase
     public function test_knowledge_search_uses_semantic_embeddings_when_available(): void
     {
         config([
-            'services.royal_ai.key' => 'server-only-test-key',
-            'services.royal_ai.vector_store_id' => null,
-            'services.royal_ai.embedding_model' => 'text-embedding-test',
+            'services.gemini.api_key' => 'server-only-gemini-key',
+            'services.gemini.embedding_model' => 'text-embedding-004',
         ]);
         KnowledgeChunk::create([
             'source' => 'Posh Boutique · Arrival',
@@ -871,7 +918,7 @@ class SecurityFlowsTest extends TestCase
             'content' => 'Nội dung không trùng từ khóa truy vấn.',
             'content_hash' => hash('sha256', 'semantic-arrival'),
             'embedding' => [1.0, 0.0],
-            'embedding_model' => 'text-embedding-test',
+            'embedding_model' => 'text-embedding-004',
         ]);
         KnowledgeChunk::create([
             'source' => 'Posh Boutique · Other',
@@ -879,11 +926,11 @@ class SecurityFlowsTest extends TestCase
             'content' => 'Một đoạn nội dung khác.',
             'content_hash' => hash('sha256', 'semantic-other'),
             'embedding' => [0.0, 1.0],
-            'embedding_model' => 'text-embedding-test',
+            'embedding_model' => 'text-embedding-004',
         ]);
         Cache::forget('royal-knowledge-v2');
-        Http::fake(['api.openai.com/v1/embeddings' => Http::response([
-            'data' => [['index' => 0, 'embedding' => [1.0, 0.0]]],
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response([
+            'embedding' => ['values' => [1.0, 0.0]],
         ])]);
 
         $results = app(\App\Services\RoyalKnowledgeService::class)->search('semantic only request');
@@ -905,7 +952,22 @@ class SecurityFlowsTest extends TestCase
 
     public function test_chatbot_stream_emits_incremental_events_and_completion_metadata(): void
     {
-        config(['services.royal_ai.key' => null]);
+        config([
+            'services.langgraph.enabled' => true,
+            'services.langgraph.base_url' => 'http://127.0.0.1:2024',
+        ]);
+        $sseBody = implode("\n", [
+            'event: messages/partial',
+            'data: ' . json_encode([['content' => 'Giờ nhận phòng từ 12:00 đến trước 16:00.']], JSON_UNESCAPED_UNICODE),
+            '',
+            'event: end',
+            'data: {}',
+            '',
+        ]);
+        Http::fake([
+            '127.0.0.1:2024/threads' => Http::response(['thread_id' => 'thread-stream-1'], 200),
+            '127.0.0.1:2024/threads/thread-stream-1/runs/stream' => Http::response($sseBody, 200, ['Content-Type' => 'text/event-stream']),
+        ]);
 
         $response = $this->post(route('chatbot.stream'), ['message' => 'Giờ nhận phòng là khi nào?']);
 
@@ -974,11 +1036,19 @@ class SecurityFlowsTest extends TestCase
             ->assertOk()->assertSee('role="radiogroup"', false)->assertSee('resize:vertical', false);
         $this->asCustomer($customer)->post(route('reviews.store'), ['booking_id'=>$booking->id, 'room_type_id'=>$type->id, 'rating'=>5, 'comment'=>'Một kỳ nghỉ rất dễ chịu.'])
             ->assertRedirect(route('rooms.detail', $type->id));
-        $this->assertDatabaseHas('reviews', ['user_id'=>$customer->id, 'room_type_id'=>$type->id, 'rating'=>5]);
+        $this->assertDatabaseHas('reviews', ['user_id'=>$customer->id, 'booking_id'=>$booking->id, 'room_type_id'=>$type->id, 'rating'=>5]);
 
         $this->asCustomer($customer)->post(route('reviews.store'), ['booking_id'=>$booking->id, 'room_type_id'=>$type->id, 'rating'=>4])
             ->assertRedirect(route('rooms.detail', $type->id));
         $this->assertDatabaseCount('reviews', 1);
+
+        $secondStay = $this->bookingFor($customer);
+        $secondStay->rooms()->attach($room->id);
+        $secondStay->update(['status' => 'completed']);
+        $this->asCustomer($customer)->post(route('reviews.store'), [
+            'booking_id' => $secondStay->id, 'room_type_id' => $type->id, 'rating' => 4,
+        ])->assertRedirect(route('rooms.detail', $type->id));
+        $this->assertDatabaseCount('reviews', 2);
     }
 
     public function test_royal_pagination_marks_one_current_page_and_disables_the_range_end(): void

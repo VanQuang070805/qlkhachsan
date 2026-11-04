@@ -1,153 +1,267 @@
-@extends('client.layouts.app')
+﻿@extends('client.layouts.app')
 
-@section('title', 'Liên hệ · Rosaliza Hotel')
+@section('title', 'Giới thiệu & Liên hệ · Rosaliza Hotel HaNoi')
 
 @section('content')
-<div class="contact-page contact-page--full">
-    <section class="page-hero supaste-rooms-hero contact-hero-full" aria-labelledby="contact-title">
-        <div class="supaste-rooms-hero__inner">
-            <h1 id="contact-title" class="supaste-hero__headline">
-                <span class="supaste-hero__headline-sans">A thoughtful stay,</span>
-                <span class="supaste-hero__headline-serif">close to everything.</span>
+<div class="melia-page-shell melia-contact-shell">
+
+    {{-- =========================================================================
+         1. HERO SECTION — EDITORIAL LUXURY ARRIVAL
+         ========================================================================= --}}
+    <section class="melia-page-hero" aria-labelledby="contact-title">
+        <div class="melia-page-hero__inner">
+            <span class="melia-page-hero__tag">
+                Rosaliza Heritage &amp; Hospitality &bull; Hoàn Kiếm, Hanoi
+            </span>
+
+            <h1 id="contact-title" class="melia-page-hero__title" data-rb-split="words,chars">
+                A thoughtful sanctuary, <em>close to everything.</em>
             </h1>
-            <p class="supaste-hero__subtitle">
-                Một nơi dừng chân thanh lịch, riêng tư và đủ gần để bạn chạm tới mọi nhịp sống Hà Nội.
+
+            <p class="melia-page-hero__desc" data-rb-blur="words">
+                Một chốn nghỉ dưỡng thanh lịch, riêng tư nép mình tại phố Trần Quốc Toản, nơi bạn tìm về sự tĩnh lặng trọn vẹn và đủ gần để chạm tới mọi nhịp sống văn hóa di sản Hà Nội.
             </p>
-            <div class="contact-hero__actions" style="margin-top: 28px; display: flex; align-items: center; justify-content: center; gap: 14px;">
-                <a class="button button--primary" href="#contact-details" data-gsap-scroll-to style="border-radius: 999px; background: #000000; color: #ffffff; padding: 12px 28px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">Liên hệ với Rosaliza Hotel</a>
-                <a class="contact-hero__scroll" href="#royal-story" data-gsap-scroll-to style="border-radius: 999px; background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); color: #ffffff; padding: 12px 24px; font-weight: 600; text-decoration: none; border: 1px solid rgba(255,255,255,0.4);">Câu chuyện của chúng tôi <span aria-hidden="true">↓</span></a>
+
+            <div class="melia-page-hero__actions">
+                <a href="#contact-details" class="melia-btn-primary" data-rb-magnet>
+                    <span>Liên hệ với Trợ lý</span>
+                    <i class="bi bi-arrow-down"></i>
+                </a>
+                <a href="#hotel-story" class="melia-btn-secondary" data-rb-magnet>
+                    <span>Câu chuyện Rosaliza</span>
+                    <i class="bi bi-arrow-right"></i>
+                </a>
             </div>
         </div>
     </section>
 
-    <div class="contact-body-container" style="max-width: 1240px; margin: 0 auto; padding: 0 24px;">
+    <div class="melia-page-container">
 
-    <section class="contact-story" id="royal-story" aria-labelledby="royal-story-title">
-        <div class="contact-story__copy" data-reveal>
-            <p class="editorial-eyebrow">Our story</p>
-            <h2 id="royal-story-title">Quiet by design</h2>
-            <p>Rosaliza Hotel được tạo nên cho những hành trình cần sự đơn giản và chỉn chu. Từ cách chọn phòng rõ ràng đến lúc bạn nhận phòng, mỗi chi tiết đều hướng đến cảm giác thư thái.</p>
-            <dl class="contact-story__facts" aria-label="Thông tin Rosaliza Hotel">
-                <div><dt>05</dt><dd>Hạng phòng</dd></div>
-                <div><dt>24/7</dt><dd>Luôn sẵn sàng</dd></div>
-                <div><dt>12</dt><dd>Chùa Bộc</dd></div>
-            </dl>
-        </div>
-        <div class="contact-gallery" data-resort-gallery data-reveal aria-label="Album không gian nghỉ dưỡng cao cấp">
-            <div class="macos-card-bar" style="border-radius: 24px 24px 0 0; background: rgba(248, 250, 252, 0.95); padding: 16px 24px;">
-                <div class="window-controls">
-                    <span class="ctrl-dot ctrl-red"></span>
-                    <span class="ctrl-dot ctrl-yellow"></span>
-                    <span class="ctrl-dot ctrl-green"></span>
+        {{-- =========================================================================
+             2. OUR HERITAGE & STORY SECTION
+             ========================================================================= --}}
+        <section class="melia-contact-story" id="hotel-story" aria-labelledby="story-title">
+            <div class="melia-story-grid">
+                <div class="melia-story-content">
+                    <span class="melia-sec-tag">Our Story &amp; Philosophy</span>
+                    <h2 id="story-title" class="melia-sec-title">
+                        Quiet by design, Warm at heart
+                    </h2>
+                    <p>
+                        Rosaliza Hotel HaNoi được tạo nên cho những hành trình tìm kiếm sự cân bằng và thanh tao. Tọa lạc tại số 5B Trần Quốc Toản, giữa những hàng cây xanh rợp bóng mát của khu phố di sản Pháp cổ, khách sạn là sự giao thoa tinh tế giữa kiến trúc Đông Dương sang trọng và phong cách sống Quiet Luxury đương đại.
+                    </p>
+                    <p>
+                        Tại Rosaliza, chúng tôi tin rằng sự xa xỉ đích thực không nằm ở những ồn ào khoa trương, mà hiện diện trong từng khoảnh khắc an yên: từ giấc ngủ sâu trên chiếc giường êm ái, hương trà sen thoang thoảng mỗi sớm mai, đến sự tiếp đón nồng hậu và tinh tế của đội ngũ quản gia.
+                    </p>
+
+                    <div class="melia-story-facts" aria-label="Thông tin nổi bật Rosaliza Hotel HaNoi">
+                        <div class="melia-fact-item">
+                            <span class="melia-fact-num">Boutique</span>
+                            <span class="melia-fact-label">Khách sạn</span>
+                        </div>
+                        <div class="melia-fact-item">
+                            <span class="melia-fact-num">Hà Nội</span>
+                            <span class="melia-fact-label">Khu vực Hoàn Kiếm</span>
+                        </div>
+                        <div class="melia-fact-item">
+                            <span class="melia-fact-num">Hỗ trợ</span>
+                            <span class="melia-fact-label">Thông tin đặt phòng</span>
+                        </div>
+                        <div class="melia-fact-item">
+                            <span class="melia-fact-num">Nghỉ ngơi</span>
+                            <span class="melia-fact-label">Không gian lưu trú</span>
+                        </div>
+                    </div>
                 </div>
-                <span class="macos-card-title">Không gian kiến trúc Rosaliza Hotel — Photo Gallery</span>
-                <div style="width: 52px;" aria-hidden="true"></div>
+
+                <div class="melia-story-visual">
+                    <img src="{{ asset('images/melia/hero-hanoi-suite.jpg') }}" alt="Không gian phòng nghỉ dưỡng thanh lịch tại Rosaliza Hotel HaNoi" loading="lazy">
+                </div>
             </div>
-            <div class="contact-gallery__viewport" data-gallery-viewport role="region" aria-label="Kéo ngang hoặc dùng phím mũi tên để xem album" tabindex="0">
-                <div class="contact-gallery__track" data-gallery-track>
-                    <figure class="contact-gallery__slide"><img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1920&q=88" alt="Khu nghỉ dưỡng với hồ bơi và kiến trúc gỗ" loading="eager"></figure>
-                    <figure class="contact-gallery__slide"><img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=88" alt="Khách sạn nghỉ dưỡng sang trọng bên hàng cọ" loading="lazy"></figure>
-                    <figure class="contact-gallery__slide"><img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1920&q=88" alt="Hồ bơi vô cực nhìn ra không gian biển" loading="lazy"></figure>
-                    <figure class="contact-gallery__slide"><img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1920&q=88" alt="Phòng nghỉ cao cấp với thiết kế sạch và hiện đại" loading="lazy"></figure>
-                    <figure class="contact-gallery__slide"><img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1920&q=88" alt="Không gian resort thanh lịch bên hồ bơi" loading="lazy"></figure>
+        </section>
+
+        {{-- =========================================================================
+             3. CORE HOSPITALITY VALUES
+             ========================================================================= --}}
+        <section class="melia-values-section" aria-labelledby="values-title">
+            <div class="melia-page-container" style="padding: 0;">
+                <div class="melia-sec-header melia-sec-header--center">
+                    <span class="melia-sec-tag">Our Values</span>
+                    <h2 id="values-title" class="melia-sec-title">Simply considered, Truly caring</h2>
+                    <p class="melia-sec-subtitle">
+                        Ba giá trị cốt lõi chúng tôi trân trọng gìn giữ trong mỗi kỳ lưu trú của quý khách.
+                    </p>
+                </div>
+
+                <div class="melia-values-grid">
+                    <article class="melia-value-card">
+                        <span class="melia-value-index">01</span>
+                        <h3 class="melia-value-title">Room to breathe</h3>
+                        <p class="melia-value-desc">
+                            Không gian phòng yên tĩnh với hệ thống cách âm tiêu chuẩn quốc tế và đệm cao cấp, để bạn thật sự nghỉ ngơi sâu lắng sau một ngày dạo bước phố cổ.
+                        </p>
+                    </article>
+
+                    <article class="melia-value-card">
+                        <span class="melia-value-index">02</span>
+                        <h3 class="melia-value-title">Care in detail</h3>
+                        <p class="melia-value-desc">
+                            Mọi tiện nghi từ gối lụa tơ tằm, phòng tắm đá cẩm thạch đến hương tinh dầu thảo mộc sen Tây Hồ đều được chăm chút tỉ mỉ cho trải nghiệm trọn vẹn.
+                        </p>
+                    </article>
+
+                    <article class="melia-value-card">
+                        <span class="melia-value-index">03</span>
+                        <h3 class="melia-value-title">Dịch vụ tận tâm</h3>
+                        <p class="melia-value-desc">
+                            Đội ngũ Lễ tân &amp; Quản gia luôn sẵn sàng hỗ trợ 24/7 từ đặt vé Nhà hát Lớn, gợi ý ẩm thực phố cổ đến xe limousine đưa đón sân bay Nội Bài.
+                        </p>
+                    </article>
                 </div>
             </div>
-            <div class="contact-gallery__controls" style="padding: 16px 24px 20px 24px;">
-                <div class="contact-gallery__dots" data-gallery-dots aria-label="Chọn ảnh trong album"></div>
-                <div class="contact-gallery__arrows">
-                    <button type="button" data-gallery-toggle aria-label="Tạm dừng tự động chuyển ảnh" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i></button>
-                    <button type="button" data-gallery-prev aria-label="Xem ảnh trước"><i class="bi bi-arrow-left" aria-hidden="true"></i></button>
-                    <button type="button" data-gallery-next aria-label="Xem ảnh tiếp theo"><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+        </section>
+
+        {{-- =========================================================================
+             4. DIRECT CHANNELS & INTERACTIVE INQUIRY FORM
+             ========================================================================= --}}
+        <section class="melia-contact-section" id="contact-details" aria-labelledby="contact-details-title">
+            <div class="melia-contact-split">
+                {{-- Left: Direct Communication Channels --}}
+                <div>
+                    <span class="melia-sec-tag">Liên hệ &amp; Hỗ trợ</span>
+                    <h2 id="contact-details-title" class="melia-sec-title">Always here for you</h2>
+                    <p class="melia-sec-subtitle">
+                        Gọi điện, gửi email hoặc ghé thăm chúng tôi tại phố Trần Quốc Toản, quận Hoàn Kiếm.
+                    </p>
+
+                    <div class="melia-channels-list">
+                        {{-- Phone --}}
+                        <a href="tel:02439446699" class="melia-channel-card" aria-label="Gọi hotline Rosaliza Hotel 024 3944 6699">
+                            <div class="melia-channel-icon">
+                                <i class="bi bi-telephone"></i>
+                            </div>
+                            <div class="melia-channel-info">
+                                <span class="melia-channel-label">Điện thoại đặt phòng</span>
+                                <span class="melia-channel-val">(024) 3944 6699</span>
+                                <span class="melia-channel-hint">Hỗ trợ nhanh qua cuộc gọi trực tiếp</span>
+                            </div>
+                            <div class="melia-channel-arrow">
+                                <i class="bi bi-arrow-up-right"></i>
+                            </div>
+                        </a>
+
+                        {{-- Email --}}
+                        <a href="mailto:reservations@rosalizahotel.com" class="melia-channel-card" aria-label="Gửi email đến reservations@rosalizahotel.com">
+                            <div class="melia-channel-icon">
+                                <i class="bi bi-envelope"></i>
+                            </div>
+                            <div class="melia-channel-info">
+                                <span class="melia-channel-label">Email hỗ trợ</span>
+                                <span class="melia-channel-val">reservations@rosalizahotel.com</span>
+                                <span class="melia-channel-hint">Gửi yêu cầu chi tiết qua email</span>
+                            </div>
+                            <div class="melia-channel-arrow">
+                                <i class="bi bi-arrow-up-right"></i>
+                            </div>
+                        </a>
+
+                        {{-- Airport Desk --}}
+                        <div class="melia-channel-card" style="cursor: default;">
+                            <div class="melia-channel-icon">
+                                <i class="bi bi-airplane"></i>
+                            </div>
+                            <div class="melia-channel-info">
+                                <span class="melia-channel-label">Đưa Đón Sân Bay Nội Bài</span>
+                                <span class="melia-channel-val">Thông tin đưa đón</span>
+                                <span class="melia-channel-hint">Liên hệ để được tư vấn</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Right: Interactive Contact & Inquiry Form --}}
+                <div class="melia-form-card">
+                    <span class="melia-sec-tag">Direct Inquiry</span>
+                    <h3 style="font-family: 'Inter', -apple-system, sans-serif; font-weight: 700; font-size: 1.35rem; margin: 0 0 8px 0; color: var(--melia-text);">Gửi thư liên hệ</h3>
+                    <p style="font-size: 14px; color: var(--melia-text-muted); margin-bottom: 24px;">
+                        Biểu mẫu đang chưa được kết nối. Vui lòng sử dụng thông tin điện thoại hoặc email ở bên cạnh để liên hệ.
+                    </p>
+
+                    <form id="contact-inquiry-form" onsubmit="return false;">
+                        <fieldset disabled aria-label="Biểu mẫu liên hệ chưa khả dụng">
+                        <div class="melia-form-grid">
+                            <div class="melia-form-grid--2col melia-form-grid" style="gap: 16px;">
+                                <div class="melia-form-group">
+                                    <label for="contact-name">Họ và tên *</label>
+                                    <input type="text" id="contact-name" class="melia-form-control" placeholder="Nguyễn Văn A" required>
+                                </div>
+                                <div class="melia-form-group">
+                                    <label for="contact-phone">Số điện thoại *</label>
+                                    <input type="tel" id="contact-phone" class="melia-form-control" placeholder="0912 345 678" required>
+                                </div>
+                            </div>
+
+                            <div class="melia-form-group">
+                                <label for="contact-email">Địa chỉ Email *</label>
+                                <input type="email" id="contact-email" class="melia-form-control" placeholder="email@example.com" required>
+                            </div>
+
+                            <div class="melia-form-group">
+                                <label for="contact-service">Dịch vụ quan tâm</label>
+                                <select id="contact-service" class="melia-form-control">
+                                    <option value="room">Tư vấn đặt phòng nghỉ dưỡng</option>
+                                    <option value="skyline">Đặt bàn Skyline Rooftop Bar</option>
+                                    <option value="spa">Liệu trình Lotus Spa &amp; Wellness</option>
+                                    <option value="honeymoon">Gói tuần trăng mật / Kỷ niệm</option>
+                                    <option value="airport">Đưa đón sân bay Nội Bài</option>
+                                    <option value="other">Yêu cầu khác</option>
+                                </select>
+                            </div>
+
+                            <div class="melia-form-group">
+                                <label for="contact-message">Nội dung tin nhắn / Ghi chú</label>
+                                <textarea id="contact-message" class="melia-form-control" placeholder="Quý khách có yêu cầu đặc biệt về số lượng khách, ngày lưu trú hoặc dịch vụ kèm theo?"></textarea>
+                            </div>
+
+                            <button type="submit" class="melia-btn-primary" style="width: 100%; padding: 14px; font-size: 14px;">
+                                <span>Gửi yêu cầu hỗ trợ</span>
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </div>
+                        </fieldset>
+                    </form>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section class="contact-principles" aria-labelledby="principles-title">
-        <div class="editorial-heading" data-reveal>
-            <p class="editorial-eyebrow">Our approach</p>
-            <h2 id="principles-title">Simply considered</h2>
-            <p>Ba điều chúng tôi gìn giữ trong mỗi kỳ lưu trú.</p>
-        </div>
-        <div class="about-value-grid">
-            <article class="about-value-card" data-reveal>
-                <span class="about-value-card__index">01</span>
-                <div class="about-value-card__icon">
-                    <i class="bi bi-wind" aria-hidden="true"></i>
+        {{-- =========================================================================
+             5. LOCATION & GOOGLE MAPS SECTION
+             ========================================================================= --}}
+        <section class="melia-map-card" aria-labelledby="location-title">
+            <div class="melia-map-header">
+                <div>
+                    <h4 id="location-title">
+                        <i class="bi bi-geo-alt-fill" style="color: var(--melia-gold);"></i>
+                        5B Trần Quốc Toản, Hàng Bài, Hoàn Kiếm, Hà Nội
+                    </h4>
+                    <span style="font-size: 12.5px; color: var(--melia-text-muted);">
+                        Nhận phòng từ 14:00 &bull; Trả phòng trước 12:00 trưa &bull; Lễ tân hỗ trợ 24 giờ
+                    </span>
                 </div>
-                <h3>Room to breathe</h3>
-                <p>Không gian yên tĩnh để bạn thật sự nghỉ ngơi sau một ngày dài.</p>
-            </article>
-
-            <article class="about-value-card" data-reveal>
-                <span class="about-value-card__index">02</span>
-                <div class="about-value-card__icon">
-                    <i class="bi bi-gem" aria-hidden="true"></i>
-                </div>
-                <h3>Care in detail</h3>
-                <p>Thông tin rõ ràng và trải nghiệm liền mạch từ lúc chọn đến khi nhận phòng.</p>
-            </article>
-
-            <article class="about-value-card" data-reveal>
-                <span class="about-value-card__index">03</span>
-                <div class="about-value-card__icon">
-                    <i class="bi bi-headset" aria-hidden="true"></i>
-                </div>
-                <h3>Here when needed</h3>
-                <p>Đội ngũ luôn sẵn sàng lắng nghe và giúp bạn chuẩn bị kỳ nghỉ.</p>
-            </article>
-        </div>
-    </section>
-
-    <section class="about-journey contact-journey" aria-labelledby="journey-title">
-        <div class="about-journey__intro" data-reveal>
-            <p class="editorial-eyebrow">Your journey</p>
-            <h2 id="journey-title">From choice to rest</h2>
-            <p>Mọi bước được giữ gọn để bạn dành nhiều thời gian hơn cho chuyến đi.</p>
-            <a class="button" href="{{ route('rooms.index') }}">Khám phá phòng <span aria-hidden="true">→</span></a>
-        </div>
-        <ol class="about-journey__steps">
-            <li data-reveal><span>01</span><div><h3>Choose</h3><p>Xem rõ sức chứa, tiện nghi, giá và số phòng còn trống.</p></div><i class="bi bi-calendar2-check" aria-hidden="true"></i></li>
-            <li data-reveal><span>02</span><div><h3>Confirm</h3><p>Xác nhận thông tin và chọn phương thức thanh toán phù hợp.</p></div><i class="bi bi-credit-card" aria-hidden="true"></i></li>
-            <li data-reveal><span>03</span><div><h3>Unwind</h3><p>Nhận hỗ trợ khi cần và nghỉ ngơi theo nhịp riêng của bạn.</p></div><i class="bi bi-cup-hot" aria-hidden="true"></i></li>
-        </ol>
-    </section>
-
-    <section class="contact-content" id="contact-details" aria-labelledby="contact-details-title">
-        <div class="editorial-heading contact-content__heading" data-reveal>
-            <p class="editorial-eyebrow">Contact</p>
-            <h2 id="contact-details-title">Always here</h2>
-            <p>Gọi, gửi email hoặc ghé thăm chúng tôi tại Chùa Bộc.</p>
-        </div>
-        <div class="contact-methods">
-            <a class="contact-method" href="tel:0123456789" aria-label="Gọi Rosaliza Hotel theo số 0123 456 789" data-reveal><span class="contact-method__icon"><i class="bi bi-telephone" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Điện thoại</span><strong>0123 456 789</strong><span class="contact-method__hint">Hỗ trợ nhanh qua cuộc gọi</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
-            <a class="contact-method" href="mailto:rosalizahotel@gmail.com" aria-label="Gửi email đến rosalizahotel@gmail.com" data-reveal><span class="contact-method__icon"><i class="bi bi-envelope" aria-hidden="true"></i></span><span class="contact-method__body"><span class="contact-method__label">Email</span><strong>rosalizahotel@gmail.com</strong><span class="contact-method__hint">Phản hồi yêu cầu chi tiết</span></span><span class="contact-method__arrow" aria-hidden="true">↗</span></a>
-        </div>
-    </section>
-
-    <section class="contact-location" aria-labelledby="contact-location-title">
-        <div class="contact-location__copy" data-reveal>
-            <p class="editorial-eyebrow">Location</p>
-            <h2 id="contact-location-title">Find us</h2>
-            <address>12 Chùa Bộc,<br>Đống Đa, Hà Nội</address>
-            <p class="contact-location__note"><i class="bi bi-clock" aria-hidden="true"></i> Lễ tân hỗ trợ 24 giờ mỗi ngày · Nhận phòng 12:00 - trước 16:00</p>
-            <a class="button" href="https://www.google.com/maps/search/?api=1&query=12+Ch%C3%B9a+B%E1%BB%99c%2C+%C4%90%E1%BB%91ng+%C4%90a%2C+H%C3%A0+N%E1%BB%99i" target="_blank" rel="noopener noreferrer">Mở chỉ đường <span aria-hidden="true">↗</span></a>
-        </div>
-        <div class="contact-map" data-reveal style="overflow: hidden; border-radius: 28px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06); padding-bottom: 20px;">
-            <div class="macos-card-bar" style="background: rgba(248, 250, 252, 0.95); padding: 14px 20px; border-bottom: 1px solid rgba(0, 0, 0, 0.06); display: flex; align-items: center; justify-content: space-between;">
-                <div class="window-controls">
-                    <span class="ctrl-dot ctrl-red"></span>
-                    <span class="ctrl-dot ctrl-yellow"></span>
-                    <span class="ctrl-dot ctrl-green"></span>
-                </div>
-                <span class="macos-card-title">Bản đồ Rosaliza Hotel — 12 Chùa Bộc, Hà Nội</span>
-                <div style="width: 52px;" aria-hidden="true"></div>
+                <a href="https://maps.google.com/?q=5B+Tran+Quoc+Toan+Hoan+Kiem+Hanoi" target="_blank" rel="noopener noreferrer" class="melia-btn-secondary" style="padding: 8px 18px; font-size: 12px;">
+                    <i class="bi bi-map"></i>
+                    <span>Mở chỉ đường Google Maps</span>
+                </a>
             </div>
-            <div style="margin: 14px 20px 0 20px; border-radius: 18px; overflow: hidden; height: 380px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04);">
-                <iframe title="Bản đồ Rosaliza Hotel tại 12 Chùa Bộc, Hà Nội" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.6203769615904!2d105.82535447503089!3d21.00784918063632!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac806cfc0845%3A0x3848505bd3b9490f!2zMTIgUC4gQ2jDuWEgQuG7mWMsIEtpbSBMacOqbiwgSMOgIE7hu5lpIDEwMDAwMCwgVmnhu4d0IE5hbQ!5e0!3m2!1svi!2s!4v1777979688214!5m2!1svi!2s" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen style="width: 100%; height: 100%; border: 0; display: block;"></iframe>
+            <div class="melia-map-frame">
+                <iframe title="Bản đồ vị trí Rosaliza Hotel HaNoi tại 5B Trần Quốc Toản, Hoàn Kiếm, Hà Nội"
+                        src="https://maps.google.com/maps?q=5B%20Tran%20Quoc%20Toan,%20Hoan%20Kiem,%20Hanoi&t=&z=16&ie=UTF8&iwloc=&output=embed"
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                        allowfullscreen></iframe>
             </div>
-        </div>
-    </section>
+        </section>
+
     </div>
 </div>
 @endsection

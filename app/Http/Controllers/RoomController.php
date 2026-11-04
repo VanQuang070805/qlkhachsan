@@ -28,7 +28,7 @@ class RoomController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
             'check_in' => ['required', 'date_format:Y-m-d'],
             'check_out' => ['required', 'date_format:Y-m-d', 'after:check_in'],
-            'adults' => ['required', 'integer', 'min:0', 'max:20'],
+            'adults' => ['required', 'integer', 'min:1', 'max:20'],
             'children' => ['required', 'integer', 'min:0', 'max:20'],
         ]) : [];
 
@@ -74,23 +74,12 @@ class RoomController extends Controller
 
         if ($searchSubmitted) {
             $guestCount = $adults + $children;
-            $roomTypes = $roomTypes->filter(function (RoomType $type) use ($adults, $children, $guestCount) {
-                $adultCapacity = (int) $type->max_adults;
-                $childCapacity = (int) $type->max_children;
-                $guestCapacity = (int) $type->max_guests;
-
-                if ($adultCapacity < 1 || $guestCapacity < 1 || ($children > 0 && $childCapacity < 1)) {
-                    return false;
-                }
-
-                $roomsNeeded = max(
-                    (int) ceil($adults / $adultCapacity),
-                    $children > 0 ? (int) ceil($children / $childCapacity) : 0,
-                    (int) ceil($guestCount / $guestCapacity),
-                );
-
-                return $type->available_count >= $roomsNeeded;
-            })->values();
+            $roomTypes = $roomTypes->filter(fn (RoomType $type) =>
+                (int) $type->max_adults >= $adults
+                && (int) $type->max_children >= $children
+                && (int) $type->max_guests >= $guestCount
+                && $type->available_count > 0
+            )->values();
         }
 
         $filters = [

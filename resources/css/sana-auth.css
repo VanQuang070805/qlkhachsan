@@ -4,11 +4,12 @@
    ========================================================================== */
 
 :root {
-    --sana-bg: #fcfcfd;
-    --sana-ink: #09090b;
-    --sana-muted: #71717a;
-    --sana-border: #e4e4e7;
-    --sana-pill-bg: #f4f4f5;
+    --sana-bg: #FAF9F6;
+    --sana-ink: #181715;
+    --sana-muted: #5C5852;
+    --sana-border: #E5E1D8;
+    --sana-pill-bg: #F3EFE9;
+    --sana-gold: #B89C72;
     --sana-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -248,8 +249,8 @@ body.auth-shell {
 }
 
 .sana-input:focus {
-    border-color: #000000 !important;
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08) !important;
+    border-color: #B89C72 !important;
+    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.2) !important;
 }
 
 .sana-input.is-invalid {
@@ -491,7 +492,7 @@ body.auth-shell {
     width: 8px !important;
     height: 8px !important;
     border-radius: 50% !important;
-    background: #3b82f6 !important;
+    background: #B89C72 !important;
 }
 
 .sana-laptop__nav-list {

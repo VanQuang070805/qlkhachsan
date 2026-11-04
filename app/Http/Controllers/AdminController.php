@@ -47,18 +47,49 @@ class AdminController extends Controller
 
         $bookingModel = new Booking();
         $userModel    = new User();
+        $reportViewerId = session('staff_user_id') ?: session('auth_user_id');
+        $canViewReportBookings = User::query()->find($reportViewerId)?->isAdmin() ?? false;
+        $chartFilters = $filters;
 
         $stats                     = $bookingModel->getReportStats($filters);
         $stats['total_customers']  = $userModel->countCustomers();
-        $roomCount                 = max(1, (int) DB::table('rooms')->count());
+        // Compare equally long check-in cohorts. An open-ended range has no
+        // well-defined preceding period, so it is deliberately not compared.
+        $comparison = null;
+        if ($filters['start_date'] && $filters['end_date']) {
+            $start = \Carbon\Carbon::parse($filters['start_date'])->startOfDay();
+            $end = \Carbon\Carbon::parse($filters['end_date'])->startOfDay();
+            $days = (int) $start->diffInDays($end) + 1;
+            $previousFilters = array_merge($filters, [
+                'start_date' => $start->copy()->subDays($days)->toDateString(),
+                'end_date' => $start->copy()->subDay()->toDateString(),
+            ]);
+            $previousStats = $bookingModel->getReportStats($previousFilters);
+            $comparison = [];
+            foreach (['total_bookings', 'total_revenue', 'pending_count'] as $key) {
+                $current = (float) ($stats[$key] ?? 0);
+                $previous = (float) ($previousStats[$key] ?? 0);
+                $comparison[$key] = [
+                    'current' => $current,
+                    'previous' => $previous,
+                    'percent' => $previous == 0.0 ? null : (($current - $previous) / $previous) * 100,
+                ];
+            }
+        }
+        $roomCountQuery            = DB::table('rooms');
+        if ($filters['room_type_id']) {
+            $roomCountQuery->where('room_type_id', (int) $filters['room_type_id']);
+        }
+        $roomCount                 = max(1, (int) $roomCountQuery->count());
         $firstStay                 = $filters['start_date'] ?: DB::table('bookings')->min('check_in') ?: now()->toDateString();
         $lastStay                  = $filters['end_date'] ?: DB::table('bookings')->max('check_out') ?: now()->toDateString();
-        $periodDays                = max(1, \Carbon\Carbon::parse($firstStay)->diffInDays(\Carbon\Carbon::parse($lastStay)) + 1);
+        // check_out is exclusive: a stay from 10/11 to 11/11 consumes one room-night.
+        $periodDays                = max(1, (int) \Carbon\Carbon::parse($firstStay)->diffInDays(\Carbon\Carbon::parse($lastStay)));
         $soldNights                = max(0, (int) ($stats['total_nights'] ?? 0));
-        $stats['adr']              = $soldNights > 0 ? $stats['total_revenue'] / $soldNights : 0;
-        $stats['revpar']           = $stats['total_revenue'] / ($roomCount * $periodDays);
+        $stats['adr']              = $filters['room_type_id'] ? null : ($soldNights > 0 ? $stats['total_revenue'] / $soldNights : 0);
+        $stats['revpar']           = $filters['room_type_id'] ? null : $stats['total_revenue'] / ($roomCount * $periodDays);
         $stats['occupancy_rate']   = min(100, ($soldNights / ($roomCount * $periodDays)) * 100);
-        $trendRows                 = $bookingModel->getReportChartData($filters);
+        $trendRows                 = $bookingModel->getReportChartData($chartFilters);
         $trendEnd                  = $filters['end_date']
             ? \Carbon\Carbon::parse($filters['end_date'])->startOfDay()
             : (count($trendRows) ? \Carbon\Carbon::parse(end($trendRows)->date)->startOfDay() : now()->startOfDay());
@@ -81,15 +112,16 @@ class AdminController extends Controller
                 'bookings' => (int) ($row->bookings ?? 0),
             ];
         }
-        $typeChartData             = $bookingModel->getReportRoomTypeData($filters);
+        $typeChartData             = $bookingModel->getReportRoomTypeData($chartFilters);
+        $chartStats                = $canViewReportBookings ? $bookingModel->getReportStats($chartFilters) : $stats;
         $statusChartData = [
-            ['Chờ xác nhận', (int) ($stats['pending_count'] ?? 0)],
-            ['Đã xác nhận', (int) ($stats['confirmed_count'] ?? 0)],
-            ['Đang lưu trú', (int) ($stats['checked_in_count'] ?? 0)],
-            ['Hoàn thành', (int) ($stats['completed_count'] ?? 0)],
-            ['Đã hủy', (int) ($stats['cancelled_count'] ?? 0)],
+            [config('statuses.booking.pending'), (int) ($chartStats['pending_count'] ?? 0)],
+            [config('statuses.booking.confirmed'), (int) ($chartStats['confirmed_count'] ?? 0)],
+            [config('statuses.booking.checked_in'), (int) ($chartStats['checked_in_count'] ?? 0)],
+            [config('statuses.booking.completed'), (int) ($chartStats['completed_count'] ?? 0)],
+            [config('statuses.booking.cancelled'), (int) ($chartStats['cancelled_count'] ?? 0)],
         ];
-        $statusTrendData = $bookingModel->getReportStatusTrendData($filters);
+        $statusTrendData = $bookingModel->getReportStatusTrendData($chartFilters);
         $monthlyTrendData = collect($chartData)
             ->groupBy(fn (array $row) => substr($row['date'], 0, 7))
             ->map(fn ($rows, string $period) => [
@@ -97,21 +129,20 @@ class AdminController extends Controller
                 'revenue' => (float) $rows->sum('revenue'),
                 'bookings' => (int) $rows->sum('bookings'),
             ])->values()->all();
-        $weekdayRows = collect($bookingModel->getReportWeekdayData($filters))->keyBy('weekday');
+        $weekdayRows = collect($bookingModel->getReportWeekdayData($chartFilters))->keyBy('weekday');
         $weekdayLabels = [1 => 'Thứ 2', 2 => 'Thứ 3', 3 => 'Thứ 4', 4 => 'Thứ 5', 5 => 'Thứ 6', 6 => 'Thứ 7', 0 => 'Chủ nhật'];
         $weekdayChartData = collect($weekdayLabels)->map(fn (string $label, int $weekday) => [
             'weekday' => $weekday,
             'label' => $label,
             'bookings' => (int) ($weekdayRows->get($weekday)->bookings ?? 0),
         ])->values()->all();
-        $reportViewerId = session('staff_user_id') ?: session('auth_user_id');
-        $canViewReportBookings = User::query()->find($reportViewerId)?->isAdmin() ?? false;
-        $bookings = $canViewReportBookings ? $bookingModel->getFilteredBookings($filters) : collect();
+        $bookings = $canViewReportBookings ? $bookingModel->paginateFilteredBookings($chartFilters) : collect();
         $roomTypes                 = DB::select('SELECT id, type_name FROM room_types');
         $roomInventory             = DB::table('rooms')->selectRaw('room_type_id, COUNT(*) AS total')->groupBy('room_type_id')->pluck('total', 'room_type_id');
 
         return view('admin.reports', [
             'stats'     => $stats,
+            'comparison' => $comparison,
             'chartData' => $chartData,
             'typeChartData' => $typeChartData,
             'statusChartData' => $statusChartData,
@@ -123,6 +154,7 @@ class AdminController extends Controller
             'roomTypes' => $roomTypes,
             'roomInventory' => $roomInventory,
             'canViewReportBookings' => $canViewReportBookings,
+            'periodDays' => $periodDays,
         ]);
     }
 
@@ -132,9 +164,14 @@ class AdminController extends Controller
 
     public function priceSettings()
     {
-        $settings = PriceSetting::all();
+        $settings = PriceSetting::query()->orderByDesc('start_date')->orderByDesc('id')->paginate(20);
+        $settingStats = [
+            'total' => PriceSetting::query()->count(),
+            'active' => PriceSetting::query()->where('status', true)->count(),
+            'upcoming' => PriceSetting::query()->whereDate('start_date', '>=', now()->toDateString())->count(),
+        ];
 
-        return view('admin.price_settings.index', compact('settings'));
+        return view('admin.price_settings.index', compact('settings', 'settingStats'));
     }
 
     public function updateRoomTypePrice(Request $request, RoomType $roomType)
@@ -181,14 +218,19 @@ class AdminController extends Controller
         $lock = \Illuminate\Support\Facades\Cache::lock('price-settings-write', 10);
         abort_unless($lock->get(), 409, 'Một thay đổi giá khác đang được xử lý.');
         try {
-            if ($request->has('status') && (new PriceSetting)->checkOverlap($request->start_date, $request->end_date)) {
-                return back()->withInput()->with('error', 'Khoảng thời gian này đã bị trùng lặp với một cài đặt giá đang bật. Vui lòng chọn ngày khác.');
-            }
-            PriceSetting::create([
-                'name' => $request->name, 'start_date' => $request->start_date, 'end_date' => $request->end_date,
-                'adjustment_type' => $request->adjustment_type, 'adjustment_value' => $request->adjustment_value,
-                'status' => $request->has('status') ? 1 : 0,
-            ]);
+            DB::transaction(function () use ($request) {
+                PriceSetting::query()->where('status', true)->lockForUpdate()->get(['id']);
+                if ($request->has('status') && (new PriceSetting)->checkOverlap($request->start_date, $request->end_date)) {
+                    throw ValidationException::withMessages([
+                        'start_date' => 'Khoảng thời gian này đã trùng với một cài đặt giá đang bật.',
+                    ]);
+                }
+                PriceSetting::create([
+                    'name' => $request->name, 'start_date' => $request->start_date, 'end_date' => $request->end_date,
+                    'adjustment_type' => $request->adjustment_type, 'adjustment_value' => $request->adjustment_value,
+                    'status' => $request->has('status') ? 1 : 0,
+                ]);
+            });
         } finally {
             $lock->release();
         }
@@ -220,14 +262,20 @@ class AdminController extends Controller
         $lock = \Illuminate\Support\Facades\Cache::lock('price-settings-write', 10);
         abort_unless($lock->get(), 409, 'Một thay đổi giá khác đang được xử lý.');
         try {
-            if ($request->has('status') && (new PriceSetting)->checkOverlap($request->start_date, $request->end_date, $id)) {
-                return back()->withInput()->with('error', 'Khoảng thời gian này đã bị trùng lặp với một cài đặt giá đang bật. Vui lòng chọn ngày khác.');
-            }
-            PriceSetting::findOrFail($id)->update([
-                'name' => $request->name, 'start_date' => $request->start_date, 'end_date' => $request->end_date,
-                'adjustment_type' => $request->adjustment_type, 'adjustment_value' => $request->adjustment_value,
-                'status' => $request->has('status') ? 1 : 0,
-            ]);
+            DB::transaction(function () use ($request, $id) {
+                $setting = PriceSetting::query()->lockForUpdate()->findOrFail($id);
+                PriceSetting::query()->where('status', true)->whereKeyNot($id)->lockForUpdate()->get(['id']);
+                if ($request->has('status') && (new PriceSetting)->checkOverlap($request->start_date, $request->end_date, $id)) {
+                    throw ValidationException::withMessages([
+                        'start_date' => 'Khoảng thời gian này đã trùng với một cài đặt giá đang bật.',
+                    ]);
+                }
+                $setting->update([
+                    'name' => $request->name, 'start_date' => $request->start_date, 'end_date' => $request->end_date,
+                    'adjustment_type' => $request->adjustment_type, 'adjustment_value' => $request->adjustment_value,
+                    'status' => $request->has('status') ? 1 : 0,
+                ]);
+            });
         } finally {
             $lock->release();
         }

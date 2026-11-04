@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Kiểm tra role người dùng.
@@ -14,20 +15,21 @@ class RoleMiddleware
 {
     public function handle(Request $request, Closure $next, string ...$roles): mixed
     {
-        $isStaffPath = $request->is('staff*') || $request->is('admin*') || $request->is('receptionist*');
+        $isAdminPath = $request->is('admin*');
+        $isStaffPath = $isAdminPath || $request->is('staff*') || $request->is('receptionist*');
 
         $userId = null;
         if ($isStaffPath) {
-            $userId = session('staff_user_id');
-            if (!$userId && session('auth_user_id')) {
+            $userId = session('staff_user_id') ?: session('admin_user_id') ?: Auth::guard('staff')->id() ?: Auth::guard('admin')->id();
+            if (! $userId && session('auth_user_id')) {
                 $userCheck = User::find(session('auth_user_id'));
-                if ($userCheck && in_array($userCheck->role, ['admin', 'receptionist'])) {
+                if ($userCheck && in_array($userCheck->role, ['admin', 'receptionist'], true)) {
                     $userId = $userCheck->id;
                 }
             }
         } else {
-            $userId = session('customer_user_id');
-            if (!$userId && session('auth_user_id')) {
+            $userId = session('customer_user_id') ?: Auth::guard('customer')->id();
+            if (! $userId && session('auth_user_id')) {
                 $userCheck = User::find(session('auth_user_id'));
                 if ($userCheck && $userCheck->role === 'customer') {
                     $userId = $userCheck->id;
@@ -35,29 +37,28 @@ class RoleMiddleware
             }
         }
 
-        $loginRoute = $isStaffPath ? 'internalauth.login' : 'login';
+        $loginRoute = $isAdminPath ? 'admin.login' : ($isStaffPath ? 'staff.login' : 'login');
 
-        if (!$userId) {
+        if (! $userId) {
             return redirect()->route($loginRoute)->with('error', 'Vui lòng đăng nhập để tiếp tục.');
         }
 
         $user = User::find($userId);
 
-        if (!$user || !in_array($user->role, $roles)) {
-            // Đảm bảo không bị crash lỗi 403 đỏ màn hình, chuyển hướng mềm mại
+        if (! $user || ! in_array($user->role, $roles, true)) {
             if ($user) {
                 $targetRedirect = match ($user->role) {
                     'admin' => route('admin.dashboard'),
                     'receptionist' => route('staff.bookings'),
                     default => route('home'),
                 };
+
                 return redirect($targetRedirect)->with('error', 'Tài khoản của bạn không có quyền truy cập trang này.');
             }
 
             return redirect()->route($loginRoute)->with('error', 'Tài khoản không hợp lệ hoặc không có quyền truy cập.');
         }
 
-        // Đồng bộ dữ liệu session active cho request hiện tại
         session([
             'auth_user_id' => $user->id,
             'user_id'      => $user->id,
@@ -70,6 +71,8 @@ class RoleMiddleware
                 'verified' => $user->verified,
             ],
         ]);
+
+        Auth::guard('web')->setUser($user);
 
         return $next($request);
     }

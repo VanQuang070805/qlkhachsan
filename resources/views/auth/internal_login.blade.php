@@ -1,14 +1,24 @@
 @extends('layouts.auth')
 
+@php
+    $activePortal = $portal ?? (request()->is('admin*') ? 'admin' : 'staff');
+    $actionUrl = $formAction ?? ($activePortal === 'admin' ? route('admin.login.submit') : route('staff.login.submit'));
+    $headingTitle = $portalTitle ?? ($activePortal === 'admin' ? 'Cổng Quản Trị' : 'Cổng Nhân Viên');
+    $headingSubtitle = $portalSubtitle ?? ($activePortal === 'admin'
+        ? 'Đăng nhập hệ thống quản trị doanh thu, hạng phòng và phân quyền.'
+        : 'Đăng nhập hệ thống vận hành lễ tân, sơ đồ phòng và Face ID.');
+@endphp
+
 @section('content')
 <div class="sana-auth-card">
     <header class="sana-heading auth-intro">
-        <h1 class="sana-heading__title">Login System</h1>
+        <h1 class="sana-heading__title">{{ $headingTitle }}</h1>
+        <p style="margin: 6px 0 0; font-size: 13px; color: #71717a;">{{ $headingSubtitle }}</p>
     </header>
 
     @include('auth.partials.form-status')
 
-    <form action="{{ route('internalauth.login') }}" method="POST" autocomplete="on" novalidate data-inline-validation>
+    <form action="{{ $actionUrl }}" method="POST" autocomplete="on" novalidate data-inline-validation>
         @csrf
 
         {{-- Username for internal system --}}
@@ -52,12 +62,25 @@
         </div>
 
         {{-- Submit Button --}}
-        <button type="submit" class="sana-submit-btn">Login System</button>
+        <button type="submit" class="sana-submit-btn">
+            {{ $activePortal === 'admin' ? 'Đăng nhập Quản trị' : 'Đăng nhập Nhân viên' }}
+        </button>
+
+        {{-- Switch between internal portals --}}
+        <div class="sana-switch-link" style="margin-top: 18px;">
+            @if($activePortal === 'admin')
+                <span>Bạn là nhân viên vận hành?</span>
+                <a href="{{ rtrim(config('services.portal.staff_url'), '/') . route('staff.login', [], false) }}">Cổng Nhân viên</a>
+            @else
+                <span>Bạn là quản trị viên?</span>
+                <a href="{{ rtrim(config('services.portal.admin_url'), '/') . route('admin.login', [], false) }}">Cổng Quản trị</a>
+            @endif
+        </div>
 
         {{-- Return to Customer Login --}}
-        <div class="sana-switch-link" style="margin-top: 20px;">
+        <div class="sana-switch-link" style="margin-top: 8px;">
             <span>Bạn là khách lưu trú?</span>
-            <a href="{{ route('login') }}">Đăng nhập khách hàng</a>
+            <a href="{{ rtrim(config('services.portal.customer_url'), '/') . route('login', [], false) }}">Đăng nhập khách hàng</a>
         </div>
     </form>
 </div>

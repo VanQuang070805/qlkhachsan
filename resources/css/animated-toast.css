@@ -1,0 +1,14 @@
+/* Joly UI Animated Toast: neutral card, semantic edge, icon and timer. */
+.animated-toast-stack { position: fixed; z-index: 100000; top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); width: min(420px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.animated-toast { --toast-accent: #64748b; position: relative; display: flex; align-items: flex-start; gap: 12px; overflow: hidden; width: 100%; padding: 16px; border: 1px solid #e2e8f0; border-left: 4px solid var(--toast-accent); border-radius: 8px; background: #fff; color: #334155; box-shadow: 0 10px 25px rgba(15,23,42,.14); font: 400 14px/1.5 Inter, sans-serif; pointer-events: auto; animation: animated-toast-in .32s cubic-bezier(.2,.8,.2,1) both; }
+.animated-toast--success { --toast-accent: #059669; } .animated-toast--error { --toast-accent: #dc2626; } .animated-toast--warning { --toast-accent: #d97706; } .animated-toast--info { --toast-accent: #2563eb; }
+.animated-toast__icon { width: 20px; height: 20px; flex: none; color: var(--toast-accent); }
+.animated-toast__message { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.animated-toast__close { display: grid; place-items: center; flex: none; width: 32px; height: 32px; margin: -6px -6px -6px 0; padding: 6px; border: 0; border-radius: 6px; background: transparent; color: #64748b; cursor: pointer; }
+.animated-toast__close:hover { background: #f1f5f9; color: #0f172a; } .animated-toast__close:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; } .animated-toast__close svg { width: 16px; height: 16px; }
+.animated-toast__progress { position: absolute; right: 0; bottom: 0; left: 0; height: 4px; background: var(--toast-accent); opacity: .3; transform-origin: left; animation: animated-toast-timer linear forwards; }
+.animated-toast.is-closing { animation: animated-toast-out .2s ease forwards; }
+@keyframes animated-toast-in { from { opacity: 0; transform: translateY(-20px) scale(.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes animated-toast-out { to { opacity: 0; transform: translateX(30px) scale(.9); } }
+@keyframes animated-toast-timer { to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .animated-toast, .animated-toast.is-closing, .animated-toast__progress { animation: none; } }

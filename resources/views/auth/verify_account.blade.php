@@ -15,31 +15,43 @@
     </div>
 
     @if(session('success'))
-        <div style="display: flex; justify-content: center; width: 100%;">
-            <div class="otp-status-toast is-success" role="status" style="margin-bottom: 14px; max-width: 360px; width: 100%;">
-                <i class="bi bi-check-circle" aria-hidden="true"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-        </div>
+        <div data-animated-flash="success" role="status">{{ session('success') }}</div>
     @endif
-
-    {{-- Toast feedback for AJAX resend --}}
-    <div id="otp-toast" class="otp-status-toast" style="display: none; max-width: 360px; margin-left: auto; margin-right: auto;" role="status"></div>
 
     {{-- Main OTP Verification Form (Centered) --}}
     <form action="{{ route('verify') }}" method="POST" id="otp-form" novalidate style="display: flex; flex-direction: column; align-items: center; width: 100%;">
         @csrf
         <input type="hidden" name="otp" id="otp-hidden" value="{{ old('otp') }}">
 
-        {{-- 6-Box Visual Grid (Moved higher up) --}}
-        <div class="otp-box-grid" id="otp-grid" role="group" aria-label="Mã OTP 6 chữ số">
-            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="0" autocomplete="one-time-code" aria-label="Chữ số 1" autofocus>
-            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="1" aria-label="Chữ số 2">
-            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="2" aria-label="Chữ số 3">
-            <span class="otp-cell-separator" aria-hidden="true">&ndash;</span>
-            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="3" aria-label="Chữ số 4">
-            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="4" aria-label="Chữ số 5">
-            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-cell" data-otp-index="5" aria-label="Chữ số 6">
+        {{-- CodeSlots Component from React Bits --}}
+        <div class="code-slots" data-code-slots role="group" aria-label="Mã OTP 6 chữ số">
+            <div class="code-slots__row" id="otp-grid" data-status="{{ ($errors->has('otp') || session('error')) ? 'error' : 'idle' }}">
+                <input type="text"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       maxlength="6"
+                       class="code-slots__input"
+                       id="otp-main-input"
+                       autocomplete="one-time-code"
+                       aria-label="Mã OTP 6 chữ số"
+                       aria-describedby="otp-error"
+                       @if($errors->has('otp') || session('error')) aria-invalid="true" @endif
+                       autofocus>
+                @for ($i = 0; $i < 6; $i++)
+                    <span class="code-slots__slot" data-slot-index="{{ $i }}">
+                        <span class="code-slots__fill"></span>
+                        <span class="code-slots__digit"></span>
+                    </span>
+                @endfor
+                <span class="code-slots__wash" aria-hidden="true">
+                    <span class="code-slots__check">
+                        <i class="bi bi-check2"></i>
+                    </span>
+                </span>
+                <span class="code-slots__caret" aria-hidden="true">
+                    <span class="code-slots__caret-line"></span>
+                </span>
+            </div>
         </div>
 
         @php

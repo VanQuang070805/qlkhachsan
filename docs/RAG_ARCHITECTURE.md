@@ -1,64 +1,75 @@
-# Royal Concierge — kiến trúc Gemini + Dify
+# Royal Concierge — Kiến trúc Gemini + LangGraph & 3 Cổng Truy Cập
 
-## Luồng chạy
+## 1. Luồng chạy Chatbot (Gemini + LangGraph)
 
 ```text
 RoyalChat.vue
   └─ POST /chatbot/stream (CSRF + session cookie; chỉ gửi câu hỏi hiện tại)
        └─ Laravel ChatbotController
-            └─ DifyChatbotService (giữ API key + conversation_id phía server)
-                 └─ Dify Chatflow → Knowledge Retrieval → Gemini Agent (FunctionCalling + public room tools) → Answer
+            └─ LangGraphChatbotService (giữ thread_id + internal key ở server)
+                 └─ services/royal-ai-chatbot/backend (LangGraph Node server: ingestion_graph & retrieval_graph)
+                      ├─ Router & Answer: Google Gemini (`gemini-2.5-flash`)
+                      ├─ Vector Retrieval: `text-embedding-004` + MySQL `knowledge_chunks` (hybrid semantic + lexical)
+                      └─ Live Hotel Tools: gọi ngược Laravel `/api/chatbot/tools/*` với `LANGGRAPH_TOOL_API_KEY`
 ```
 
-Website chỉ có một nhà cung cấp hội thoại đang hoạt động: Dify Chatflow dùng Gemini. Không chạy đồng thời bộ trả lời rule-based hay OpenAI cũ; nếu Dify/Gemini lỗi, endpoint trả lỗi thân thiện thay vì giả vờ câu trả lời cũ là phản hồi của AI. Giao diện hiện tại giữ nguyên, và SSE chỉ gửi nội dung trả lời, không gửi/hiển thị dòng “Nguồn”.
+Website chỉ vận hành một kiến trúc hội thoại duy nhất: **LangGraph + Google Gemini** (tự host từ bản mẫu `mayooear/ai-pdf-chatbot-langchain` tại `services/royal-ai-chatbot/`, gồm cả `backend` và `frontend`). Các nhánh Dify, OpenAI và rule-based cũ đã được gỡ bỏ hoàn toàn. Nếu dịch vụ LangGraph/Gemini gặp sự cố, Laravel trả mã `503` hoặc sự kiện SSE `error` rõ ràng thay vì giả lập phản hồi AI.
 
-Agent local hiện chọn `Gemini 3.5 Flash-Lite` trên Free Tier. Google áp dụng quota theo project và model; không tự chuyển sang model trả phí. Khi quota hết, website báo gián đoạn thay vì dùng câu trả lời cũ hoặc phát sinh phí.
+## 2. Tri thức khách sạn đã duyệt & Dữ liệu phòng trực tiếp
 
-Laravel chỉ gửi `query` hiện tại cùng mã `user` giả danh HMAC và `conversation_id` do Dify cấp, tất cả khóa và ID hội thoại được giữ ở server. Lịch sử do browser gửi không được chuyển tiếp; bộ nhớ nhiều lượt do Chatflow quản lý. Mã hội thoại tách theo phiên trình duyệt và loại phiên khách/nhân viên để tránh dùng chung ngữ cảnh.
+- **Nguồn tri thức chuẩn**: nằm tại `resources/knowledge/*.md` (`royal-hotel.md`, `royal-hotel-concierge.md`). Giữ phòng chờ thanh toán trực tuyến tối đa **10 phút** (`Booking::PAYMENT_HOLD_MINUTES = 10`).
+- **Đồng bộ tri thức**:
+  - Qua Laravel CLI: `php artisan knowledge:index` (hoặc `--no-embeddings` khi chạy offline/kiểm thử).
+  - Qua LangGraph Ingestion Graph: `cd services/royal-ai-chatbot/backend && npm run sync:knowledge`.
+- **Công cụ dữ liệu phòng trực tiếp (`HotelRoomToolService`)**:
+  - `GET|POST /api/chatbot/tools/room-types`: trả danh sách hạng phòng, sức chứa, tiện nghi và giá cơ bản.
+  - `POST /api/chatbot/tools/rooms/search`: kiểm tra số phòng trống theo `Booking::reservedRoomIds()` và tính giá theo `PriceSetting::calculateTotalPrice()`. Không bao giờ trả số phòng vật lý (`room_number`), ID phòng nội bộ hay dữ liệu đặt phòng của khách hàng.
 
-## Kiến thức và dữ liệu sống
+## 3. Nơi đặt khóa cấu hình (`.env` ở Server)
 
-- Nội dung ổn định đã duyệt nằm trong `resources/knowledge/*.md` và phải được tải lên đúng Knowledge Base trong Dify sau khi sửa; thư mục này không tự đồng bộ.
-- Gemini có thể trả lời tự nhiên câu hỏi đời thường bằng kiến thức phổ thông. Câu hỏi về Royal Hotel chỉ khẳng định dữ kiện có trong tri thức đã duyệt hoặc kết quả công cụ.
-- Giá hiện hành và số phòng trống được Dify gọi qua hai endpoint Laravel chỉ đọc: `POST /api/chatbot/tools/room-types` và `POST /api/chatbot/tools/rooms/search`.
-- Tìm phòng dùng `Booking::reservedRoomIds()` và điều kiện trạng thái phòng hiện có, nhận ngày đến/đi, tổng khách và số phòng yêu cầu. Sức chứa được tính trên cả số phòng yêu cầu, không ép tổng khách vào mỗi phòng. API chỉ trả tên hạng phòng, số lượng còn lại, giá công khai, sức chứa và cờ đủ số lượng; không trả room ID/số phòng, booking, PII, staff/admin data.
-- Chatbot công khai không tra cứu booking cá nhân và không tạo/sửa/hủy booking hay thanh toán. Khách được hướng sang đăng nhập và luồng đặt phòng chính thức.
+Tuyệt đối không đặt khóa trong trình duyệt, Vue hay commit vào Git:
 
-## Biên bảo mật
+1. **File `.env` gốc của Laravel**:
+   ```dotenv
+   GOOGLE_API_KEY=<khoa-google-gemini-api>
+   GEMINI_CHAT_MODEL=gemini-2.5-flash
+   GEMINI_EMBEDDING_MODEL=text-embedding-004
 
-- Laravel vẫn là cổng duy nhất từ website tới Dify; Dify không kết nối database Royal Hotel.
-- `DIFY_API_KEY` dùng riêng cho ứng dụng Chatflow. `DIFY_TOOL_API_KEY` là bearer secret riêng cho hai endpoint room, không dùng lại Gemini key hoặc Dify app key.
-- Hai tool chỉ hoạt động khi `DIFY_LIVE_TOOLS_ENABLED=true` và có bearer secret hợp lệ; route bị throttle. Lỗi xác thực bị từ chối mặc định.
-- Không đưa lịch sử browser, cookie, mã khách/nhân viên thật, lịch booking hay bảng nội bộ vào prompt, tool output hoặc log.
-- Không sửa schema/database/dữ liệu hiện tại. Không đưa `.env`, token, hoặc khóa API lên Git.
+   LANGGRAPH_ENABLED=true
+   LANGGRAPH_BASE_URL=http://127.0.0.1:2024
+   LANGGRAPH_INTERNAL_API_KEY=<secret-laravel-sang-node>
+   LANGGRAPH_TOOL_API_KEY=<secret-node-goi-tool-laravel>
+   LANGGRAPH_TIMEOUT=90
+   ```
+2. **File `services/royal-ai-chatbot/backend/.env`**:
+   ```dotenv
+   GOOGLE_API_KEY=<khoa-google-gemini-api>
+   GEMINI_CHAT_MODEL=gemini-2.5-flash
+   GEMINI_EMBEDDING_MODEL=text-embedding-004
+   VECTOR_PROVIDER=mysql
+   MYSQL_HOST=127.0.0.1
+   MYSQL_PORT=3306
+   MYSQL_USER=root
+   MYSQL_PASSWORD=
+   MYSQL_DATABASE=qlkhachsan
+   LARAVEL_INTERNAL_API_URL=http://127.0.0.1/api
+   LARAVEL_TOOL_API_KEY=<cung-gia-tri-voi-LANGGRAPH_TOOL_API_KEY>
+   LANGGRAPH_HOST=127.0.0.1
+   LANGGRAPH_PORT=2024
+   LANGGRAPH_INTERNAL_API_KEY=<cung-gia-tri-voi-LANGGRAPH_INTERNAL_API_KEY>
+   LANGCHAIN_TRACING_V2=false
+   LANGCHAIN_API_KEY=<khoa-langsmith-tuy-chon>
+   LANGCHAIN_PROJECT=royal-hotel-chatbot-dev
+   ```
 
-## Cấu hình server
+## 4. Ba cổng đăng nhập & Cách ly phiên (Session/Guard Isolation)
 
-```env
-DIFY_BASE_URL=http://127.0.0.1:8089/v1
-DIFY_API_KEY=app-<key-chatflow>
-DIFY_TIMEOUT=90
-DIFY_TOOL_API_KEY=<bearer-secret-rieng>
-DIFY_LIVE_TOOLS_ENABLED=true
-```
+| Đối tượng | Đường dẫn đăng nhập | Khu vực sau đăng nhập | Guard & Session |
+|---|---|---|---|
+| **Khách hàng** | `/login`, `/register` | `/`, `/account`, `/my-bookings`, `/booking/*`, `/payment/*` | Guard `customer` (`customer_user_id`) |
+| **Nhân viên** | `/staff/login` | `/staff/*`, `/staff/profile`, `/staff/iot`, `/staff/face-id/*` | Guard `staff` (`staff_user_id`, chỉ nhận role `receptionist`) |
+| **Quản trị viên** | `/admin/login` | `/admin/*` và `/staff/*` | Guard `admin` + `staff` (`admin_user_id`, chỉ nhận role `admin`) |
 
-`DIFY_BASE_URL` là địa chỉ Dify mà PHP/Laravel truy cập được. Trong môi trường này, OpenAPI gọi qua bridge hẹp `http://host.docker.internal:8001/api`; bridge chỉ forward hai route room tool về Laravel qua Apache ở `127.0.0.1:80`. Không forward vào `artisan serve` cổng 8000 một luồng, vì website đang chờ Dify sẽ chặn request tool gọi ngược. Dify SSRF allowlist chỉ cho phép `host.docker.internal`, và firewall cần giới hạn TCP 8001 vào Docker Desktop network. Thay bằng host nội bộ/HTTPS đúng môi trường khi deploy.
-
-Sau khi đổi `.env`, chạy `php artisan config:clear` (hoặc dựng lại cache config theo môi trường). Bật live tools chỉ sau khi cả hai request OpenAPI trả đúng dữ liệu và yêu cầu bearer key.
-
-## Kho tri thức và cập nhật
-
-1. Sửa tài liệu có kiểm duyệt trong `resources/knowledge/`.
-2. Tránh đưa giá/availability snapshot, dữ liệu cá nhân, booking hoặc tài liệu nội bộ nhân viên vào Knowledge Base.
-3. Tải tài liệu công khai đã duyệt lên dataset Dify, chờ trạng thái **Available**, rồi kiểm tra retrieval trong preview.
-4. Publish Chatflow sau khi chạy bộ câu hỏi kiểm tra; Laravel gọi phiên bản đã publish, không dùng bản nháp tự động lưu.
-
-## Kiểm tra nghiệm thu
-
-- Hỏi chuyện đời thường, câu hỏi nghiệp vụ/loại phòng, câu nhiều ý, câu tiếp nối tham chiếu tin nhắn trước.
-- Hỏi giá hiện hành; đối chiếu kết quả với tool/database tại thời điểm kiểm tra.
-- Hỏi một hoặc nhiều phòng: thiếu ngày/khách thì chatbot hỏi lại; đủ dữ kiện thì gọi tool; không khẳng định đủ nếu số còn ít hơn yêu cầu.
-- Tool trả rỗng/lỗi, key sai hoặc Dify lỗi: không bịa dữ liệu và không rơi về canned answer.
-- Response browser không có metadata/tên nguồn; UI không đổi layout.
-- Prompt injection đòi hỏi dữ liệu staff, booking người khác hoặc secrets bị từ chối.
-- Chạy `php artisan test --compact --filter=DifyChatbotTest`, `npm run build` khi Vue đổi và `php artisan view:cache`.
+- Đường dẫn cũ `GET /internalauth/login` tự động chuyển hướng sang `/staff/login`; `/receptionist/profile` chuyển hướng sang `/staff/profile`.
+- Phiên khách hàng và phiên nội bộ (nhân viên/quản trị) tồn tại độc lập trong cùng trình duyệt; đăng xuất một cổng không làm rớt phiên của cổng còn lại.
+- Toàn bộ thành phần **Face ID** (`FaceIdController`, `app/Services/FaceId`, `face_recognition`, `/staff/iot`, `/staff/face-id/*`) được giữ nguyên 100%.

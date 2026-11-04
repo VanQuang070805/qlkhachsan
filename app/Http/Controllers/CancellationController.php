@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\RefundTransaction;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -85,13 +86,34 @@ class CancellationController extends Controller
     /**
      * Lễ tân/Admin xác nhận đã thực hiện hoàn tiền bên cổng thanh toán.
      */
-    public function processRefund(int $id)
+    public function processRefund(Request $request, int $id)
     {
-        return DB::transaction(function () use ($id) {
+        $validated = $request->validate([
+            'provider_reference' => ['nullable', 'string', 'max:120', 'unique:refund_transactions,provider_reference'],
+        ]);
+
+        return DB::transaction(function () use ($id, $validated) {
             $booking = Booking::lockForUpdate()->findOrFail($id);
             if ($booking->status !== 'cancelled' || $booking->refund_status !== 'eligible' || $booking->refund_amount <= 0) {
                 return back()->with('error', 'Booking này không đủ điều kiện hoàn tiền.');
             }
+
+            $actorId = session('staff_user_id') ?: session('auth_user_id') ?: auth()->id();
+            $reference = trim((string) ($validated['provider_reference'] ?? ''));
+            if ($reference === '') {
+                $reference = 'MANUAL-'.$booking->id.'-'.now()->format('YmdHisv');
+            }
+
+            RefundTransaction::create([
+                'booking_id' => $booking->id,
+                'processed_by' => $actorId ?: null,
+                'amount' => $booking->refund_amount,
+                'provider' => $booking->payment_method ?: 'manual',
+                'provider_reference' => $reference,
+                'status' => 'completed',
+                'processed_at' => now(),
+                'metadata' => ['source' => 'staff_confirmation'],
+            ]);
             $booking->update(['refund_status' => 'refunded', 'payment_status' => 'refunded']);
             return back()->with('success', 'Đã xác nhận hoàn tiền '.number_format($booking->refund_amount).'đ cho booking #'.$booking->id.'.');
         });

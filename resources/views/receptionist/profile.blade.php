@@ -188,7 +188,7 @@
                             </div>
                             <div class="row-field-val text-end">
                                 <span class="badge-role-neutral font-monospace">
-                                    {{ $user->role === 'admin' ? 'Quản trị viên (Admin)' : 'Nhân viên lễ tân (Staff)' }}
+                                    {{ $user->role === 'admin' ? 'Quản trị viên (Admin)' : (($user->assignedRole?->name ?? 'Nhân viên lễ tân') . ' (Staff)') }}
                                 </span>
                             </div>
                         </div>
@@ -268,7 +268,7 @@
         </div>
 
         {{-- Form Đổi Mật Khẩu --}}
-        <form id="formPwd" method="POST" action="{{ route('receptionist.profile.update-password') }}" class="macos-modal-form-wrap">
+        <form id="formPwd" method="POST" action="{{ route('staff.profile.update-password') }}" class="macos-modal-form-wrap">
             @csrf
 
             <div class="macos-modal-body">
@@ -288,7 +288,7 @@
                 <div class="modal-form-group">
                     <label class="modal-field-label">Mật khẩu mới <span class="text-danger">*</span></label>
                     <div class="modal-input-wrap">
-                        <input type="password" name="new_password" id="popup_p2" class="modal-field-input @error('new_password') is-invalid @enderror" placeholder="Tối thiểu 8 ký tự..." required oninput="calculateAppleStrength(this.value)">
+                        <input type="password" name="new_password" id="popup_p2" class="modal-field-input @error('new_password') is-invalid @enderror" placeholder="Tối thiểu 6 ký tự..." minlength="6" required oninput="calculateAppleStrength(this.value)">
                         <button type="button" class="modal-input-eye-btn" onclick="togglePopupPwd('popup_p2', this)" aria-label="Hiện/ẩn mật khẩu">
                             <i class="bi bi-eye"></i>
                         </button>
@@ -354,7 +354,7 @@
         </div>
 
         {{-- Form Chỉnh Sửa Hồ Sơ --}}
-        <form id="formInfo" method="POST" action="{{ route('receptionist.profile.update-info') }}" class="macos-modal-form-wrap">
+        <form id="formInfo" method="POST" action="{{ route('staff.profile.update-info') }}" class="macos-modal-form-wrap">
             @csrf
 
             <div class="macos-modal-body">
@@ -412,12 +412,6 @@
         </form>
 
     </div>
-</div>
-
-{{-- ===== TOAST NOTIFICATION CHUẨN MACOS ===== --}}
-<div class="macos-floating-toast" id="macosToast" style="display: none;">
-    <i class="bi bi-check2-circle text-success fs-5"></i>
-    <span id="toastMsg">Đã sao chép vào bộ nhớ tạm!</span>
 </div>
 
 <style>
@@ -1246,7 +1240,7 @@ function calculateAppleStrength(pwd) {
         return;
     }
 
-    if (score === 1) {
+    if (score <= 1) {
         if (b1) b1.className = 'meter-bar flex-grow-1 active-red';
         if (txt) { txt.textContent = 'Rất yếu'; txt.className = 'apple-meter-status text-danger'; }
     } else if (score === 2) {
@@ -1263,7 +1257,7 @@ function calculateAppleStrength(pwd) {
         if (b2) b2.className = 'meter-bar flex-grow-1 active-green';
         if (b3) b3.className = 'meter-bar flex-grow-1 active-green';
         if (b4) b4.className = 'meter-bar flex-grow-1 active-green';
-        if (txt) { txt.textContent = 'Rất an toàn'; txt.className = 'apple-meter-status text-success'; }
+        if (txt) { txt.textContent = 'Mạnh'; txt.className = 'apple-meter-status text-success'; }
     }
 }
 
@@ -1303,15 +1297,7 @@ function copyToClipboard(text, message) {
 }
 
 function showToast(message) {
-    const toast = document.getElementById('macosToast');
-    const msg = document.getElementById('toastMsg');
-    if (toast && msg) {
-        msg.textContent = message;
-        toast.style.display = 'flex';
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 2200);
-    }
+    window.royalToast(message, 'success', 2200);
 }
 </script>
 @endsection

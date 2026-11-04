@@ -4,18 +4,20 @@
    ========================================================================== */
 
 :root {
-    --apple-blue: #0071e3;
-    --apple-blue-hover: #0077ed;
-    --apple-blue-active: #0062c4;
-    --apple-emerald: #10b981;
-    --apple-emerald-dark: #059669;
-    --apple-canvas: #f8fafc;
-    --apple-surface: #ffffff;
-    --apple-border: #e2e8f0;
-    --apple-border-light: rgba(226, 232, 240, 0.8);
-    --apple-dark: #0f172a;
-    --apple-muted: #64748b;
-    --apple-amber: #f59e0b;
+    --apple-blue: #181715;
+    --apple-blue-hover: #2c2825;
+    --apple-blue-active: #0c0b0a;
+    --apple-gold: #B89C72;
+    --apple-gold-hover: #A08359;
+    --apple-emerald: #0F766E;
+    --apple-emerald-dark: #0F5B55;
+    --apple-canvas: #FAF9F6;
+    --apple-surface: #FFFFFF;
+    --apple-border: #E5E1D8;
+    --apple-border-light: rgba(229, 225, 216, 0.85);
+    --apple-dark: #181715;
+    --apple-muted: #5C5852;
+    --apple-amber: #B89C72;
     --apple-font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
 }
 
@@ -170,11 +172,11 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-breadcrumb a:hover {
-    color: var(--apple-blue);
+    color: var(--apple-dark);
 }
 
 .aeth-breadcrumb .highlight {
-    color: var(--apple-blue);
+    color: var(--apple-dark);
     font-weight: 700;
 }
 
@@ -238,11 +240,11 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
     gap: 6px;
     padding: 6px 14px;
     border-radius: 9999px;
-    background: rgba(0, 113, 227, 0.08);
-    border: 1px solid rgba(0, 113, 227, 0.18);
+    background: rgba(184, 156, 114, 0.12);
+    border: 1px solid rgba(184, 156, 114, 0.25);
     font-size: 12px;
     font-weight: 700;
-    color: var(--apple-blue);
+    color: #84632b;
 }
 
 /* Architectural Photo Grid (1:1 with photo 1) */
@@ -616,8 +618,8 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
     width: 28px;
     height: 28px;
     border-radius: 9999px;
-    background: #eff6ff;
-    color: var(--apple-blue);
+    background: #F3EFE9;
+    color: var(--apple-dark);
     font-size: 11px;
     font-weight: 700;
     display: flex;
@@ -776,8 +778,8 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 
 .aeth-date-cell:hover,
 .aeth-date-cell:focus-within {
-    border-color: var(--apple-blue);
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
+    border-color: var(--apple-gold);
+    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.18);
 }
 
 .aeth-date-native-input {
@@ -954,7 +956,7 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
     font-weight: 600;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0, 113, 227, 0.3);
+    box-shadow: 0 4px 16px rgba(24, 23, 21, 0.18);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -965,7 +967,7 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 
 .aeth-btn-primary:hover:not(:disabled) {
     background: var(--apple-blue-hover);
-    box-shadow: 0 6px 20px rgba(0, 113, 227, 0.4);
+    box-shadow: 0 6px 20px rgba(24, 23, 21, 0.25);
     transform: translateY(-1px);
     color: #ffffff;
 }
@@ -1028,18 +1030,18 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-capsule-item.is-active {
-    background: #eff6ff;
-    color: var(--apple-blue);
+    background: var(--apple-dark);
+    color: #ffffff;
 }
 
 .aeth-capsule-item.is-active .aeth-capsule-num {
-    background: var(--apple-blue);
-    color: #ffffff;
+    background: #ffffff;
+    color: var(--apple-dark);
 }
 
 .aeth-capsule-item.is-done {
     background: #ecfdf5;
-    color: #065f46;
+    color: #0F766E;
 }
 
 .aeth-capsule-item.is-done .aeth-capsule-num {
@@ -1048,7 +1050,7 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-capsule-item.is-inactive {
-    color: #94a3b8;
+    color: #8C877E;
 }
 
 .aeth-capsule-num {
@@ -1135,9 +1137,9 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 
 .aeth-input:focus {
     outline: none;
-    border-color: var(--apple-blue);
+    border-color: var(--apple-gold);
     background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.2);
 }
 
 /* Phone input with Vietnam Flag */
@@ -1296,14 +1298,14 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 }
 
 .aeth-payment-choice:hover {
-    border-color: rgba(0, 113, 227, 0.4);
-    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.06);
+    border-color: rgba(184, 156, 114, 0.5);
+    box-shadow: 0 4px 14px rgba(24, 23, 21, 0.04);
 }
 
 .aeth-payment-choice.is-selected {
-    border-color: var(--apple-blue) !important;
-    background: #f8fbff !important;
-    box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.2) !important;
+    border-color: var(--apple-dark) !important;
+    background: var(--apple-canvas) !important;
+    box-shadow: 0 0 0 2px rgba(24, 23, 21, 0.15) !important;
 }
 
 .aeth-radio-indicator {
@@ -1357,8 +1359,8 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 6px;
-    background: #eff6ff;
-    color: var(--apple-blue);
+    background: rgba(184, 156, 114, 0.12);
+    color: #84632b;
 }
 
 .aeth-payment-desc {

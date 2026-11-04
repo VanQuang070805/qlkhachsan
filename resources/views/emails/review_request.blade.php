@@ -175,7 +175,7 @@
             </div>
         </div>
         <div class="email-footer">
-            <p><strong>Rosaliza Hotel</strong> — Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội</p>
+            <p><strong>Rosaliza Hotel</strong>, Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội</p>
             <p>Hotline: 024 3828 9999 | Email: contact@rosalizahotel.vn</p>
             <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">&copy; {{ date('Y') }} Rosaliza Hotel. All rights reserved.</p>
         </div>

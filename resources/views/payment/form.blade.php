@@ -56,14 +56,6 @@
                     Chọn phương thức thuận tiện và bảo mật nhất để hoàn tất kỳ nghỉ.
                 </p>
             </div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge rounded-pill px-3 py-1.5 border shadow-xs d-inline-flex align-items-center gap-1" style="font-size: 11.5px; font-weight: 600; background: #f8fafc; color: #1e293b; border-color: #cbd5e1 !important;">
-                    <i class="bi bi-lock-fill text-primary"></i> 256-bit SSL
-                </span>
-                <span class="badge rounded-pill px-3 py-1.5 border shadow-xs d-inline-flex align-items-center gap-1" style="font-size: 11.5px; font-weight: 600; background: #ecfdf5; color: #047857; border-color: #a7f3d0 !important;">
-                    <i class="bi bi-shield-check text-emerald-600"></i> PCI-DSS
-                </span>
-            </div>
         </div>
 
         {{-- ── 3. Layout Grid 12 cột: Trái (Thanh toán 7) - Phải (Biên lai 5) (gap-8: 32px) ── --}}
@@ -82,7 +74,7 @@
                         <div class="aeth-payment-info">
                             <div class="aeth-payment-title-row">
                                 <span class="aeth-payment-title">Chuyển khoản VietQR 24/7</span>
-                                <span class="badge bg-emerald-100 text-emerald-800 rounded-pill px-2 py-0.5" style="font-size: 10px; font-weight: 700;">Tự động 3s</span>
+                                <span class="badge bg-emerald-100 text-emerald-800 rounded-pill px-2 py-0.5" style="font-size: 10px; font-weight: 700;">Chuyển khoản</span>
                             </div>
                             <div class="aeth-payment-desc">Quét QR qua mọi ứng dụng ngân hàng (Napas 247)</div>
                         </div>
@@ -155,14 +147,8 @@
 
                     {{-- 3 Huy hiệu bảo chứng chân trang --}}
                     <div class="d-flex flex-wrap align-items-center justify-content-center gap-4 mt-4 pt-2 text-slate-500" style="font-size: 11.5px; font-weight: 500;">
-                        <span class="d-inline-flex align-items-center gap-1 text-emerald-700">
-                            <i class="bi bi-shield-check"></i> Bảo mật FIDO2
-                        </span>
-                        <span class="d-inline-flex align-items-center gap-1 text-primary">
-                            <i class="bi bi-fingerprint"></i> Face ID / Touch ID
-                        </span>
                         <span class="d-inline-flex align-items-center gap-1">
-                            <i class="bi bi-arrow-repeat"></i> Hoàn 100% trước 48h
+                            <i class="bi bi-arrow-repeat"></i> Hạn xét hoàn tiền: trước ngày nhận phòng {{ $booking->refundDeadlineDays() }} ngày
                         </span>
                     </div>
 
@@ -244,31 +230,31 @@
 
                             <div class="pt-2" style="border-top: none !important;">
                                 <div class="d-flex align-items-baseline justify-content-between">
-                                    <span style="font-size: 15px; font-weight: 700; color: #334155;">Tổng tiền thanh toán</span>
+                                    <span style="font-size: 15px; font-weight: 700; color: #334155;">Tiền cọc thanh toán lần này</span>
                                     <div class="text-end">
                                         <div style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.03em;">
-                                            {{ number_format($booking->total_price, 0, ',', '.') }}đ
+                                            {{ number_format($booking->deposit_amount, 0, ',', '.') }}đ
                                         </div>
                                     </div>
                                 </div>
-                                <small class="text-slate-400 d-block mt-1" style="font-size: 12px;">Giá lưu trú theo thời gian đã chọn</small>
+                                <small class="text-slate-400 d-block mt-1" style="font-size: 12px;">Tổng giá lưu trú được hiển thị ở trên; phần còn lại thanh toán theo quy trình trả phòng.</small>
                             </div>
                         </div>
 
-                        {{-- Thẻ Bảo Hiểm TravelShield™ --}}
+                        {{-- Điều kiện hoàn tiền theo đơn --}}
                         <div style="background:#ecfdf5; border:1px solid rgba(167,243,208,0.8); border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:10px;">
                             <i class="bi bi-shield-fill-check text-emerald-600" style="font-size: 20px; flex-shrink: 0;"></i>
                             <div>
-                                <strong style="display:block; font-size: 12px; color: #065f46;">Bảo hiểm lưu trú TravelShield™</strong>
-                                <small style="font-size: 10.5px; color: #047857;">Được bảo vệ hủy phòng khẩn cấp miễn phí trước 48h.</small>
+                                <strong style="display:block; font-size: 12px; color: #065f46;">Điều kiện hoàn tiền</strong>
+                                <small style="font-size: 10.5px; color: #047857;">Thời hạn xét hoàn: trước ngày nhận phòng {{ $booking->refundDeadlineDays() }} ngày. Số tiền phụ thuộc khoản đã thu và điều kiện của đơn; nhân viên xác nhận hoàn tiền.</small>
                             </div>
                         </div>
 
                         {{-- Hỗ trợ hotline 24/7 --}}
                         <div class="d-flex align-items-center justify-content-between pt-1 text-slate-500" style="font-size: 11.5px;">
                             <span>Cần hỗ trợ thanh toán?</span>
-                            <a href="tel:19008899" class="text-decoration-none fw-semibold text-primary d-inline-flex align-items-center gap-1">
-                                <i class="bi bi-telephone"></i> Hotline 1900 8899
+                            <a href="{{ route('contact') }}" class="text-decoration-none fw-semibold text-primary d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-chat-dots"></i> Thông tin liên hệ
                             </a>
                         </div>
 

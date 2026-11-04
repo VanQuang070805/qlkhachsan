@@ -129,6 +129,29 @@
         transition: transform 0.16s ease !important;
     }
 
+    .ios-tab-pico {
+        display: block !important;
+        width: 34px !important;
+        height: 38px !important;
+        margin-top: -12px !important;
+        background-image: url('/images/chatbot/pico-atlas.png') !important;
+        background-repeat: no-repeat !important;
+        background-size: 800% 1100% !important;
+        background-position: 0 0 !important;
+        transform-origin: 50% 90% !important;
+        animation: ios-pico-idle 1.2s steps(5, end) infinite, ios-pico-breathe 2.8s ease-in-out infinite !important;
+    }
+
+    @keyframes ios-pico-idle {
+        from { background-position: 0 0; }
+        to { background-position: 71.4286% 0; }
+    }
+
+    @keyframes ios-pico-breathe {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+        50% { transform: translate3d(0, -1px, 0) scale(1.025); }
+    }
+
     .ios-tab-label {
         font-size: 11px !important;
         font-weight: 500 !important;

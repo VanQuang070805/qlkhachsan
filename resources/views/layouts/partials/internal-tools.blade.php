@@ -19,8 +19,8 @@
         </div>
         <p data-confirm-message style="color: #475569; font-size: 0.92rem;"></p>
         <div class="d-flex justify-content-end gap-2 mt-4">
-            <button class="btn btn-light px-3 fw-medium" value="cancel" autofocus style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); color: #334155; font-size: 0.88rem;">Quay lại</button>
-            <button class="btn btn-primary px-3 fw-medium" value="confirm" style="border-radius: 10px; font-size: 0.88rem;">Xác nhận</button>
+            <button type="submit" class="btn btn-light px-3 fw-medium" value="cancel" autofocus style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); color: #334155; font-size: 0.88rem;">Quay lại</button>
+            <button type="submit" class="btn btn-primary px-3 fw-medium" value="confirm" style="border-radius: 10px; font-size: 0.88rem;">Xác nhận</button>
         </div>
     </form>
 </dialog>
@@ -58,7 +58,7 @@
                 <a href="{{ route('staff.cancellations') }}"><i class="bi bi-arrow-counterclockwise"></i><span>Hủy phòng &amp; hoàn tiền<small>Danh sách hủy và xử lý hoàn tiền</small></span></a>
             @endif
             <a href="{{ route('staff.iot') }}"><i class="bi bi-person-bounding-box"></i><span>Face ID &amp; IoT<small>Nhận diện và thiết bị dọn phòng</small></span></a>
-            <a href="{{ route('receptionist.profile') }}"><i class="bi bi-person"></i><span>Hồ sơ cá nhân<small>Thông tin và mật khẩu</small></span></a>
+            <a href="{{ route('staff.profile') }}"><i class="bi bi-person"></i><span>Hồ sơ cá nhân<small>Thông tin và mật khẩu</small></span></a>
         </div>
     </section>
 </div>

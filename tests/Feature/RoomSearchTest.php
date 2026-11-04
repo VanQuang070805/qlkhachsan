@@ -14,6 +14,16 @@ class RoomSearchTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_room_search_displays_the_same_default_dates_it_uses_for_results(): void
+    {
+        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(10, 0));
+        $today = now('Asia/Ho_Chi_Minh')->toDateString();
+        $tomorrow = now('Asia/Ho_Chi_Minh')->addDay()->toDateString();
+        $this->get(route('rooms.index'))->assertOk()
+            ->assertSee('value="'.$today.'"', false)
+            ->assertSee('value="'.$tomorrow.'"', false);
+    }
+
     public function test_room_search_filters_by_name_dates_and_reserved_inventory(): void
     {
         $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(10, 0));

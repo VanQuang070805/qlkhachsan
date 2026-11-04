@@ -20,6 +20,7 @@ class CleaningRequestTest extends TestCase
             $table->string('password')->default('unused');
             $table->string('otp_code')->nullable();
             $table->string('remember_token')->nullable();
+            $table->softDeletes();
         });
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();

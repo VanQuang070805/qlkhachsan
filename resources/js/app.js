@@ -1,4 +1,9 @@
+import { initHoloRooms } from './holo-rooms';
+import '../css/holo-rooms.css';
+import './animated-toast';
 import './bootstrap';
+import '../css/flying-button.css';
+import { initFlyingButton } from './flying-button';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { Draggable } from 'gsap/Draggable';
@@ -10,11 +15,14 @@ import { createApp } from 'vue';
 import RoyalChat from './components/RoyalChat.vue';
 import { enhanceDatePickers } from './date-picker';
 import './numeric-inputs';
+import { initAnimatedContent, initReactBitsEffects } from './reactbits-effects';
 
 gsap.registerPlugin(Draggable, Flip, ScrollToPlugin, ScrollTrigger, SplitText);
 window.gsap = gsap;
 
 document.addEventListener('DOMContentLoaded', () => {
+    initHoloRooms();
+    initFlyingButton();
     const pageLoader = document.querySelector('[data-page-loader]');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const chatRoot = document.querySelector('[data-royal-chat]');
@@ -119,6 +127,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const navigation = document.querySelector('[data-primary-nav]');
     const siteHeaders = document.querySelectorAll('[data-site-header]');
     const cleanup = [];
+
+    cleanup.push(initReactBitsEffects({ reduceMotion }));
+
+    const findRoomCta = document.querySelector('[data-find-room-cta]');
+    if (findRoomCta && !reduceMotion) {
+        const arrow = findRoomCta.querySelector('i');
+        gsap.fromTo(findRoomCta, { autoAlpha: 0, y: 18 }, {
+            autoAlpha: 1, y: 0, duration: 0.7, delay: 0.3, ease: 'power3.out',
+            clearProps: 'opacity,visibility,transform',
+        });
+        const enter = () => {
+            gsap.to(findRoomCta, { y: -3, duration: 0.28, ease: 'power2.out', overwrite: 'auto' });
+            gsap.to(arrow, { x: 4, y: -4, duration: 0.28, ease: 'power2.out', overwrite: 'auto' });
+        };
+        const leave = () => {
+            gsap.to(findRoomCta, { y: 0, duration: 0.28, ease: 'power2.out', overwrite: 'auto' });
+            gsap.to(arrow, { x: 0, y: 0, duration: 0.28, ease: 'power2.out', overwrite: 'auto' });
+        };
+        findRoomCta.addEventListener('pointerenter', enter);
+        findRoomCta.addEventListener('pointerleave', leave);
+        findRoomCta.addEventListener('focus', enter);
+        findRoomCta.addEventListener('blur', leave);
+        cleanup.push(() => {
+            findRoomCta.removeEventListener('pointerenter', enter);
+            findRoomCta.removeEventListener('pointerleave', leave);
+            findRoomCta.removeEventListener('focus', enter);
+            findRoomCta.removeEventListener('blur', leave);
+        });
+    }
 
     // Auth Components Animations (Homepage-grade GSAP motion)
     const sanaAuth = document.querySelector('.sana-auth-main');
@@ -429,16 +466,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return true;
         });
 
-        if (customerReveals.length) ScrollTrigger.batch(customerReveals, {
-            start: 'top 90%',
-            once: true,
-            interval: 0.06,
-            batchMax: 6,
-            onEnter: batch => gsap.fromTo(batch,
-                { autoAlpha: 0, y: 20 },
-                { autoAlpha: 1, y: 0, duration: .52, stagger: .065, ease: 'power3.out', clearProps: 'opacity,visibility,transform' },
-            ),
-        });
+        const homeAnimatedGroups = [
+            '.melia-home-shell > #hotel-overview .melia-overview__grid',
+            '.melia-home-shell > #hotel-interactive-mockup .rb-iphone-showcase__info',
+            '.melia-home-shell > #hotel-highlighted-services .melia-services__grid',
+            '.melia-home-shell > #hotel-accommodation-rooms .melia-rooms__grid',
+            '.melia-home-shell > #hotel-visual-lookbook .flex-carousel-wrap',
+            '.melia-home-shell > #hotel-activities .melia-activities__grid',
+            '.melia-home-shell > #hotel-closed-packages .melia-packages__grid',
+            '.melia-home-shell > #hotel-faqs .melia-faq-list',
+        ].flatMap((selector) => [...document.querySelectorAll(selector)]);
+        const animatedContentCleanup = initAnimatedContent(
+            [...new Set([...customerReveals, ...homeAnimatedGroups])],
+            { reduceMotion },
+        );
+        cleanup.push(animatedContentCleanup);
 
         document.querySelectorAll('[data-booking-steps]').forEach((steps) => {
             const items = steps.querySelectorAll(':scope > li');

@@ -11,16 +11,21 @@ class ReceptionUserController extends Controller
 {
     private function getCurrentUser(): ?User
     {
-        $userId = session('user_id');
-        if (!$userId) return null;
-        return User::find($userId);
+        $userId = session('staff_user_id') ?: session('admin_user_id') ?: session('user_id');
+        if (! $userId) {
+            return null;
+        }
+
+        $user = User::find($userId);
+
+        return ($user && in_array($user->role, ['receptionist', 'admin'], true)) ? $user : null;
     }
 
     public function profile()
     {
         $user = $this->getCurrentUser();
-        if (!$user) {
-            return redirect('/auth/login');
+        if (! $user) {
+            return redirect()->route('staff.login');
         }
 
         return view('receptionist.profile', compact('user'));
@@ -29,8 +34,8 @@ class ReceptionUserController extends Controller
     public function updateInfo(Request $request)
     {
         $user = $this->getCurrentUser();
-        if (!$user) {
-            return redirect('/auth/login');
+        if (! $user) {
+            return redirect()->route('staff.login');
         }
 
         $request->merge(['email' => mb_strtolower(trim((string) $request->email))]);
@@ -48,21 +53,32 @@ class ReceptionUserController extends Controller
             'phone'    => $request->phone,
         ]);
 
-        $userSession = session('user', []);
-        $userSession['fullname'] = $request->fullname;
-        $userSession['email']    = $request->email;
-        $userSession['phone']    = $request->phone;
-        session(['user' => $userSession]);
+        $updatedSession = [
+            'id'       => $user->id,
+            'fullname' => $request->fullname,
+            'email'    => $request->email,
+            'phone'    => $request->phone,
+            'role'     => $user->role,
+            'verified' => $user->verified,
+        ];
 
-        return redirect()->route('receptionist.profile')
-                         ->with('success_info', 'Cập nhật thông tin thành công!');
+        session([
+            'staff_user' => $updatedSession,
+            'user'       => $updatedSession,
+        ]);
+        if ($user->isAdmin()) {
+            session(['admin_user' => $updatedSession]);
+        }
+
+        return redirect()->route('staff.profile')
+            ->with('success_info', 'Cập nhật thông tin thành công!');
     }
 
     public function updatePassword(Request $request)
     {
         $user = $this->getCurrentUser();
-        if (!$user) {
-            return redirect('/auth/login');
+        if (! $user) {
+            return redirect()->route('staff.login');
         }
 
         $request->validate([
@@ -72,10 +88,9 @@ class ReceptionUserController extends Controller
 
         $valid = Hash::check($request->current_password, $user->password);
 
-        if (!$valid) {
+        if (! $valid) {
             return back()
-                ->withErrors(['current_password' => 'Mật khẩu hiện tại không đúng!'])
-                ;
+                ->withErrors(['current_password' => 'Mật khẩu hiện tại không đúng!']);
         }
 
         $user->update([
@@ -83,7 +98,7 @@ class ReceptionUserController extends Controller
         ]);
         app(\App\Services\SessionRevocationService::class)->revoke($user, $request->session()->getId());
 
-        return redirect()->route('receptionist.profile')
-                         ->with('success_password', 'Đổi mật khẩu thành công!');
+        return redirect()->route('staff.profile')
+            ->with('success_password', 'Đổi mật khẩu thành công!');
     }
 }
