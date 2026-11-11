@@ -10,12 +10,8 @@ $npm = (Get-Command npm.cmd -ErrorAction Stop).Source
 & (Join-Path $PSScriptRoot 'configure-local-infra.ps1')
 
 function Test-DockerEngine {
-    $prev = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    & $docker info --format '{{.ServerVersion}}' *> $null
-    $code = $LASTEXITCODE
-    $ErrorActionPreference = $prev
-    return ($code -eq 0)
+    cmd /c "`"$docker`" ps >nul 2>&1"
+    return ($LASTEXITCODE -eq 0)
 }
 
 if (-not (Test-DockerEngine)) {
@@ -24,8 +20,9 @@ if (-not (Test-DockerEngine)) {
         $desktop = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
     }
     if (-not (Test-Path -LiteralPath $desktop)) { throw 'Docker Desktop is required for the local Docker stack.' }
-    Get-Process 'Docker Desktop*','com.docker*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    wsl --shutdown *> $null
+    Get-Process '*docker*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    cmd /c "wsl --shutdown >nul 2>&1"
+    Start-Sleep -Seconds 2
     Start-Process -FilePath $desktop
     $dockerReady = $false
     for ($attempt = 0; $attempt -lt 90; $attempt++) {
