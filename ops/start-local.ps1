@@ -20,12 +20,11 @@ if (-not (Test-DockerEngine)) {
         $desktop = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
     }
     if (-not (Test-Path -LiteralPath $desktop)) { throw 'Docker Desktop is required for the local Docker stack.' }
-    Get-Process '*docker*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    cmd /c "wsl --shutdown >nul 2>&1"
-    Start-Sleep -Seconds 2
-    Start-Process -FilePath $desktop
+    if (-not (Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue)) {
+        ([WMICLASS]"Win32_Process").Create("`"$desktop`"") | Out-Null
+    }
     $dockerReady = $false
-    for ($attempt = 0; $attempt -lt 90; $attempt++) {
+    for ($attempt = 0; $attempt -lt 60; $attempt++) {
         Start-Sleep -Seconds 2
         if (Test-DockerEngine) { $dockerReady = $true; break }
     }
