@@ -48,3 +48,4 @@ raspberry-pi/*report.json
 /.codex-docx-review
 /.playwright-cli/
 /output/
+/docker/php/vendor.tar

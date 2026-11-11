@@ -26,6 +26,7 @@ x-laravel-env: &laravel-env
 
 x-laravel-volumes: &laravel-volumes
   - .:/var/www/html
+  - vendor_cache:/var/www/html/vendor
 
 x-chatbot-env: &chatbot-env
   VECTOR_PROVIDER: mysql
@@ -344,3 +345,4 @@ volumes:
   mysql_data:
   redis_queue_data:
   kafka_data:
+  vendor_cache:
