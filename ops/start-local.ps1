@@ -9,16 +9,28 @@ $npm = (Get-Command npm.cmd -ErrorAction Stop).Source
 
 & (Join-Path $PSScriptRoot 'configure-local-infra.ps1')
 
-& $docker info --format '{{.ServerVersion}}' *> $null
-if ($LASTEXITCODE -ne 0) {
+function Test-DockerEngine {
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    & $docker info --format '{{.ServerVersion}}' *> $null
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = $prev
+    return ($code -eq 0)
+}
+
+if (-not (Test-DockerEngine)) {
     $desktop = Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\Docker Desktop.exe'
+    if (-not (Test-Path -LiteralPath $desktop)) {
+        $desktop = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
+    }
     if (-not (Test-Path -LiteralPath $desktop)) { throw 'Docker Desktop is required for the local Docker stack.' }
-    Start-Process -FilePath $desktop -WindowStyle Hidden
+    Get-Process 'Docker Desktop*','com.docker*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    wsl --shutdown *> $null
+    Start-Process -FilePath $desktop
     $dockerReady = $false
-    for ($attempt = 0; $attempt -lt 60; $attempt++) {
-        Start-Sleep -Seconds 1
-        & $docker info --format '{{.ServerVersion}}' *> $null
-        if ($LASTEXITCODE -eq 0) { $dockerReady = $true; break }
+    for ($attempt = 0; $attempt -lt 90; $attempt++) {
+        Start-Sleep -Seconds 2
+        if (Test-DockerEngine) { $dockerReady = $true; break }
     }
     if (-not $dockerReady) { throw 'Docker Engine did not become ready.' }
 }
