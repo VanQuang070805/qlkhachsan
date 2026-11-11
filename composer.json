@@ -11,7 +11,8 @@
         "laravel/framework": "^12.0",
         "laravel/socialite": "^5.31",
         "laravel/tinker": "^2.10.1",
-        "phpmailer/phpmailer": "^7.0"
+        "phpmailer/phpmailer": "^7.0",
+        "predis/predis": "^2.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -46,12 +47,12 @@
         "dev": [
             "@php artisan migrate --force",
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently \"php artisan serve --host=0.0.0.0 --port=18080\" \"php artisan serve --host=127.0.0.1 --port=18081\" \"php artisan serve --host=127.0.0.1 --port=18082\" \"php artisan serve --host=127.0.0.1 --port=18084\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"php artisan schedule:work\" \"npm run dev -- --host 127.0.0.1\" --names=customer,staff,admin,chatbot-tools,queue,logs,scheduler,vite --kill-others"
+            "npx concurrently \"php artisan serve --host=0.0.0.0 --port=18080\" \"php artisan serve --host=127.0.0.1 --port=18081\" \"php artisan serve --host=127.0.0.1 --port=18082\" \"php artisan serve --host=127.0.0.1 --port=18084\" \"npm --prefix services/royal-ai-chatbot run serve:local --workspace backend\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"php artisan schedule:work\" \"npm run dev -- --host 127.0.0.1\" --names=customer,staff,admin,chatbot-tools,chatbot,queue,logs,scheduler,vite --kill-others"
         ],
         "start": [
             "@php artisan migrate --force",
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently \"php artisan serve --host=0.0.0.0 --port=18080\" \"php artisan serve --host=127.0.0.1 --port=18081\" \"php artisan serve --host=127.0.0.1 --port=18082\" \"php artisan serve --host=127.0.0.1 --port=18084\" --names=customer,staff,admin,chatbot-tools --kill-others"
+            "npx concurrently \"php artisan serve --host=0.0.0.0 --port=18080\" \"php artisan serve --host=127.0.0.1 --port=18081\" \"php artisan serve --host=127.0.0.1 --port=18082\" \"php artisan serve --host=127.0.0.1 --port=18084\" \"npm --prefix services/royal-ai-chatbot run serve:local --workspace backend\" --names=customer,staff,admin,chatbot-tools,chatbot --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi",

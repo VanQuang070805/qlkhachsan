@@ -36,8 +36,8 @@
                     <i class="bi bi-search position-absolute top-50 translate-middle-y text-slate-400 ms-3" style="font-size: 13px;"></i>
                     <input type="hidden" name="status" value="{{ $status }}">
                     <input type="search" name="q" value="{{ $q }}" id="bookingSearchInput" class="form-control rounded-pill bg-white border border-slate-200 ps-5 pe-5 py-2 text-dark shadow-xs"
-                           placeholder="Tìm kiếm đặt phòng..." style="font-size: 12.5px; width: 220px;" oninput="handleBookingFilter()">
-                    <span class="position-absolute top-50 translate-middle-y end-0 me-2 badge bg-light text-muted border font-monospace" style="font-size: 10px;">⌘K</span>
+                           placeholder="Tìm kiếm đặt phòng..." style="font-size: 13px; max-width: 260px; width: 100%; min-height: 44px;" oninput="handleBookingFilter()">
+                    <span class="position-absolute top-50 translate-middle-y end-0 me-2 badge bg-light text-muted border font-monospace d-none d-md-inline" style="font-size: 10px;">⌘K</span>
                 </form>
 
             </div>

@@ -1,30 +1,8 @@
 <footer class="site-footer supaste-footer {{ request()->routeIs('home') ? 'supaste-footer--flying' : '' }}" aria-label="Chân trang Rosaliza Hotel">
     {{-- Top Inverted Notch / Tongue dipping from white content above --}}
     <div class="supaste-footer__tongue-wrap" aria-hidden="true">
-        <div class="supaste-footer__tongue">
-            <svg class="supaste-footer__fillet-left" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 0 0 L 20 0 C 8.954 0 0 8.954 0 20 Z" fill="#ffffff" transform="scale(-1, 1) translate(-20, 0)"/>
-            </svg>
-            <svg class="supaste-footer__fillet-right" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 0 0 L 20 0 C 8.954 0 0 8.954 0 20 Z" fill="#ffffff"/>
-            </svg>
-        </div>
+        <div class="supaste-footer__tongue"></div>
     </div>
-
-
-    @if (request()->routeIs('home'))
-        <div class="flying-button" data-flying-button data-theme="dark" data-trigger="hover" data-href="{{ route('rooms.index') }}">
-            <svg class="flying-button__ramp" style="display:none" aria-hidden="true"><path class="flying-button__ramp-body"></path><path class="flying-button__ramp-edge"></path></svg>
-            <canvas class="flying-button__smoke" aria-hidden="true"></canvas>
-            <button type="button" class="flying-button__craft">
-                <span class="flying-button__face" aria-hidden="true"></span>
-                <span class="flying-button__label">Đặt phòng ngay</span>
-                <span class="flying-button__pod" style="left:20%" aria-hidden="true"></span>
-                <span class="flying-button__pod" style="left:80%" aria-hidden="true"></span>
-            </button>
-            <svg class="flying-button__cursor" viewBox="0 0 24 34" aria-hidden="true"><path d="M2.2 2.1v24.6l6.1-5.9 4.1 9.6 4.4-1.9-4.1-9.4h8.6z" fill="#0a0a0c" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"></path></svg>
-        </div>
-    @endif
 
     <div class="supaste-footer__container">
         {{-- Left Column: Brand, Headline, Desc, CTA, Copyright, Team --}}
@@ -99,4 +77,19 @@
             </nav>
         </div>
     </div>
+
+    {{-- Interactive Flying Button (Resting at the bottom of the footer, launching upwards) --}}
+    @if (request()->routeIs('home'))
+        <div class="flying-button" data-flying-button data-theme="dark" data-trigger="hover" data-href="{{ route('rooms.index') }}">
+            <svg class="flying-button__ramp" style="display:none" aria-hidden="true"><path class="flying-button__ramp-body"></path><path class="flying-button__ramp-edge"></path></svg>
+            <canvas class="flying-button__smoke" aria-hidden="true"></canvas>
+            <button type="button" class="flying-button__craft">
+                <span class="flying-button__face" aria-hidden="true"></span>
+                <span class="flying-button__label">Đặt phòng ngay</span>
+                <span class="flying-button__pod" style="left:20%" aria-hidden="true"></span>
+                <span class="flying-button__pod" style="left:80%" aria-hidden="true"></span>
+            </button>
+            <svg class="flying-button__cursor" viewBox="0 0 24 34" aria-hidden="true"><path d="M2.2 2.1v24.6l6.1-5.9 4.1 9.6 4.4-1.9-4.1-9.4h8.6z" fill="#0a0a0c" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"></path></svg>
+        </div>
+    @endif
 </footer>

@@ -6,6 +6,7 @@ use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\PriceSetting;
 use App\Models\Booking;
+use App\Support\StayDates;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
@@ -41,6 +42,7 @@ class RoomController extends Controller
                     : 'Ngày nhận phòng không thể ở trong quá khứ.',
             ]);
         }
+        StayDates::validate($checkIn, $checkOut);
 
         $adults = (int) ($filters['adults'] ?? 1);
         $children = (int) ($filters['children'] ?? 0);
@@ -119,6 +121,7 @@ class RoomController extends Controller
 
         $checkIn   = $request->check_in;
         $checkOut  = $request->check_out;
+        StayDates::validate($checkIn, $checkOut);
         $adults    = (int) $request->adults;
         $children  = (int) ($request->children ?? 0);
         $guests    = $adults + $children;
@@ -180,6 +183,7 @@ class RoomController extends Controller
 
         $checkIn  = $request->check_in ?: $earliestCheckIn;
         $checkOut = $request->check_out ?: Carbon::parse($checkIn)->addDay()->toDateString();
+        StayDates::validate($checkIn, $checkOut);
 
         // Lấy room_id đã bị đặt trong khoảng ngày (nếu có chọn ngày)
         $bookedRoomIds = collect();

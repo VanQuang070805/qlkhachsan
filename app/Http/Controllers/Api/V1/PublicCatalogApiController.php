@@ -7,10 +7,12 @@ use App\Models\PriceSetting;
 use App\Models\RoomType;
 use App\Services\CacheVersionService;
 use App\Services\Chatbot\HotelRoomToolService;
+use App\Support\StayDates;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class PublicCatalogApiController extends ApiController
 {
@@ -99,6 +101,11 @@ class PublicCatalogApiController extends ApiController
         }
 
         $data = $validator->validated();
+        try {
+            StayDates::validate($data['check_in'], $data['check_out']);
+        } catch (ValidationException $e) {
+            return $this->fail('VALIDATION_ERROR', 'Khoảng ngày lưu trú không hợp lệ.', 422, $e->errors());
+        }
         $roomType = RoomType::findOrFail((int) $data['room_type_id']);
         $roomCount = (int) ($data['rooms'] ?? 1);
         $guests = (int) ($data['guests'] ?? 1);

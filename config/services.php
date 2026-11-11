@@ -31,7 +31,7 @@ return [
 
     'gemini' => [
         'api_key' => env('GOOGLE_API_KEY', env('GEMINI_API_KEY')),
-        'chat_model' => env('GEMINI_CHAT_MODEL', 'gemini-2.5-flash'),
+        'chat_model' => env('GEMINI_CHAT_MODEL', 'gemini-flash-lite-latest'),
         'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'text-embedding-004'),
     ],
 
@@ -44,7 +44,7 @@ return [
         'retrieval_assistant_id' => env('LANGGRAPH_RETRIEVAL_ASSISTANT_ID', 'retrieval_graph'),
         'ingestion_assistant_id' => env('LANGGRAPH_INGESTION_ASSISTANT_ID', 'ingestion_graph'),
         'vector_provider' => env('LANGGRAPH_VECTOR_PROVIDER', 'mysql'),
-        'query_model' => env('LANGGRAPH_QUERY_MODEL', 'google-genai/'.env('GEMINI_CHAT_MODEL', 'gemini-flash-latest')),
+        'query_model' => env('LANGGRAPH_QUERY_MODEL', 'google-genai/'.env('GEMINI_CHAT_MODEL', 'gemini-flash-lite-latest')),
         'tool_api_key' => env('LANGGRAPH_TOOL_API_KEY'),
         'live_tools_enabled' => env('LANGGRAPH_LIVE_TOOLS_ENABLED', true),
         'capability_ttl' => (int) env('LANGGRAPH_CAPABILITY_TTL', 90),

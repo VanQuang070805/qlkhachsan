@@ -7,9 +7,11 @@ use App\Models\PriceSetting;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Services\CacheVersionService;
+use App\Support\StayDates;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class HotelRoomToolService
 {
@@ -75,6 +77,12 @@ class HotelRoomToolService
         }
 
         $data = $validator->validated();
+
+        try {
+            StayDates::validate($data['check_in'], $data['check_out']);
+        } catch (ValidationException $e) {
+            return ['error' => collect($e->errors())->flatten()->first()];
+        }
 
         if ($data['check_in'] === now('Asia/Ho_Chi_Minh')->toDateString() && now('Asia/Ho_Chi_Minh')->hour >= 16) {
             return ['error' => 'Từ 16:00 không thể nhận phòng trong ngày hôm nay.'];

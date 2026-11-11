@@ -53,7 +53,8 @@
         <h2 class="h6 fw-bold m-0" style="color: #0f172a;">Danh sách tài khoản</h2>
         <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 600; font-size: 0.72rem; padding: 5px 10px; border-radius: 999px;">{{ $users->total() }} tài khoản</span>
     </header>
-    <div class="table-responsive">
+        {{-- Desktop Table View --}}
+    <div class="table-responsive d-none d-md-block">
         <table class="table align-middle m-0" style="border-collapse: collapse;">
             <thead>
                 <tr style="border-bottom: 1px solid rgba(0,0,0,0.06); background: #f8fafc; font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b;">
@@ -122,6 +123,57 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+
+    {{-- Mobile App User Cards (Mobile <= 768px) --}}
+    <div class="user-cards-mobile d-md-none p-3 d-flex flex-column gap-3">
+        @forelse($users as $user)
+        <div class="user-mobile-card p-3 rounded-4 bg-white border border-slate-200 shadow-xs">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2.5">
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px; background: #e0f2fe; color: #0284c7; font-size: 0.85rem; flex-shrink: 0;">
+                        {{ mb_strtoupper(mb_substr($user->username, 0, 1)) }}
+                    </span>
+                    <div>
+                        <strong class="d-block text-dark fw-bold" style="font-size: 0.92rem; color: #0f172a;">{{ $user->fullname ?: $user->username }}</strong>
+                        <small class="text-muted" style="font-size: 0.75rem;">@<span>{{ $user->username }}</span></small>
+                    </div>
+                </div>
+                <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 0.72rem; font-weight: 600; padding: 4px 8px; border-radius: 6px;">{{ $user->role_label }}</span>
+            </div>
+            <div class="user-mobile-contact mb-3 pt-2 border-top text-slate-600" style="font-size: 0.82rem; display: flex; flex-direction: column; gap: 4px;">
+                <div><i class="bi bi-envelope me-1.5 text-slate-400"></i>{{ $user->email }}</div>
+                <div><i class="bi bi-telephone me-1.5 text-slate-400"></i>{{ $user->phone ?? 'Chưa có SĐT' }}</div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+                <div>
+                    @if($user->id === auth()->id())
+                        <span class="status-pill status-confirmed">Đang hoạt động</span>
+                    @elseif($user->verified)
+                        <button type="button" class="status-pill status-confirmed btn-toggle-status border-0" data-id="{{ $user->id }}" style="cursor: pointer; min-height: 40px; padding: 6px 12px;">
+                            Đang hoạt động
+                        </button>
+                    @else
+                        <button type="button" class="status-pill status-cancelled btn-toggle-status border-0" data-id="{{ $user->id }}" style="cursor: pointer; min-height: 40px; padding: 6px 12px;">
+                            Đã khóa
+                        </button>
+                    @endif
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-light d-inline-flex align-items-center justify-content-center" title="Chỉnh sửa" style="min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff;">
+                        <i class="bi bi-pencil" style="font-size: 0.9rem;"></i>
+                    </a>
+                    @if($user->id !== auth()->id())
+                        <button type="button" class="btn btn-light btn-delete d-inline-flex align-items-center justify-content-center text-danger" data-id="{{ $user->id }}" data-name="{{ $user->fullname }}" title="Xóa" style="min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff;">
+                            <i class="bi bi-trash3" style="font-size: 0.9rem;"></i>
+                        </button>
+                    @endif
+                </div>
+            </div>
+        </div>
+        @empty
+        <div class="text-center py-4 text-muted">Không tìm thấy tài khoản phù hợp.</div>
+        @endforelse
     </div>
     @if($users->hasPages())
         <footer class="px-4 py-3 d-flex align-items-center justify-content-between" style="border-top: 1px solid rgba(0,0,0,0.06); background: #ffffff;">

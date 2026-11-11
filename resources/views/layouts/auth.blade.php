@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#ffffff">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+    document.addEventListener('submit', event => {
+        if (!event.target.matches('form[action$="/login"], form[action$="/verify"]')) return;
+        const portal = location.port === '18081' ? 'staff' : location.port === '18082' ? 'admin' : 'customer';
+        try { sessionStorage.setItem(`rosaliza:${portal}:tab-session`, 'active'); } catch (_) {}
+    }, true);
+    document.addEventListener('click', event => {
+        if (!event.target.closest('a[href*="/auth/google"]')) return;
+        try { sessionStorage.setItem('rosaliza:customer:tab-session', 'active'); } catch (_) {}
+    }, true);
+    </script>
     <title>{{ $pageTitle ?? 'Tài khoản · Rosaliza Hotel' }}</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
@@ -138,6 +149,11 @@
             <strong>✦ Rosaliza Hotel</strong>
         </div>
     </footer>
+
+    @unless(request()->is('admin*') || request()->is('staff*'))
+        @include('client.partials.chatbot')
+        @include('client.partials.ios-tab-bar')
+    @endunless
 
     {{-- Password Toggle and Inline Validation Scripts --}}
     <script>

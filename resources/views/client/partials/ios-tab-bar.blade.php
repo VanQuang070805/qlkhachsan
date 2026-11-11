@@ -4,12 +4,12 @@
      Design inspired by Apple iOS UITabBar, SwiftUI TabView & NameThatUI
      ========================================================================= --}}
 
-{{-- 1. Mobile Floating Hamburger Button (Top Left) --}}
+{{-- 1. Apple Mobile Floating Hamburger Button --}}
 <button type="button"
         class="mobile-hamburger-btn"
+        aria-label="Mở menu điều hướng"
         aria-expanded="false"
         aria-controls="mobile-nav-drawer"
-        aria-label="Mở menu điều hướng"
         data-drawer-open>
     <span class="hamburger-bar" aria-hidden="true"></span>
     <span class="hamburger-bar" aria-hidden="true"></span>
@@ -25,22 +25,29 @@
      aria-label="Menu điều hướng mở rộng"
      aria-modal="true"
      role="dialog"
+     data-lenis-prevent
      inert>
     <div class="mobile-drawer-header">
         <a href="{{ route('home') }}" class="mobile-drawer-brand" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none;">
-            <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosa Hotel" style="height: 32px; width: auto; object-fit: contain;">
-            <span class="mobile-drawer-title" style="margin: 0; color: #ffffff;">Rosa Hotel</span>
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: #0f172a; flex-shrink: 0;">
+                <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosa Hotel" style="height: 22px; width: auto; object-fit: contain;">
+            </span>
+            <span class="mobile-drawer-title" style="margin: 0; color: #0f172a;">Rosa Hotel</span>
         </a>
         <button type="button" class="mobile-drawer-close" aria-label="Đóng menu" data-drawer-close>
             <i class="bi bi-x-lg" aria-hidden="true"></i>
         </button>
     </div>
 
-    <div class="mobile-drawer-body">
+    <div class="mobile-drawer-body" data-lenis-prevent>
         <div class="mobile-drawer-section-label">ĐIỀU HƯỚNG CHÍNH</div>
         <a href="{{ route('home') }}" class="mobile-drawer-link {{ request()->routeIs('home') ? 'is-active' : '' }}">
             <i class="bi bi-house-door" aria-hidden="true"></i>
             <span>Trang chủ</span>
+        </a>
+        <a href="{{ route('rooms.index') }}" class="mobile-drawer-link {{ request()->routeIs('rooms.*') ? 'is-active' : '' }}">
+            <i class="bi bi-door-open" aria-hidden="true"></i>
+            <span>Phòng</span>
         </a>
         <a href="{{ route('contact') }}" class="mobile-drawer-link {{ request()->routeIs('contact') ? 'is-active' : '' }}">
             <i class="bi bi-geo-alt" aria-hidden="true"></i>
@@ -50,8 +57,8 @@
         <div class="mobile-drawer-section-label">TÀI KHOẢN &amp; LƯU TRÚ</div>
         @if(session('user_id'))
             <a href="{{ route('booking.mine') }}" class="mobile-drawer-link {{ request()->routeIs('booking.mine') ? 'is-active' : '' }}">
-                <i class="bi bi-inbox" aria-hidden="true"></i>
-            <span>Lịch sử đặt phòng</span>
+                <i class="bi bi-suitcase2" aria-hidden="true"></i>
+                <span>Lịch sử đặt phòng</span>
             </a>
             <a href="{{ route('account.show') }}" class="mobile-drawer-link {{ request()->routeIs('account.*') ? 'is-active' : '' }}">
                 <i class="bi bi-person" aria-hidden="true"></i>
@@ -71,13 +78,7 @@
             </a>
         @endif
 
-        <div class="mobile-drawer-section-label">HỖ TRỢ &amp; ĐẶC QUYỀN</div>
-        <button type="button"
-                class="mobile-drawer-link mobile-drawer-ai-btn"
-                onclick="window.openRoyalChat ? window.openRoyalChat() : document.querySelector('.royal-chat__launcher')?.click(); document.querySelector('[data-drawer-close]')?.click();">
-            <i class="bi bi-stars" aria-hidden="true"></i>
-            <span>Trợ lý AI Concierge</span>
-        </button>
+
     </div>
 
     <div class="mobile-drawer-footer">
@@ -87,54 +88,12 @@
         </div>
         <div class="mobile-drawer-contact-line">
             <i class="bi bi-envelope" aria-hidden="true"></i>
-            <span>concierge@rosalizahotel.vn</span>
+            <span>contact@rosalizahotel.vn</span>
         </div>
     </div>
 </nav>
 
-{{-- 4. Apple iOS Bottom Tab Bar (UITabBar / SwiftUI TabView) --}}
-<nav class="ios-bottom-bar" aria-label="Thanh điều hướng ứng dụng" role="navigation">
-    {{-- Tab 1: Home --}}
-    <a href="{{ route('home') }}"
-       class="ios-tab-item {{ request()->routeIs('home') ? 'is-active' : '' }}"
-       aria-current="{{ request()->routeIs('home') ? 'page' : 'false' }}">
-        <div class="ios-tab-icon-wrap">
-            <i class="bi bi-house{{ request()->routeIs('home') ? '-door-fill' : '-door' }}" aria-hidden="true"></i>
-        </div>
-        <span class="ios-tab-label">Home</span>
-    </a>
-
-    {{-- Tab 2: Booking history; room search is already available from the booking CTA. --}}
-    <a href="{{ session('user_id') ? route('booking.mine') : route('login') }}"
-       class="ios-tab-item ios-tab-item--history {{ request()->routeIs('booking.mine') ? 'is-active' : '' }}"
-       aria-current="{{ request()->routeIs('booking.mine') ? 'page' : 'false' }}">
-        <div class="ios-tab-icon-wrap">
-            <i class="bi bi-calendar2-check{{ request()->routeIs('booking.mine') ? '-fill' : '' }}" aria-hidden="true"></i>
-        </div>
-        <span class="ios-tab-label">Lịch sử đặt phòng</span>
-    </a>
-
-    {{-- Tab 3: Chat với AI --}}
-    <button type="button"
-            class="ios-tab-item ios-tab-item--chat"
-            onclick="if (window.toggleRoyalChat) { window.toggleRoyalChat(); } else if (window.openRoyalChat) { window.openRoyalChat(); } else { document.querySelector('.royal-chat__launcher')?.click(); }"
-            aria-label="Chat với AI">
-        <div class="ios-tab-icon-wrap">
-            <span class="ios-tab-pico" aria-hidden="true"></span>
-        </div>
-        <span class="ios-tab-label">Chat với AI</span>
-    </button>
-
-    {{-- Tab 4: Profile / Account --}}
-    <a href="{{ session('user_id') ? route('account.show') : route('login') }}"
-       class="ios-tab-item {{ request()->routeIs('account.*', 'login') ? 'is-active' : '' }}"
-       aria-current="{{ request()->routeIs('account.*', 'login') ? 'page' : 'false' }}">
-        <div class="ios-tab-icon-wrap">
-            <i class="bi bi-person{{ request()->routeIs('account.*', 'login') ? '-fill' : '' }}" aria-hidden="true"></i>
-        </div>
-        <span class="ios-tab-label">Profile</span>
-    </a>
-</nav>
+{{-- 4. Mobile Bottom Tab Bar removed per user request: switched to mobile hamburger navigation and floating chatbot --}}
 
 {{-- 5. Native iOS Navigation Drawer Script --}}
 <script>
@@ -147,6 +106,11 @@
         if (!openBtn || !drawer) return;
 
         function openDrawer() {
+            if (window.closeRoyalChat) {
+                window.closeRoyalChat();
+            } else if (window.toggleRoyalChat) {
+                window.toggleRoyalChat(false);
+            }
             drawer.removeAttribute('inert');
             drawer.classList.add('is-open');
             if (scrim) scrim.classList.add('is-open');
@@ -156,15 +120,30 @@
             if (closeBtn) closeBtn.focus();
         }
 
-        function closeDrawer() {
+        function closeDrawer(restoreFocus) {
+            if (!drawer.classList.contains('is-open')) return;
             drawer.setAttribute('inert', '');
             drawer.classList.remove('is-open');
             if (scrim) scrim.classList.remove('is-open');
             openBtn.setAttribute('aria-expanded', 'false');
             openBtn.classList.remove('is-active');
             document.body.classList.remove('mobile-drawer-locked');
-            openBtn.focus();
+            if (restoreFocus !== false) openBtn.focus();
         }
+
+        window.closeMobileDrawer = function() {
+            closeDrawer(false);
+        };
+
+        drawer.querySelectorAll('a.mobile-drawer-link, a.mobile-drawer-brand').forEach(function(link) {
+            link.addEventListener('click', function() {
+                closeDrawer(false);
+            });
+        });
+
+        window.addEventListener('pageshow', function() {
+            closeDrawer(false);
+        });
 
         openBtn.addEventListener('click', function(e) {
             e.preventDefault();

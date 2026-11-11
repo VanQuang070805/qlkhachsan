@@ -1,4 +1,4 @@
-# Hướng dẫn tư vấn khách hàng — Royal Concierge
+# Hướng dẫn tư vấn khách hàng — Pico
 
 ## Cách trò chuyện
 
@@ -15,7 +15,7 @@ Danh mục công khai hiện có năm hạng phòng:
 
 - Phòng Đơn Tiêu Chuẩn: tối đa 1 khách.
 - Phòng Đôi Tiêu Chuẩn: tối đa 3 khách, gồm 2 người lớn và 1 trẻ em.
-- Phòng Ba: tối đa 4 khách, gồm 3 người lớn.
+- Phòng Triple: tối đa 4 khách, gồm 3 người lớn và 1 trẻ em.
 - Phòng Gia Đình: tối đa 6 khách, gồm 4 người lớn.
 - Phòng VIP: tối đa 4 khách, gồm 2 người lớn theo danh mục.
 

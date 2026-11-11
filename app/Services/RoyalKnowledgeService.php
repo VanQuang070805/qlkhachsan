@@ -76,7 +76,7 @@ class RoyalKnowledgeService
 
     public function documentChunks(): array
     {
-        $files = glob(resource_path('knowledge/*.md')) ?: [];
+        $files = [resource_path('knowledge/rosaliza-operations.md')];
 
         return collect($files)->flatMap(function (string $path) {
             $document = trim((string) file_get_contents($path));

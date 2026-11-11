@@ -566,6 +566,27 @@ textarea.melia-form-control {
     align-items: center;
 }
 
+@media (max-width: 639.98px) {
+    .melia-search-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .melia-search-field.rooms-search__multiselect-field {
+        grid-column: span 2;
+    }
+    .melia-search-grid > div:last-child {
+        grid-column: span 2;
+    }
+    .melia-search-submit {
+        width: 100%;
+        min-height: 46px;
+    }
+    .melia-stepper-btn {
+        width: 28px;
+        height: 28px;
+    }
+}
+
 @media (min-width: 640px) {
     .melia-search-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -787,19 +808,109 @@ textarea.melia-form-control {
 /* Rooms Collection Grid */
 .melia-rooms-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 32px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 @media (min-width: 768px) {
     .melia-rooms-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
     }
 }
 
 @media (min-width: 1140px) {
     .melia-rooms-grid {
         grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+    }
+}
+
+@media (max-width: 640px) {
+    .melia-room-card {
+        border-radius: 14px !important;
+    }
+    .melia-room-card__thumb {
+        aspect-ratio: 16 / 10 !important;
+        width: 100% !important;
+    }
+    .melia-room-card__thumb img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+    .melia-room-card__badge-wrap {
+        top: 6px !important;
+        left: 6px !important;
+        right: 6px !important;
+    }
+    .melia-card-badge,
+    .melia-card-avail {
+        font-size: 9.5px !important;
+        padding: 3px 6px !important;
+        border-radius: 6px !important;
+    }
+    .melia-room-card__body {
+        padding: 10px 10px 12px !important;
+    }
+    .melia-room-card__meta-bar {
+        font-size: 9.5px !important;
+        margin-bottom: 4px !important;
+    }
+    .melia-room-card__name {
+        font-size: 13px !important;
+        line-height: 1.3 !important;
+        margin-bottom: 4px !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+    }
+    .melia-room-card__specs {
+        font-size: 10.5px !important;
+        margin-bottom: 4px !important;
+    }
+    .melia-room-card__desc {
+        display: none !important;
+    }
+    .melia-room-card__amenities {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+        margin-bottom: 8px !important;
+    }
+    .melia-amenity-tag {
+        font-size: 9px !important;
+        padding: 2px 5px !important;
+        border-radius: 4px !important;
+    }
+    .melia-room-card__footer {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+        padding-top: 6px !important;
+    }
+    .melia-room-price {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .melia-price-label {
+        font-size: 9px !important;
+    }
+    .melia-price-amount {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+    }
+    .melia-price-unit {
+        display: none !important;
+    }
+    .melia-card-btn {
+        width: 100% !important;
+        min-height: 32px !important;
+        padding: 0 8px !important;
+        font-size: 11px !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
     }
 }
 

@@ -186,7 +186,7 @@ export default function Home() {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-3">
               <SplitText
-                text="Rosaliza Hotel · LangGraph + Gemini Concierge"
+                text="Rosaliza Hotel · LangGraph + Gemini Pico"
                 className="text-2xl font-semibold tracking-tight"
                 delay={32}
                 duration={0.6}
@@ -219,7 +219,7 @@ export default function Home() {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Nhập câu hỏi kiểm thử Rosaliza Concierge..."
+                placeholder="Nhập câu hỏi kiểm thử Pico..."
                 className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12 bg-transparent px-4"
                 disabled={isLoading || !threadId}
               />

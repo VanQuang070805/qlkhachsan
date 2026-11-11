@@ -262,9 +262,22 @@
                 </div>
             </div>
 
-        </div>
 
+
+    {{-- Native App Sticky Bottom Action Dock (Mobile <= 991px) --}}
+    <div class="app-bottom-dock d-lg-none" aria-label="Thao tác thanh toán">
+        <div class="app-bottom-dock__content">
+            <div class="app-bottom-dock__price">
+                <span class="app-bottom-dock__amount">{{ number_format($booking->deposit_amount, 0, ',', '.') }}đ</span>
+                <span class="app-bottom-dock__unit">Cọc thanh toán (50%)</span>
+            </div>
+            <button type="button" class="app-bottom-dock__btn" onclick="document.getElementById('payBtn')?.click()">
+                <i class="bi bi-lock-fill" aria-hidden="true"></i>
+                <span>Thanh toán</span>
+            </button>
+        </div>
     </div>
+</div>
 </div>
 
 @push('scripts')

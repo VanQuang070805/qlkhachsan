@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('api/v1/customer')->name('api.v1.customer.')->group(function () {
     Route::prefix('auth')->name('auth.')->group(function () {
-        Route::post('/register', [CustomerPortalApiController::class, 'register'])->name('register');
+        Route::post('/register', [CustomerPortalApiController::class, 'register'])->middleware('throttle:5,1')->name('register');
         Route::post('/login', [CustomerPortalApiController::class, 'login'])->middleware('throttle:customer-login')->name('login');
         Route::post('/logout', [CustomerPortalApiController::class, 'logout'])->name('logout');
-        Route::post('/verify-email', [CustomerPortalApiController::class, 'verifyEmail'])->name('verify-email');
-        Route::post('/resend-otp', [CustomerPortalApiController::class, 'resendOtp'])->name('resend-otp');
-        Route::post('/password/forgot', [CustomerPortalApiController::class, 'forgotPassword'])->middleware('throttle:password-reset')->name('password.forgot');
+        Route::post('/verify-email', [CustomerPortalApiController::class, 'verifyEmail'])->middleware('throttle:otp-verify')->name('verify-email');
+        Route::post('/resend-otp', [CustomerPortalApiController::class, 'resendOtp'])->middleware('throttle:otp-send')->name('resend-otp');
+        Route::post('/password/forgot', [CustomerPortalApiController::class, 'forgotPassword'])->middleware('throttle:otp-send')->name('password.forgot');
         Route::post('/password/reset', [CustomerPortalApiController::class, 'resetPassword'])->middleware('throttle:password-reset')->name('password.reset');
     });
 

@@ -6,7 +6,7 @@ Rosaliza Hotel is a hotel booking and operations website. It runs as a **Laravel
 
 | Area | Capabilities |
 | --- | --- |
-| Guests | Account registration and sign-in, email OTP, room search, booking, payment, booking history, cancellation, stay extension, reviews, and concierge chat. Google sign-in is available when OAuth is configured. |
+| Guests | Account registration and sign-in, email OTP, room search, booking, payment, booking history, cancellation, stay extension, reviews, and Pico chat. Google sign-in is available when OAuth is configured. |
 | Receptionists | Room map, reservations, QR check-in, checkout, counter payments, extensions, cancellations and refunds, and cleaning requests. Server-side permissions govern each operation. |
 | Administrators | Dashboard and reports, rooms and room types, amenities, seasonal pricing, internal accounts, roles, and permissions. |
 
@@ -14,7 +14,7 @@ Rosaliza Hotel is a hotel booking and operations website. It runs as a **Laravel
 
 ![Rosaliza Hotel website architecture](docs/architecture-sketch.png)
 
-The web interfaces and `/api` endpoints belong to the same Laravel application and use the same MySQL database. Payment providers, email, Google OAuth, Dify, Face ID, and IoT devices connect through configured integrations. See the [architecture notes](docs/ARCHITECTURE_SKETCH.md) and the [editable SVG](docs/architecture-sketch.svg).
+The web interfaces and `/api` endpoints belong to the same Laravel application and use the same MySQL database. Pico runs as a local Node service with Gemini and reads approved hotel knowledge plus live Laravel room tools. Payment providers, email, Google OAuth, Face ID, and IoT devices connect through configured integrations. See the [architecture notes](docs/ARCHITECTURE_SKETCH.md) and the [editable SVG](docs/architecture-sketch.svg).
 
 ## Technology
 
@@ -24,7 +24,7 @@ The web interfaces and `/api` endpoints belong to the same Laravel application a
 | UI | Blade, Vue 3 components, Vite, Tailwind CSS 4 |
 | UI libraries | GSAP, Lenis, Chart.js, html5-qrcode |
 | Data | MySQL; Laravel database sessions |
-| Integrations | Google Socialite, SMTP, VietQR/SePay, MoMo, ZaloPay, VNPay, Dify, Face ID, IoT |
+| Integrations | Google Socialite, SMTP, VietQR/SePay, MoMo, ZaloPay, VNPay, Gemini, Face ID, IoT |
 
 ## Repository structure
 
@@ -46,7 +46,7 @@ docs/                   Project documents and architecture diagram
 face_recognition/
   pc/                   Face ID companion service for PC
   pi/                   Face ID companion service for Raspberry Pi
-ops/dify/               Dify tool router and integration configuration
+services/royal-ai-chatbot/  Local Gemini + LangGraph service
 public/                 Web entry point and public assets
 resources/
   css/                  Application styles
@@ -95,7 +95,9 @@ tests/
    composer dev
    ```
 
-   `composer dev` applies pending migrations, then starts three Laravel web listeners, the queue listener, log viewer, scheduler, and Vite. Open the guest site at `http://127.0.0.1:18080`, the staff site at `http://127.0.0.1:18081`, and the admin site at `http://127.0.0.1:18082`; all three can stay open at once. `composer start` runs only the three web listeners after applying pending migrations; it does not start the scheduler. Expiring payment holds and no-show bookings require the scheduler.
+   `composer dev` applies pending migrations, then starts the three Laravel web listeners, internal tools, Pico's Node service, queue listener, log viewer, scheduler, and Vite. Open guest at `http://127.0.0.1:18080`, staff at `:18081`, and admin at `:18082`. `composer start` also starts Pico with the Laravel listeners. For the complete local Redis/BullMQ/Kafka pipeline, use `npm run start:local`: it starts the isolated `rosaliza-local-infra` Compose stack, builds Pico, and starts only missing web listeners and workers. Docker Desktop, `services/royal-ai-chatbot/backend/.env`, and Node dependencies are required. Expiring payment holds and no-show bookings require the scheduler.
+
+   Local infrastructure binds Redis cache to `127.0.0.1:16379`, Redis queue to `127.0.0.1:16380`, and Kafka to `127.0.0.1:19092`; it does not start or alter Bravo Forest containers. `ops/configure-local-infra.ps1` sets only the related Laravel/Pico environment values. Redis queue uses AOF and a dedicated Docker volume. See [Pico streaming architecture](PICO_STREAMING_ARCHITECTURE.md) for the data flow and limits.
 
 ## Data and booking behavior
 
@@ -113,7 +115,7 @@ tests/
 | SMTP | OTP and transactional email | Valid `MAIL_*` settings |
 | VietQR / SePay | Bank transfer QR and transaction reconciliation | Receiving account and SePay configuration |
 | MoMo, ZaloPay, VNPay | Hosted payment flows and provider callbacks | Provider credentials and reachable callback/IPN URLs |
-| Dify | Concierge conversation and room lookup tools | Server-side API configuration and tool secret |
+| Gemini + local Node | Pico conversation, hotel knowledge and room lookup tools | Server-side Gemini key and tool secret |
 | Face ID / IoT | Companion services and cleaning request devices | Service endpoints and device credentials |
 
 Integration code does not imply that live payment processing is enabled. Live use requires valid provider credentials and working callback or reconciliation configuration.
@@ -135,6 +137,6 @@ Keep `.env` and all provider secrets outside Git. Configure HTTPS, secure cookie
 - [Architecture diagram and API flows](docs/ARCHITECTURE_SKETCH.md)
 - [Project rules and workflows](docs/PROJECT_RULES_AND_SKILLS.md)
 - [RAG architecture](docs/RAG_ARCHITECTURE.md)
-- [Dify integration](ops/dify/README.md)
+- [Pico service](services/royal-ai-chatbot/README.md)
 - [Google OAuth setup](docs/GOOGLE_OAUTH_SETUP.md)
 - [Security audit](docs/SECURITY_AUDIT.md)

@@ -38,6 +38,29 @@ class AppServiceProvider extends ServiceProvider
             throw new \RuntimeException('Rosaliza Hotel requires SESSION_DRIVER=database so password changes can revoke every active session.');
         }
 
+        RateLimiter::for('public-availability', fn (Request $request) => Limit::perMinute(20)->by('availability-ip:'.$request->ip()));
+        RateLimiter::for('public-quote', fn (Request $request) => Limit::perMinute(10)->by('quote-ip:'.$request->ip()));
+
+        RateLimiter::for('otp-verify', function (Request $request) {
+            $identity = Str::lower(trim((string) $request->input('email', session('reset_email', session('pending_verify_email', '')))));
+
+            return [
+                Limit::perMinute(8)->by('otp-ip:'.$request->ip()),
+                Limit::perMinute(8)->by('otp-id:'.$identity),
+                Limit::perHour(20)->by('otp-hour:'.$identity),
+            ];
+        });
+
+        RateLimiter::for('otp-send', function (Request $request) {
+            $identity = Str::lower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(5)->by('otp-send-ip:'.$request->ip()),
+                Limit::perMinute(1)->by('otp-send-id:'.$identity),
+                Limit::perHour(5)->by('otp-send-hour:'.$identity),
+            ];
+        });
+
         RateLimiter::for('internal-login', function (Request $request) {
             $identity = Str::lower(trim((string) $request->input('username')));
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\StayDates;
 use Illuminate\Database\Eloquent\Model;
 
 class PriceSetting extends Model
@@ -43,6 +44,7 @@ class PriceSetting extends Model
      */
     public static function calculateTotalPrice(float $basePrice, string $checkIn, string $checkOut): float
     {
+        StayDates::validate($checkIn, $checkOut);
         $priceSettings = self::where('status', 1)->orderBy('start_date')->orderBy('id')->get();
         $totalPrice = 0;
         

@@ -59,15 +59,41 @@
                         </div>
                     @endif
 
-                    {{-- Nội dung chuyển khoản copy box --}}
-                    <div style="width: 100%; margin-top: 20px; background: #F3EFE9; border: 1px solid #E5E1D8; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; text-align: left;">
-                        <div>
-                            <div style="font-size: 11.5px; font-weight: 700; color: #5C5852; text-transform: uppercase; letter-spacing: 0.04em;">Nội dung chuyển khoản</div>
-                            <code id="refCodeText" style="font-size: 16px; font-weight: 800; color: #181715; letter-spacing: 0.02em;">{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}</code>
+                    {{-- Hộp sao chép thông tin ngân hàng & số tiền (Tối ưu chuyển khoản Mobile App) --}}
+                    <div style="width: 100%; margin-top: 18px; display: flex; flex-direction: column; gap: 8px;">
+                        {{-- 1. Số tài khoản --}}
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; text-align: left;">
+                            <div>
+                                <div style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">Số tài khoản &amp; Người nhận</div>
+                                <div style="font-size: 15px; font-weight: 800; color: #0f172a;">{{ $qrData['account_no'] ?? '' }}</div>
+                                <div style="font-size: 11px; color: #64748b;">{{ $qrData['account_name'] ?? 'ROSALIZA HOTEL' }}</div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-light border" onclick="copyText('{{ $qrData['account_no'] ?? '' }}', this)" style="border-radius: 8px; font-size: 12px; font-weight: 600; padding: 6px 12px; min-height: 38px;">
+                                <i class="bi bi-clipboard me-1"></i> <span>Sao chép</span>
+                            </button>
                         </div>
-                        <button type="button" class="btn btn-sm btn-primary" onclick="copyRefCode()" style="border-radius: 8px; font-size: 12.5px; font-weight: 600; padding: 6px 14px; background: #181715; border: none; color: #ffffff;">
-                            <i class="bi bi-clipboard me-1"></i> <span id="copyBtnText">Sao chép</span>
-                        </button>
+
+                        {{-- 2. Số tiền chuyển khoản --}}
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; text-align: left;">
+                            <div>
+                                <div style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">Số tiền cọc chính xác</div>
+                                <div style="font-size: 15.5px; font-weight: 800; color: #0f172a;">{{ number_format($booking->deposit_amount, 0, ',', '.') }} đ</div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-light border" onclick="copyText('{{ (int)$booking->deposit_amount }}', this)" style="border-radius: 8px; font-size: 12px; font-weight: 600; padding: 6px 12px; min-height: 38px;">
+                                <i class="bi bi-clipboard me-1"></i> <span>Sao chép</span>
+                            </button>
+                        </div>
+
+                        {{-- 3. Nội dung chuyển khoản --}}
+                        <div style="background: #F3EFE9; border: 1px solid #E5E1D8; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; text-align: left;">
+                            <div>
+                                <div style="font-size: 10.5px; font-weight: 700; color: #5C5852; text-transform: uppercase; letter-spacing: 0.04em;">Nội dung chuyển khoản (bắt buộc)</div>
+                                <code id="refCodeText" style="font-size: 15.5px; font-weight: 800; color: #181715; letter-spacing: 0.02em;">{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}</code>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-dark" onclick="copyText('{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}', this)" style="border-radius: 8px; font-size: 12px; font-weight: 600; padding: 6px 12px; min-height: 38px; background: #181715; border: none; color: #fff;">
+                                <i class="bi bi-clipboard me-1"></i> <span>Sao chép</span>
+                            </button>
+                        </div>
                     </div>
 
                     {{-- Countdown Timer: 10 phút --}}
@@ -166,6 +192,16 @@
 
 @push('scripts')
 <script>
+    function copyText(val, btn) {
+        if (!val) return;
+        navigator.clipboard.writeText(val).then(() => {
+            const label = btn.querySelector('span');
+            const orig = label ? label.innerText : 'Sao chép';
+            if (label) label.innerText = 'Đã chép!';
+            setTimeout(() => { if (label) label.innerText = orig; }, 2000);
+        });
+    }
+
     function copyRefCode() {
         const code = document.getElementById('refCodeText').innerText.trim();
         navigator.clipboard.writeText(code).then(() => {

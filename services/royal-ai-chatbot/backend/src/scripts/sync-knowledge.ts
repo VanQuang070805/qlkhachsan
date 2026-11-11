@@ -16,9 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const APPROVED_KNOWLEDGE_FILES = [
-  'royal-hotel.md',
-  'royal-hotel-room-types.md',
-  'royal-hotel-concierge.md',
+  'rosaliza-operations.md',
 ];
 
 export async function loadApprovedHotelDocuments(): Promise<{
@@ -27,7 +25,7 @@ export async function loadApprovedHotelDocuments(): Promise<{
 }> {
   const knowledgeDir = path.resolve(
     __dirname,
-    '../../../../resources/knowledge',
+    '../../../../../resources/knowledge',
   );
 
   const documents: Document[] = [];

@@ -117,7 +117,7 @@
         {{-- ── 1. Suite Breadcrumb & Badges (Ảnh 1) ── --}}
         <div class="aeth-top-meta">
             <div class="aeth-breadcrumb">
-                <a href="{{ route('rooms.index') }}">BỘ SƯU TẬP PHÒNG</a>
+                <a href="{{ route('rooms.index') }}">PHÒNG</a>
                 <span>/</span>
                 <span class="highlight">{{ $room->type_name }}</span>
             </div>
@@ -390,9 +390,22 @@
                 </div>
             </div>
 
-        </div>
 
+
+    {{-- Native App Sticky Bottom Action Dock (Mobile <= 768px) --}}
+    <div class="app-bottom-dock d-md-none" aria-label="Thao tác đặt phòng">
+        <div class="app-bottom-dock__content">
+            <div class="app-bottom-dock__price">
+                <span class="app-bottom-dock__amount" id="mobileDockRate">{{ number_format($room->price, 0, ',', '.') }}đ</span>
+                <span class="app-bottom-dock__unit">/ đêm trung bình</span>
+            </div>
+            <button type="button" class="app-bottom-dock__btn" onclick="scrollToBookingModule()" id="btnMobileDockBook">
+                <span>Đặt phòng</span>
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </button>
+        </div>
     </div>
+</div>
 </div>
 
 {{-- ── Hidden Form Submit (Giữ nguyên contract với controller) ── --}}
@@ -414,6 +427,14 @@ let selectedRooms = new Map();
 const availabilityEndpoint = @json(route('rooms.detail', $room->id));
 let availabilityRequestId = 0;
 let availabilityTimer;
+
+
+function scrollToBookingModule() {
+    const box = document.querySelector('.aeth-booking-box');
+    if (box) {
+        box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
 
 // Ngày mặc định
 const inEl = document.getElementById('bkCheckIn');

@@ -541,11 +541,25 @@ body.internal-shell {
 }
 
 @media (max-width: 768px) {
-  .ds-kpi-row { grid-template-columns: 1fr; }
-  .ds-card { padding: 18px 16px; }
-  .ds-chart-container { height: 260px; }
+  .ds-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .ds-kpi-card { min-height: 120px; padding: 14px 14px; }
+  .ds-kpi-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .ds-kpi-icon img { width: 40px; height: 40px; }
+  .ds-kpi-value { font-size: 20px; }
+  .ds-kpi-label { font-size: 12px; }
+  .ds-kpi-foot { font-size: 10.5px; margin-top: 6px; }
+  .ds-card { padding: 18px 14px; }
+  .ds-chart-container { height: 240px; }
   .ds-analytics-grid { grid-template-columns: minmax(0, 1fr); }
-  .ds-analytics-grid .ds-chart-container { height: 260px; }
+  .ds-analytics-grid .ds-chart-container { height: 240px; }
+}
+@media (max-width: 420px) {
+  .ds-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .ds-kpi-card { padding: 12px 10px; min-height: 105px; }
+  .ds-kpi-icon { width: 34px; height: 34px; border-radius: 10px; }
+  .ds-kpi-icon img { width: 34px; height: 34px; }
+  .ds-kpi-value { font-size: 17px; }
+  .ds-kpi-label { font-size: 11px; }
 }
 </style>
 @endpush
@@ -561,7 +575,7 @@ body.internal-shell {
       <div class="ds-kpi-head">
         <div>
           <p class="ds-kpi-label">Tổng khách hàng</p>
-          <div class="ds-kpi-value">{{ number_format($stats['total_customers'] ?? 0) }}</div>
+          <div class="ds-kpi-value" data-count-up="{{ (int) ($stats['total_customers'] ?? 0) }}">{{ number_format($stats['total_customers'] ?? 0) }}</div>
         </div>
         <div class="ds-kpi-icon ds-kpi-icon-purple">
           <img src="{{ asset('images/dashstack/icon-users.svg') }}" alt="" aria-hidden="true" width="56" height="56">
@@ -575,7 +589,7 @@ body.internal-shell {
       <div class="ds-kpi-head">
         <div>
           <p class="ds-kpi-label">Tổng đơn đặt phòng</p>
-          <div class="ds-kpi-value">{{ number_format($stats['total_bookings'] ?? 0) }}</div>
+          <div class="ds-kpi-value" data-count-up="{{ (int) ($stats['total_bookings'] ?? 0) }}">{{ number_format($stats['total_bookings'] ?? 0) }}</div>
         </div>
         <div class="ds-kpi-icon ds-kpi-icon-amber">
           <img src="{{ asset('images/dashstack/icon-order.svg') }}" alt="" aria-hidden="true" width="56" height="56">
@@ -589,7 +603,7 @@ body.internal-shell {
       <div class="ds-kpi-head">
         <div>
           <p class="ds-kpi-label">Doanh thu đã thu</p>
-          <div class="ds-kpi-value">{{ number_format($stats['total_revenue'] ?? 0, 0, ',', '.') }} đ</div>
+          <div class="ds-kpi-value" data-count-up="{{ (int) ($stats['total_revenue'] ?? 0) }}">{{ number_format($stats['total_revenue'] ?? 0, 0, ',', '.') }} đ</div>
         </div>
         <div class="ds-kpi-icon ds-kpi-icon-mint">
           <img src="{{ asset('images/dashstack/icon-sales.svg') }}" alt="" aria-hidden="true" width="56" height="56">
@@ -603,7 +617,7 @@ body.internal-shell {
       <div class="ds-kpi-head">
         <div>
           <p class="ds-kpi-label">Đơn đang chờ</p>
-          <div class="ds-kpi-value">{{ number_format($stats['pending_count'] ?? 0) }}</div>
+          <div class="ds-kpi-value" data-count-up="{{ (int) ($stats['pending_count'] ?? 0) }}">{{ number_format($stats['pending_count'] ?? 0) }}</div>
         </div>
         <div class="ds-kpi-icon ds-kpi-icon-coral">
           <img src="{{ asset('images/dashstack/icon-pending.svg') }}" alt="" aria-hidden="true" width="56" height="56">

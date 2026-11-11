@@ -576,77 +576,198 @@ export function initSpecularButtons() {
  * ACCORDION GALLERY (GSAP 3D Interactive Album at Top of Homepage)
  * ============================================================================
  */
-export function initAccordionGalleries({ reduceMotion = false } = {}) {
+export function initAccordionGalleries() {
+    const cleanups = [];
     document.querySelectorAll('[data-accordion-gallery]').forEach((root) => {
         const panels = [...root.querySelectorAll('.ag-panel')];
         if (!panels.length) return;
 
-        let activeIdx = 0;
         const count = panels.length;
-        const expandRatio = 0.52;
-        const grow = (expandRatio * (count - 1)) / (1 - expandRatio);
+        const defaultAttr = parseInt(root.dataset.defaultIndex ?? '', 10);
+        const initialActive = Number.isFinite(defaultAttr)
+            ? Math.min(Math.max(defaultAttr, 0), count - 1)
+            : Math.max(0, panels.findIndex((panel) => panel.classList.contains('ag-panel--active')));
 
-        const render = (idx, animate = true) => {
-            activeIdx = idx;
-            const isVertical = root.classList.contains('accordion-gallery--vertical') || window.innerWidth < 640;
-            animate = animate && !reduceMotion;
+        let activeIdx = initialActive;
+        const expandRatio = 0.54;
+        const duration = 0.6;
+        const ease = 'power3.out';
+        const parallax = 0.5;
+        const tilt = 8;
+        const stagger = 0.06;
+
+        let mediaSize = 320;
+        let tlRef = null;
+        let firstRun = true;
+        let lastW = 0;
+        let lastH = 0;
+        const listeners = [];
+
+        const mediaRefs = panels.map((p) => p.querySelector('.ag-panel__media'));
+        const barRefs = panels.map((p) => p.querySelector('.ag-panel__bar'));
+        const textRefs = panels.map((p) => p.querySelector('.ag-panel__text'));
+
+        root.setAttribute('role', 'list');
+        panels.forEach((panel) => {
+            panel.setAttribute('role', 'listitem');
+            if (!panel.hasAttribute('tabindex')) panel.tabIndex = 0;
+        });
+
+        const applyLayout = (animate = true) => {
+            const vertical = root.classList.contains('accordion-gallery--vertical');
+            const r = Math.min(Math.max(expandRatio, 0.2), 0.9);
+            const grow = count > 1 ? (r * (count - 1)) / (1 - r) : 1;
+
+            if (tlRef) tlRef.kill();
+            const dur = animate ? duration : 0;
+            const tl = gsap.timeline();
 
             panels.forEach((panel, i) => {
                 const isActive = i === activeIdx;
                 panel.classList.toggle('ag-panel--active', isActive);
+                if (isActive) {
+                    panel.setAttribute('aria-current', 'true');
+                } else {
+                    panel.removeAttribute('aria-current');
+                }
 
-                const media = panel.querySelector('.ag-panel__media');
-                const bar = panel.querySelector('.ag-panel__bar');
-                const text = panel.querySelector('.ag-panel__text');
-                const rot = isActive ? 0 : i < activeIdx ? 8 : -8;
-                const rotProp = isVertical ? { rotateX: -rot } : { rotateY: rot };
+                const media = mediaRefs[i];
+                const bar = barRefs[i];
+                const text = textRefs[i];
 
-                if (animate) {
-                    gsap.to(panel, {
+                const rot = isActive ? 0 : i < activeIdx ? tilt : -tilt;
+                const rotProp = vertical ? { rotateX: -rot } : { rotateY: rot };
+
+                tl.to(
+                    panel,
+                    {
                         flexGrow: isActive ? grow : 1,
                         ...rotProp,
-                        duration: 0.5,
-                        ease: 'power3.out',
-                        overwrite: 'auto',
-                    });
+                        '--ag-dim': isActive ? 0 : 0.35,
+                        duration: dur,
+                        ease,
+                    },
+                    0
+                );
 
-                    if (media) {
-                        gsap.to(media, {
-                            filter: isActive ? 'grayscale(0)' : 'grayscale(1)',
-                            duration: 0.5,
-                            ease: 'power3.out',
-                            overwrite: 'auto',
-                        });
-                    }
+                if (media) {
+                    const drift = Math.max(-1.5, Math.min(1.5, activeIdx - i));
+                    const shift = drift * parallax * mediaSize * 0.06;
+                    tl.to(
+                        media,
+                        {
+                            xPercent: -50,
+                            yPercent: -50,
+                            x: vertical ? 0 : isActive ? 0 : shift,
+                            y: vertical ? (isActive ? 0 : shift) : 0,
+                            '--ag-gray': isActive ? 0 : 1,
+                            '--ag-dim': isActive ? 0 : 0.35,
+                            duration: dur,
+                            ease,
+                        },
+                        0
+                    );
+                }
 
-                    if (bar && text) {
-                        if (isActive) {
-                            gsap.to([bar, text], { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out', stagger: 0.04, overwrite: 'auto' });
-                        } else {
-                            gsap.to([bar, text], { opacity: 0, x: -12, duration: 0.2, ease: 'power2.in', overwrite: 'auto' });
-                        }
+                if (bar && text) {
+                    if (isActive) {
+                        tl.to(
+                            [bar, text],
+                            {
+                                opacity: 1,
+                                x: 0,
+                                duration: dur,
+                                ease,
+                                stagger: dur > 0 ? stagger : 0,
+                            },
+                            0
+                        );
+                    } else {
+                        tl.to(
+                            [bar, text],
+                            {
+                                opacity: 0,
+                                x: -14,
+                                duration: dur * 0.6,
+                                ease,
+                            },
+                            0
+                        );
                     }
-                } else {
-                    gsap.set(panel, { flexGrow: isActive ? grow : 1, ...rotProp });
-                    if (media) gsap.set(media, { filter: isActive ? 'grayscale(0)' : 'grayscale(1)' });
-                    if (bar && text) gsap.set([bar, text], { opacity: isActive ? 1 : 0, x: isActive ? 0 : -12 });
                 }
             });
+
+            tlRef = tl;
+        };
+
+        const setActive = (idx, animate = true) => {
+            const clamped = Math.min(Math.max(idx, 0), count - 1);
+            if (clamped === activeIdx && !firstRun) return;
+            activeIdx = clamped;
+            applyLayout(animate);
         };
 
         panels.forEach((p, idx) => {
-            p.addEventListener('mouseenter', () => render(idx, true));
-            p.addEventListener('focus', () => render(idx, true));
-            p.addEventListener('click', (e) => {
+            const onEnter = () => setActive(idx, true);
+            const onFocus = () => setActive(idx, true);
+            const onClick = (e) => {
                 if (activeIdx !== idx) {
                     e.preventDefault();
-                    render(idx, true);
+                    setActive(idx, true);
                 }
+            };
+            const onKeyDown = (event) => {
+                if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+                event.preventDefault();
+                const backwards = event.key === 'ArrowLeft' || event.key === 'ArrowUp';
+                const next = event.key === 'Home' ? 0 : event.key === 'End' ? count - 1 : (activeIdx + (backwards ? -1 : 1) + count) % count;
+                panels[next].focus();
+                setActive(next, true);
+            };
+            p.addEventListener('mouseenter', onEnter);
+            p.addEventListener('pointerenter', onEnter);
+            p.addEventListener('focus', onFocus);
+            p.addEventListener('click', onClick);
+            p.addEventListener('keydown', onKeyDown);
+            listeners.push(() => {
+                p.removeEventListener('mouseenter', onEnter);
+                p.removeEventListener('pointerenter', onEnter);
+                p.removeEventListener('focus', onFocus);
+                p.removeEventListener('click', onClick);
+                p.removeEventListener('keydown', onKeyDown);
             });
         });
 
-        render(0, false);
+        const measure = () => {
+            const rect = root.getBoundingClientRect();
+            if (!firstRun && Math.abs(rect.width - lastW) < 2 && Math.abs(rect.height - lastH) < 2) {
+                return;
+            }
+            lastW = rect.width;
+            lastH = rect.height;
+            const vertical = root.classList.contains('accordion-gallery--vertical');
+            const total = vertical ? rect.height : rect.width;
+            const gap = parseFloat(getComputedStyle(root).gap) || 10;
+            const usable = Math.max(total - gap * (count - 1), 120);
+            const r = Math.min(Math.max(expandRatio, 0.2), 0.9);
+            mediaSize = Math.max(140, usable * r * 1.22);
+            root.style.setProperty('--ag-media-size', `${mediaSize}px`);
+            applyLayout(!firstRun);
+            firstRun = false;
+        };
+
+        const observer = new ResizeObserver(measure);
+        observer.observe(root);
+        measure();
+
+        cleanups.push(() => {
+            observer.disconnect();
+            listeners.forEach((dispose) => dispose());
+            if (tlRef) tlRef.kill();
+        });
     });
+
+    return () => cleanups.forEach((dispose) => dispose());
 }
 
 
@@ -665,13 +786,23 @@ export function initSteppers() {
         const totalSteps = segments.length || 3;
         let currentStep = 1;
 
+        const compactQuery = window.matchMedia('(max-width: 520px)');
+        const track = stepper.querySelector('.stepper__track');
+
+        const syncLayout = () => {
+            track?.setAttribute('data-layout', 'row');
+            stepper.setAttribute('data-tight', compactQuery.matches ? 'true' : 'false');
+        };
+
         const updateGlider = (activeSegment) => {
             if (!glider || !activeSegment) return;
-            glider.style.transform = `translate3d(${activeSegment.offsetLeft - glider.offsetLeft}px, 0, 0)`;
+            glider.style.transform = `translate3d(${activeSegment.offsetLeft}px, ${activeSegment.offsetTop}px, 0)`;
             glider.style.width = `${activeSegment.offsetWidth}px`;
+            glider.style.height = `${activeSegment.offsetHeight}px`;
         };
 
         const goTo = (step) => {
+            const previousStep = currentStep;
             currentStep = Math.max(1, Math.min(step, totalSteps));
 
             segments.forEach((seg, i) => {
@@ -680,6 +811,7 @@ export function initSteppers() {
                 seg.setAttribute('data-status', status);
                 seg.classList.toggle('is-active', sNum === currentStep);
                 seg.setAttribute('aria-selected', String(sNum === currentStep));
+                seg.tabIndex = sNum === currentStep ? 0 : -1;
 
                 const badge = seg.querySelector('.stepper__badge');
                 if (badge) {
@@ -693,10 +825,22 @@ export function initSteppers() {
             panes.forEach((p) => {
                 const pNum = Number(p.dataset.pane);
                 p.classList.toggle('is-active', pNum === currentStep);
+                p.inert = pNum !== currentStep;
+                if (pNum === currentStep && previousStep !== currentStep) {
+                    p.getAnimations().forEach(animation => animation.cancel());
+                    p.animate([{ opacity: 0, transform: `translateX(${currentStep > previousStep ? 16 : -16}px)` }, { opacity: 1, transform: 'translateX(0)' }], {
+                        duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 420,
+                        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                    });
+                }
             });
 
             const activeSeg = segments[currentStep - 1];
             updateGlider(activeSeg);
+            if (activeSeg && window.matchMedia('(min-width: 521px) and (max-width: 640px)').matches) {
+                const track = activeSeg.parentElement;
+                track?.scrollTo({ left: activeSeg.offsetLeft - track.offsetLeft - 4, behavior: 'smooth' });
+            }
 
             // Sync with iPhone Mockup if configured
             if (activeSeg && activeSeg.dataset.screen && typeof window.__switchIPhoneScreen === 'function') {
@@ -733,9 +877,10 @@ export function initSteppers() {
         segments.forEach((seg, i) => {
             seg.addEventListener('click', () => goTo(i + 1));
             seg.addEventListener('keydown', (event) => {
-                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
                 event.preventDefault();
-                const index = event.key === 'Home' ? 0 : event.key === 'End' ? segments.length - 1 : (i + (event.key === 'ArrowRight' ? 1 : -1) + segments.length) % segments.length;
+                const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown';
+                const index = event.key === 'Home' ? 0 : event.key === 'End' ? segments.length - 1 : (i + (forward ? 1 : -1) + segments.length) % segments.length;
                 segments[index].focus();
                 goTo(index + 1);
             });
@@ -750,9 +895,18 @@ export function initSteppers() {
         });
 
         if (btnBack) btnBack.addEventListener('click', () => goTo(currentStep - 1));
-        if (btnNext) btnNext.addEventListener('click', () => goTo(currentStep + 1));
-
-        window.addEventListener('resize', () => updateGlider(segments[currentStep - 1]));
+        syncLayout();
+        compactQuery.addEventListener?.('change', syncLayout);
+        const observer = new ResizeObserver(() => {
+            syncLayout();
+            updateGlider(segments[currentStep - 1]);
+        });
+        observer.observe(stepper);
+        segments.forEach(segment => observer.observe(segment));
+        window.addEventListener('pagehide', () => {
+            observer.disconnect();
+            compactQuery.removeEventListener?.('change', syncLayout);
+        }, { once: true });
         setTimeout(() => goTo(1), 100);
     });
 
@@ -1112,7 +1266,8 @@ export function initFlexCarousels() {
             captureWheel
         };
 
-        container.style.setProperty('--flex-carousel-half', `${Math.min(Math.max(cardHeight, 0.05), 1) * 50}%`);
+        const captionHost = container.closest('.flex-carousel-stage') || container;
+        captionHost.style.setProperty('--flex-carousel-half', `${Math.min(Math.max(cardHeight, 0.05), 1) * 50}%`);
         if (!container.hasAttribute('tabindex')) container.setAttribute('tabindex', '0');
         if (!container.hasAttribute('role')) container.setAttribute('role', 'region');
         if (!container.hasAttribute('aria-roledescription')) container.setAttribute('aria-roledescription', 'carousel');
@@ -1245,7 +1400,7 @@ export function initFlexCarousels() {
         let instances = [];
 
         // Captions UI
-        let captionEl = container.querySelector('.flex-carousel__caption');
+        let captionEl = captionHost.querySelector('.flex-carousel__caption');
         let liveEl = container.querySelector('.flex-carousel__live');
         if (captions) {
             if (!captionEl) {
@@ -1253,7 +1408,7 @@ export function initFlexCarousels() {
                 captionEl.className = 'flex-carousel__caption';
                 captionEl.setAttribute('aria-hidden', 'true');
                 captionEl.style.display = 'none';
-                container.appendChild(captionEl);
+                captionHost.appendChild(captionEl);
             }
             if (!liveEl) {
                 liveEl = document.createElement('div');
@@ -2086,59 +2241,60 @@ export function initFlexCarousels() {
  * ============================================================================
  */
 export function initScrollStacks({ reduceMotion = false } = {}) {
-    const tweens = [];
-    const observers = [];
-    if (reduceMotion) return () => {};
-
+    const cleanups = [];
     document.querySelectorAll('[data-scroll-stack]').forEach((stack) => {
         const slots = [...stack.querySelectorAll('[data-stack-slot]')];
-        if (!slots.length) return;
-        const cards = slots.map((slot) => slot.querySelector('.scroll-stack-card, .melia-activity-card')).filter(Boolean);
-        if (cards.length < 2) return;
-
-        slots.forEach((slot, index) => {
-            slot.style.setProperty('--stack-index', String(index));
-            slot.style.setProperty('--stack-offset', `${index * 22}px`);
-            slot.style.zIndex = String(index + 1);
-        });
-
-        for (let incoming = 1; incoming < cards.length; incoming += 1) {
-            const covered = cards.slice(0, incoming);
-            const tween = gsap.fromTo(covered, {
-                scale: (index) => 1 - Math.max(0, incoming - index - 1) * 0.035,
-                y: (index) => -Math.max(0, incoming - index - 1) * 7,
-                '--scroll-stack-dim': (index) => Math.min(0.3, Math.max(0, incoming - index - 1) * 0.14),
-            }, {
-                scale: (index) => 1 - (incoming - index) * 0.035,
-                y: (index) => -(incoming - index) * 7,
-                '--scroll-stack-dim': (index) => Math.min(0.3, (incoming - index) * 0.14),
-                ease: 'none',
-                immediateRender: false,
-                scrollTrigger: {
-                    trigger: slots[incoming],
-                    start: 'top 76%',
-                    end: 'top 24%',
-                    scrub: true,
-                    invalidateOnRefresh: true,
-                },
+        if (slots.length < 2) return;
+        let frame = 0;
+        const update = () => {
+            frame = 0;
+            if (window.innerWidth <= 768) {
+                slots.forEach((slot) => {
+                    slot.style.top = '';
+                    slot.style.zIndex = '';
+                    const card = slot.firstElementChild;
+                    if (card) {
+                        card.style.transform = '';
+                        card.style.removeProperty('--scroll-stack-dim');
+                    }
+                });
+                return;
+            }
+            const heights = slots.map(slot => slot.offsetHeight);
+            // React Bits window-scroll geometry; keep tall cards fully readable.
+            const top = Math.max(16, Math.min(innerHeight * 0.15, innerHeight - Math.max(...heights) - 90));
+            const offset = 24;
+            const tops = slots.map(slot => slot.getBoundingClientRect().top);
+            const depths = slots.map(() => 0);
+            for (let j = 1; j < slots.length; j++) {
+                const pinBefore = top + (j - 1) * offset;
+                const cover = Math.min(1, Math.max(0, (pinBefore + heights[j - 1] - tops[j]) / Math.max(1, heights[j - 1] - offset)));
+                for (let i = 0; i < j; i++) depths[i] += cover;
+            }
+            slots.forEach((slot, i) => {
+                slot.style.top = `${top + i * offset}px`;
+                slot.style.zIndex = String(i + 1);
+                const card = slot.firstElementChild;
+                if (!card) return;
+                const depth = reduceMotion ? 0 : depths[i];
+                card.style.transform = depth < 0.0005 ? '' : `scale(${Math.max(0.8, 1 - depth * 0.05).toFixed(4)})`;
+                card.style.setProperty('--scroll-stack-dim', (1 - Math.pow(0.8, depth)).toFixed(3));
             });
-            tweens.push(tween);
-        }
-
-        if (window.ResizeObserver) {
-            const observer = new ResizeObserver(() => ScrollTrigger.refresh());
-            observer.observe(stack);
-            observers.push(observer);
-        }
-    });
-
-    return () => {
-        observers.forEach((observer) => observer.disconnect());
-        tweens.forEach((tween) => {
-            tween.scrollTrigger?.kill();
-            tween.kill();
+        };
+        const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+        const observer = new ResizeObserver(schedule);
+        slots.forEach(slot => observer.observe(slot));
+        window.addEventListener('scroll', schedule, { passive: true });
+        window.addEventListener('resize', schedule);
+        update();
+        cleanups.push(() => {
+            cancelAnimationFrame(frame);
+            observer.disconnect();
+            window.removeEventListener('scroll', schedule);
+            window.removeEventListener('resize', schedule);
         });
-    };
+    });
+    return () => cleanups.forEach(cleanup => cleanup());
 }
 
 
@@ -2238,13 +2394,13 @@ export function initCodeSlots() {
         const slots = [...root.querySelectorAll('.code-slots__slot')];
         const grid = root.querySelector('.code-slots__row');
         const caret = root.querySelector('.code-slots__caret');
-        const hiddenInput = document.querySelector('#otp-hidden');
+        const hiddenInput = root.closest('form')?.querySelector('#otp-hidden') || document.querySelector('#otp-hidden');
 
         if (!input || !slots.length) return;
         input.value = input.value || hiddenInput?.value || '';
 
         const updateState = () => {
-            const val = input.value.replace(/\D/g, '').slice(0, 6);
+            const val = input.value.replace(/\D/g, '').slice(0, slots.length);
             input.value = val;
             if (hiddenInput) hiddenInput.value = val;
 
@@ -2263,7 +2419,7 @@ export function initCodeSlots() {
 
             // Move caret
             if (caret) {
-                const activeIdx = Math.min(val.length, 5);
+                const activeIdx = Math.min(input.selectionStart ?? val.length, slots.length - 1);
                 const activeSlot = slots[activeIdx];
                 if (activeSlot) {
                     caret.style.transform = `translateX(${activeSlot.offsetLeft - slots[0].offsetLeft}px)`;
@@ -2287,6 +2443,11 @@ export function initCodeSlots() {
         input.addEventListener('focus', onFocus);
         input.addEventListener('blur', onBlur);
         input.addEventListener('keydown', onKeyDown);
+        input.addEventListener('keyup', updateState);
+        input.addEventListener('click', updateState);
+        const observer = new ResizeObserver(updateState);
+        observer.observe(root);
+        window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
         if (document.activeElement === input) onFocus();
 
         updateState();
@@ -2495,7 +2656,7 @@ export function initIPhoneMockup() {
         });
     }
 
-    // Interactive AI Concierge Prompt Chips
+    // Interactive AI Prompt Chips
     const chatMsgContainer = iphoneShowcase.querySelector('.m-chat-messages');
     iphoneShowcase.querySelectorAll('[data-chat-prompt]').forEach((chip) => {
         chip.addEventListener('click', () => {
@@ -2516,7 +2677,7 @@ export function initIPhoneMockup() {
 
             setTimeout(() => {
                 if (text.includes('sân bay')) {
-                    botBubble.textContent = 'Dạ xe đón sân bay của Rosaliza sẵn sàng đón quý khách với dòng xe Mercedes E-Class. Concierge đã ghi nhận lịch trình!';
+                    botBubble.textContent = 'Bạn vui lòng liên hệ lễ tân để kiểm tra dịch vụ đưa đón sân bay và xác nhận lịch trình nhé.';
                 } else if (text.includes('Spa')) {
                     botBubble.textContent = 'Dạ Lotus Spa mở cửa từ 09:00 - 22:00. Quý khách được tặng voucher giảm 20% khi đặt phòng trực tuyến ạ.';
                 } else {

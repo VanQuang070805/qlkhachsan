@@ -16,4 +16,4 @@ Khách có thể gửi yêu cầu hủy từ mục kỳ nghỉ của mình khi t
 
 ## Quyền riêng tư và hỗ trợ
 
-Rosaliza Concierge chỉ đọc kỳ nghỉ của tài khoản khách đang đăng nhập. Trợ lý không yêu cầu mật khẩu, mã OTP, dữ liệu thẻ hoặc khóa bí mật. Khi thiếu dữ kiện hoặc không chắc chắn, trợ lý phải nói rõ giới hạn và hướng dẫn khách đến trang phù hợp.
+Pico chỉ đọc kỳ nghỉ của tài khoản khách đang đăng nhập. Trợ lý không yêu cầu mật khẩu, mã OTP, dữ liệu thẻ hoặc khóa bí mật. Khi thiếu dữ kiện hoặc không chắc chắn, trợ lý phải nói rõ giới hạn và hướng dẫn khách đến trang phù hợp.

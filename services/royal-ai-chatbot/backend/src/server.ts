@@ -3,7 +3,7 @@ dotenv.config();
 
 import http from 'http';
 import crypto from 'crypto';
-import { HumanMessage } from '@langchain/core/messages';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { graph as ingestionGraph } from './ingestion_graph/graph.js';
 import { graph as retrievalGraph } from './retrieval_graph/graph.js';
 import { sanitizePublicSource } from './retrieval_graph/utils.js';
@@ -12,8 +12,10 @@ import {
   deleteThreadById,
   getOrCreateThread,
   saveThread,
+  conversationFromClient,
 } from './shared/thread-store.js';
 import { subscribeOrRunDeduplicated } from './queue/chatbot-queue.js';
+import { answerClockQuestion } from './retrieval_graph/conversation.js';
 
 function checkInternalAuth(req: http.IncomingMessage): {
   allowed: boolean;
@@ -197,7 +199,7 @@ export function createLangGraphHttpServer(): http.Server {
 
         const stateInput = {
           query: String(input.query || ''),
-          messages: thread.values.messages.slice(-8),
+          messages: (thread.values.messages.length ? thread.values.messages : conversationFromClient(input.history)).slice(-8),
         };
         const result = await retrievalGraph.invoke(stateInput, config);
         thread.values.messages = (result.messages || []).slice(-10);
@@ -252,6 +254,25 @@ export function createLangGraphHttpServer(): http.Server {
           );
         }
 
+        const clockReply = answerClockQuestion(query);
+        if (clockReply) {
+          const previous = thread.values.messages.length
+            ? thread.values.messages : conversationFromClient(input.history);
+          thread.values.messages = [
+            ...previous.slice(-8), new HumanMessage(query), new AIMessage(clockReply),
+          ];
+          await saveThread(thread);
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream; charset=utf-8',
+            'Cache-Control': 'no-cache, no-transform',
+            'X-Accel-Buffering': 'no',
+            'X-Correlation-ID': correlationId,
+          });
+          res.write(`event: messages/partial\ndata: ${JSON.stringify({ event: 'messages/partial', data: [{ type: 'ai', content: clockReply, delta: clockReply }] })}\n\n`);
+          res.end(`event: end\ndata: ${JSON.stringify({ event: 'end', data: { done: true, sources: [] } })}\n\n`);
+          return;
+        }
+
         const fingerprint =
           String(config?.configurable?.dedupeFingerprint || '').trim() ||
           crypto
@@ -266,11 +287,17 @@ export function createLangGraphHttpServer(): http.Server {
           'X-Accel-Buffering': 'no',
           'X-Correlation-ID': correlationId,
         });
+        res.flushHeaders();
+        res.write(': connected\n\n');
 
         let clientClosed = false;
-        req.on('close', () => {
+        res.on('close', () => {
           clientClosed = true;
         });
+        const heartbeat = setInterval(() => {
+          if (!clientClosed && !res.writableEnded) res.write(': keepalive\n\n');
+        }, 10_000);
+        heartbeat.unref();
 
         const writeSse = (event: string, data: unknown) => {
           if (clientClosed || res.writableEnded) return;
@@ -285,6 +312,7 @@ export function createLangGraphHttpServer(): http.Server {
               query,
               fingerprint,
               config,
+              history: Array.isArray(input.history) ? input.history : [],
             },
             (item) => {
               writeSse(item.event, item.data);
@@ -299,6 +327,7 @@ export function createLangGraphHttpServer(): http.Server {
             correlation_id: correlationId,
           });
         } finally {
+          clearInterval(heartbeat);
           if (!res.writableEnded) {
             res.end();
           }

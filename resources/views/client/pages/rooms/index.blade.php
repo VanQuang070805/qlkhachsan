@@ -241,7 +241,7 @@
                 <div class="melia-empty-state" role="status">
                     <i class="bi bi-calendar2-x"></i>
                     <h3>Không tìm thấy phòng phù hợp</h3>
-                    <p>{{ $searchSubmitted ? 'Không có hạng phòng phù hợp với ngày ở và số khách đã chọn. Quý khách vui lòng thử chọn ngày lưu trú khác hoặc liên hệ Concierge.' : 'Hiện chưa có hạng phòng trong hệ thống.' }}</p>
+                    <p>{{ $searchSubmitted ? 'Không có hạng phòng phù hợp với ngày ở và số khách đã chọn. Bạn vui lòng thử ngày khác hoặc liên hệ lễ tân.' : 'Hiện chưa có hạng phòng trong hệ thống.' }}</p>
                     @if($searchSubmitted)
                         <a href="{{ route('rooms.index') }}" class="melia-btn-primary">
                             <span>Xóa bộ lọc &amp; Xem tất cả phòng</span>
@@ -273,7 +273,7 @@
                         <span class="melia-value-index">01</span>
                         <h3 class="melia-value-title">Dịch vụ Quản gia 24/7</h3>
                         <p class="melia-value-desc">
-                            Đội ngũ Concierge và quản gia chuyên nghiệp luôn sẵn sàng hỗ trợ mọi nhu cầu lưu trú, đưa đón sân bay Nội Bài và gợi ý trải nghiệm văn hóa.
+                            Đội ngũ lễ tân sẵn sàng hỗ trợ thông tin lưu trú và gợi ý trải nghiệm tại Hà Nội.
                         </p>
                     </article>
 
@@ -315,7 +315,7 @@
                         <i class="bi bi-plus-lg melia-faq-icon"></i>
                     </button>
                     <div class="melia-faq-answer">
-                        Giờ nhận phòng (Check-in) từ 14:00 và giờ trả phòng (Check-out) trước 12:00 trưa hôm sau. Quý khách có thể yêu cầu nhận phòng sớm hoặc trả phòng muộn tùy thuộc vào tình trạng phòng trống thực tế thông qua Quầy Lễ Tân.
+                        Giờ nhận phòng từ 12:00 đến trước 16:00 và giờ trả phòng trước 12:00. Nếu cần thay đổi thời gian lưu trú, bạn vui lòng hỏi lễ tân để kiểm tra tình trạng phòng và phụ phí áp dụng.
                     </div>
                 </div>
 
@@ -335,7 +335,7 @@
                         <i class="bi bi-plus-lg melia-faq-icon"></i>
                     </button>
                     <div class="melia-faq-answer">
-                        Có. Chúng tôi cung cấp dịch vụ đưa đón sân bay quốc tế Nội Bài 2 chiều bằng xe Limousine cao cấp 24/7 (khoảng 35-40 phút di chuyển). Quý khách có thể ghi chú yêu cầu khi đặt phòng hoặc liên hệ trực tiếp với Concierge.
+                        Bạn vui lòng liên hệ lễ tân để xác nhận dịch vụ đưa đón sân bay và mức phí tại thời điểm cần sử dụng.
                     </div>
                 </div>
             </div>

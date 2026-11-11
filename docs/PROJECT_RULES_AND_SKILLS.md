@@ -18,6 +18,7 @@ Read these documents together. When they differ, the newest explicit user decisi
 8. [`docs/SECURITY_REMEDIATION_RUNBOOK.md`](SECURITY_REMEDIATION_RUNBOOK.md) — end-to-end agent plan for fixing and verifying the validated security findings.
 9. [`docs/GOOGLE_OAUTH_SETUP.md`](GOOGLE_OAUTH_SETUP.md) — customer Google sign-in configuration.
 10. [`docs/QA_2026-09-23.md`](QA_2026-09-23.md) — latest QA handoff notes.
+11. [`PICO_STREAMING_ARCHITECTURE.md`](../PICO_STREAMING_ARCHITECTURE.md) — current SSE, Gemini, RAG, weather, reconnection behavior, measured latency and scale-up gates.
 
 Do not create another design system when these documents already cover the need. Extend the existing system and record durable changes here or in the relevant source document.
 

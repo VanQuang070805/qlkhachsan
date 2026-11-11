@@ -51,7 +51,7 @@
         <h2 class="h6 fw-bold m-0" style="color: #0f172a;">Lịch điều chỉnh giá</h2>
         <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 500; font-size: 0.72rem; padding: 5px 10px; border-radius: 999px;">Giá gốc được giữ ngoài thời gian áp dụng</span>
     </header>
-    <div class="table-responsive">
+    <div class="table-responsive d-none d-md-block">
         <table class="table align-middle m-0" style="border-collapse: collapse;">
             <thead>
                 <tr style="border-bottom: 1px solid rgba(0,0,0,0.06); background: #f8fafc;">
@@ -91,13 +91,13 @@
                     </td>
                     <td class="pe-4 py-3 text-end">
                         <div class="d-inline-flex align-items-center gap-1">
-                            <a href="{{ route('admin.price-settings.edit',$setting->id) }}" class="btn btn-sm btn-light d-inline-flex align-items-center justify-content-center p-0" title="Chỉnh sửa" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); background: #ffffff; color: #475569;">
+                            <a href="{{ route('admin.price-settings.edit',$setting->id) }}" class="btn btn-sm btn-light d-inline-flex align-items-center justify-content-center p-0" title="Chỉnh sửa" style="width: 38px; height: 38px; border-radius: 9px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff; color: #475569;">
                                 <i class="bi bi-pencil" style="font-size: 0.8rem;"></i>
                             </a>
                             <form action="{{ route('admin.price-settings.delete',$setting->id) }}" method="POST" data-confirm="Xóa chính sách giá này? Giá phòng sẽ trở về mức áp dụng của các chính sách còn lại." class="d-inline m-0">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-light d-inline-flex align-items-center justify-content-center p-0" title="Xóa" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); background: #ffffff; color: #ef4444;">
+                                <button type="submit" class="btn btn-sm btn-light d-inline-flex align-items-center justify-content-center p-0" title="Xóa" style="width: 38px; height: 38px; border-radius: 9px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff; color: #ef4444;">
                                     <i class="bi bi-trash3" style="font-size: 0.8rem;"></i>
                                 </button>
                             </form>
@@ -111,6 +111,60 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+
+    {{-- Mobile Price Policy Cards (Mobile <= 768px) --}}
+    <div class="price-cards-mobile d-md-none p-3 d-flex flex-column gap-3">
+        @forelse($settings as $setting)
+        <div class="p-3 rounded-4 bg-white border border-slate-200 shadow-xs">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: #f0f7ff; color: #0284c7; flex-shrink: 0;">
+                        <i class="bi bi-calendar2-event" style="font-size: 0.95rem;"></i>
+                    </span>
+                    <div>
+                        <strong class="d-block text-dark fw-bold" style="font-size: 0.92rem; color: #0f172a;">{{ $setting->name }}</strong>
+                        <small class="text-muted" style="font-size: 0.72rem;">#{{ $setting->id }}</small>
+                    </div>
+                </div>
+                <div>
+                    @if($setting->status)
+                        <span class="badge admin-tag-active">Đang bật</span>
+                    @else
+                        <span class="badge admin-tag-inactive">Đang tắt</span>
+                    @endif
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center my-2.5 py-2 px-3 rounded-3 bg-slate-50 border border-slate-100" style="font-size: 0.82rem;">
+                <span class="text-slate-500">Mức điều chỉnh:</span>
+                <span class="fw-bold" style="color: #0284c7; font-size: 0.95rem;">
+                    +{{ $setting->adjustment_type==='percent' ? rtrim(rtrim(number_format($setting->adjustment_value,2,'.',''),'0'),'.').'%' : number_format($setting->adjustment_value,0,',','.').'đ' }}
+                </span>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between pt-2 border-top text-slate-500" style="font-size: 0.78rem;">
+                <div>
+                    <i class="bi bi-clock-history me-1"></i>
+                    <span>{{ date('d/m/Y',strtotime($setting->start_date)) }} &rarr; {{ date('d/m/Y',strtotime($setting->end_date)) }}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('admin.price-settings.edit',$setting->id) }}" class="btn btn-light d-inline-flex align-items-center justify-content-center" title="Chỉnh sửa" style="min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff;">
+                        <i class="bi bi-pencil" style="font-size: 0.9rem;"></i>
+                    </a>
+                    <form action="{{ route('admin.price-settings.delete',$setting->id) }}" method="POST" data-confirm="Xóa chính sách giá này? Giá phòng sẽ trở về mức áp dụng của các chính sách còn lại." class="d-inline m-0">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-light d-inline-flex align-items-center justify-content-center text-danger" title="Xóa" style="min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff;">
+                            <i class="bi bi-trash3" style="font-size: 0.9rem;"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @empty
+        <div class="text-center py-4 text-muted">Chưa có chính sách giá.</div>
+        @endforelse
     </div>
 </section>
 {{ $settings->withQueryString()->links('pagination.royal') }}

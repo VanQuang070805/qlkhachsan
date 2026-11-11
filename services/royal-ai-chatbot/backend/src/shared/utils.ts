@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { BaseLanguageModelInput } from '@langchain/core/language_models/base';
-import { BaseMessage } from '@langchain/core/messages';
+import { AIMessage, BaseMessage } from '@langchain/core/messages';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { initChatModel } from 'langchain/chat_models/universal';
 
@@ -149,20 +149,32 @@ export async function invokeChatModelWithFallback(
   ).trim();
   const primary = await loadChatModel(primaryName, temperature);
 
+  let emittedText = false;
+  const collect = (model: BaseChatModel) => withAIRequestTimeout(async (signal) => {
+    let content = '';
+    for await (const chunk of await model.stream(input, { signal })) {
+      const text = typeof chunk.content === 'string' ? chunk.content : '';
+      if (text) {
+        emittedText = true;
+        content += text;
+      }
+    }
+    return new AIMessage(content);
+  });
+
   try {
-    return await withAIRequestTimeout((signal) =>
-      primary.invoke(input, { signal }),
-    );
+    return await collect(primary);
   } catch (error) {
     if (
       !primaryName.startsWith('google-genai/') ||
-      !isRetryableAIProviderError(error)
+      !isRetryableAIProviderError(error) ||
+      emittedText
     ) {
       throw error;
     }
 
     const configuredFallback = (
-      process.env.GEMINI_FALLBACK_CHAT_MODEL || 'gemini-3.1-flash-lite'
+      process.env.GEMINI_FALLBACK_CHAT_MODEL || 'gemini-3.5-flash-lite'
     ).trim();
     const fallbackName = configuredFallback.includes('/')
       ? configuredFallback
@@ -172,8 +184,6 @@ export async function invokeChatModelWithFallback(
     }
 
     const fallback = await loadChatModel(fallbackName, temperature);
-    return await withAIRequestTimeout((signal) =>
-      fallback.invoke(input, { signal }),
-    );
+    return await collect(fallback);
   }
 }

@@ -54,7 +54,7 @@
                     </label>
                 </div>
             </form>
-            <div class="table-responsive card border-0 p-2" style="border-radius: 16px; background:#fff; border:1px solid rgba(0,0,0,.06)!important;">
+            <div class="table-responsive card border-0 p-2 d-none d-md-block" style="border-radius: 16px; background:#fff; border:1px solid rgba(0,0,0,.06)!important;">
                 <table class="table align-middle mb-0">
                     <thead><tr><th>Booking</th><th>Khách hàng</th><th>Phòng</th><th>Kỳ nghỉ</th><th>Lý do hủy</th><th>Hoàn tiền</th></tr></thead>
                     <tbody>
@@ -71,6 +71,32 @@
                     <tr data-cancellation-empty hidden><td colspan="6" class="text-center text-muted py-4">Không có booking phù hợp</td></tr>
                     </tbody>
                 </table>
+            </div>
+
+            {{-- Mobile Cancellation Cards (Mobile <= 768px) --}}
+            <div class="cancellations-cards-mobile d-md-none d-flex flex-column gap-3">
+                @foreach($cancelledBookings as $cancelled)
+                    <article class="card border-0 p-3" data-cancellation-record data-status="{{ $cancelled->refund_status }}" data-search="{{ $cancelled->id }} {{ $cancelled->customer_name }} {{ $cancelled->customer_phone }} {{ $cancelled->room_numbers }}" style="border-radius: 16px; border: 1px solid rgba(0,0,0,0.06) !important; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.01);">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="font-monospace fw-bold text-dark" style="font-size: 0.92rem;">#{{ $cancelled->id }}</span>
+                            <span class="badge" style="background: {{ $cancelled->refund_status === 'eligible' ? '#fffbeb' : ($cancelled->refund_status === 'refunded' ? '#ecfdf5' : '#f8fafc') }}; color: {{ $cancelled->refund_status === 'eligible' ? '#b45309' : ($cancelled->refund_status === 'refunded' ? '#047857' : '#64748b') }}; font-size: 0.72rem; font-weight: 600; padding: 4px 8px; border-radius: 999px;">
+                                {{ config('statuses.refund.'.$cancelled->refund_status, 'Chưa xác định') }}
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                            <div>
+                                <strong class="d-block text-dark" style="font-size: 0.88rem;">{{ $cancelled->customer_name }}</strong>
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ $cancelled->customer_phone }}</small>
+                            </div>
+                            <span class="badge bg-light text-slate-700 border" style="font-size: 0.75rem;">{{ $cancelled->room_numbers ?: 'Chưa gán phòng' }}</span>
+                        </div>
+                        <div class="d-flex flex-column gap-1 text-muted" style="font-size: 0.78rem;">
+                            <div><i class="bi bi-calendar-event me-1"></i>{{ \Carbon\Carbon::parse($cancelled->check_in)->format('d/m/Y') }} → {{ \Carbon\Carbon::parse($cancelled->check_out)->format('d/m/Y') }}</div>
+                            <div><i class="bi bi-chat-left-text me-1"></i>{{ $cancelled->cancellation_reason ?: 'Không ghi lý do' }}</div>
+                            <div class="text-slate-400" style="font-size: 0.72rem;"><i class="bi bi-clock me-1"></i>Hủy lúc: {{ optional($cancelled->cancelled_at)->format('d/m/Y H:i') ?: 'Chưa cập nhật' }}</div>
+                        </div>
+                    </article>
+                @endforeach
             </div>
         @endif
     </div>
@@ -94,7 +120,7 @@
                     <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">Số tiền cần hoàn</span>
                     <i class="bi bi-cash-stack text-danger" style="font-size: 1rem;"></i>
                 </div>
-                <div class="fs-4 fw-bold text-danger" style="letter-spacing: -0.02em;">{{ number_format($pending->sum('refund_amount'), 0, ',', '.') }} đ</div>
+                <div class="fs-4 fw-bold text-danger" data-count-up="{{ (int) $pending->sum('refund_amount') }}" style="letter-spacing: -0.02em;">{{ number_format($pending->sum('refund_amount'), 0, ',', '.') }} đ</div>
                 <small class="text-muted" style="font-size: 0.72rem;">Chưa xác nhận chuyển khoản</small>
             </div>
         </div>
@@ -104,7 +130,7 @@
                     <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">Đã hoàn thành</span>
                     <i class="bi bi-check2-circle text-success" style="font-size: 1rem;"></i>
                 </div>
-                <div class="fs-4 fw-bold text-success" style="letter-spacing: -0.02em;">{{ number_format($refunds->where('refund_status', 'refunded')->sum('refund_amount'), 0, ',', '.') }} đ</div>
+                <div class="fs-4 fw-bold text-success" data-count-up="{{ (int) $refunds->where('refund_status', 'refunded')->sum('refund_amount') }}" style="letter-spacing: -0.02em;">{{ number_format($refunds->where('refund_status', 'refunded')->sum('refund_amount'), 0, ',', '.') }} đ</div>
                 <small class="text-muted" style="font-size: 0.72rem;">{{ $refunds->where('refund_status', 'refunded')->count() }} yêu cầu hoàn tất</small>
             </div>
         </div>

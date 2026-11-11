@@ -2,11 +2,8 @@
 @section('title', 'Rosaliza Hotel HaNoi · Boutique Luxury in Hoàn Kiếm, Hanoi')
 @section('content')
 @php
-    $heroCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 16
-        ? now('Asia/Ho_Chi_Minh')->addDay()
-        : now('Asia/Ho_Chi_Minh');
-    $heroCheckOut = $heroCheckIn->copy()->addDay()->toDateString();
-    $heroCheckIn = $heroCheckIn->toDateString();
+    $heroCheckIn = $checkIn;
+    $heroCheckOut = $checkOut;
 @endphp
 
 <div class="melia-home-shell">
@@ -27,8 +24,8 @@
                     Nép mình trên phố Trần Quốc Toản, Rosaliza Hotel HaNoi mang đến một khoảng nghỉ thanh lịch giữa lòng Thủ đô, nơi di sản Hà Nội gặp gỡ phong cách Quiet Luxury.
                 </p>
 
-                <div class="melia-hero__action" style="margin-top: 24px;">
-                    <a href="{{ route('rooms.index') }}" class="melia-btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 13px 26px; font-size: 13.5px; font-weight: 600; text-decoration: none; border-radius: 999px; background: #141413; color: #ffffff; transition: background 0.2s ease, transform 0.2s ease;">
+                <div class="melia-hero__action">
+                    <a href="{{ route('rooms.index') }}" class="melia-btn-primary rb-star-border">
                         <i class="bi bi-calendar-check" aria-hidden="true"></i>
                         <span>Khám phá &amp; Đặt phòng</span>
                         <span style="opacity: 0.6; margin-left: 2px;" aria-hidden="true">→</span>
@@ -38,16 +35,43 @@
 
             {{-- Right Column: React Bits AccordionGallery with GSAP 3D Interactive Panels --}}
             <div class="melia-hero__image-col">
-                <div class="accordion-gallery" data-accordion-gallery aria-label="Bộ sưu tập không gian Rosaliza Hotel">
-                    @foreach ($featuredRooms->take(3) as $room)
-                        @php
-                            $heroImage = is_array($room->images) && count($room->images) ? $room->images[0] : $room->image;
-                            $heroImage = $heroImage ? (str_starts_with($heroImage, 'images/') ? asset($heroImage) : asset('storage/'.$heroImage)) : asset('images/rooms/'.(($loop->index % 6) + 1).'.jpg');
-                        @endphp
-                        <a href="{{ route('rooms.index') }}" class="ag-panel {{ $loop->first ? 'ag-panel--active' : '' }}" aria-label="{{ $room->type_name }}">
-                            <span class="ag-panel__frame"><span class="ag-panel__media"><img src="{{ $heroImage }}" alt="{{ $room->type_name }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}"></span><span class="ag-panel__overlay" aria-hidden="true"></span></span>
-                            <span class="ag-panel__label" aria-hidden="true"><span class="ag-panel__bar"></span><span class="ag-panel__text">{{ $room->type_name }}</span></span>
-                        </a>
+                @php
+                    $heroGalleryRooms = collect($featuredRooms ?? [])->concat($roomTypes ?? [])->unique('id')->values();
+                    $heroItems = [];
+                    foreach ($heroGalleryRooms->take(5) as $idx => $room) {
+                        $img = is_array($room->images) && count($room->images) ? $room->images[0] : $room->image;
+                        $imgUrl = $img
+                            ? (str_starts_with($img, 'images/') ? asset($img) : asset('storage/'.$img))
+                            : asset('images/rooms/'.(($idx % 6) + 1).'.jpg');
+                        $heroItems[] = [
+                            'image' => $imgUrl,
+                            'label' => $room->type_name,
+                        ];
+                    }
+                    $fallbackHeroItems = [
+                        ['image' => asset('images/rooms/albums/room-5-vip-1.jpg'), 'label' => 'Presidential Suite'],
+                        ['image' => asset('images/rooms/albums/room-4-family-1.jpg'), 'label' => 'Royal Family Suite'],
+                        ['image' => asset('images/rooms/albums/room-2-double-1.jpg'), 'label' => 'Deluxe Twin View'],
+                    ];
+                    $fIdx = 0;
+                    while (count($heroItems) < 5 && $fIdx < count($fallbackHeroItems)) {
+                        $heroItems[] = $fallbackHeroItems[$fIdx++];
+                    }
+                @endphp
+                <div class="accordion-gallery" data-accordion-gallery data-default-index="1" role="list" aria-label="Bộ sưu tập không gian Rosaliza Hotel">
+                    @foreach ($heroItems as $idx => $item)
+                        <div class="ag-panel {{ $idx === 1 ? 'ag-panel--active' : '' }}" role="listitem" tabindex="0" aria-current="{{ $idx === 1 ? 'true' : 'false' }}" aria-label="{{ $item['label'] }}">
+                            <span class="ag-panel__frame">
+                                <span class="ag-panel__media">
+                                    <img src="{{ $item['image'] }}" alt="{{ $item['label'] }}" draggable="false" loading="{{ $idx <= 1 ? 'eager' : 'lazy' }}">
+                                </span>
+                                <span class="ag-panel__overlay" aria-hidden="true"></span>
+                            </span>
+                            <span class="ag-panel__label" aria-hidden="true">
+                                <span class="ag-panel__bar"></span>
+                                <span class="ag-panel__text">{{ $item['label'] }}</span>
+                            </span>
+                        </div>
                     @endforeach
                 </div>
             </div>
@@ -72,6 +96,7 @@
     <section id="hotel-accommodation-rooms" class="figma-rooms-section">
         <div class="figma-rooms-header">
             <h2 class="figma-rooms-title">Hạng phòng tại Rosaliza</h2>
+            <p class="figma-rooms-availability-note">Giá và số phòng trống cho kỳ nghỉ {{ \Carbon\Carbon::parse($checkIn)->format('d/m') }}–{{ \Carbon\Carbon::parse($checkOut)->format('d/m/Y') }}; cập nhật từ hệ thống khi tải trang.</p>
         </div>
 
         <div class="figma-carousel-wrapper">
@@ -131,8 +156,8 @@
                     @foreach($repeatedRooms as $cardIndex => $room)
                         @php
                             $roomName = $room->type_name;
-                            $roomPrice = $room->price;
-                            $roomCapacity = $room->max_guests ?: 2;
+                            $roomPrice = $room->display_price;
+                            $roomCapacity = (int) $room->max_guests;
                             $roomReviewCount = (int) ($room->reviews_count ?? 0);
                             $roomRating = $roomReviewCount > 0
                                 ? number_format((float) $room->reviews_avg_rating, 1, ',', '.')
@@ -182,7 +207,7 @@
                                     <a href="{{ route('rooms.index', ['search' => 1, 'q' => $roomName, 'check_in' => $heroCheckIn, 'check_out' => $heroCheckOut, 'adults' => 1, 'children' => 0]) }}" class="figma-room-card__title-link">
                                         <h3 class="figma-room-card__name">{{ $roomName }}</h3>
                                     </a>
-                                    <div class="figma-room-card__price">
+                                    <div class="figma-room-card__price" @if($roomPrice !== null) data-count-up="{{ (int) $roomPrice }}" @endif>
                                         {{ $roomPrice === null ? 'Chưa cập nhật' : number_format($roomPrice, 0, ',', '.') . ' đ' }}
                                     </div>
                                 </div>
@@ -202,7 +227,7 @@
                                                 <rect x="3" y="3" width="18" height="18" rx="4" ry="4"></rect>
                                                 <path d="M3 9h4M3 15h4M9 3v4M15 3v4"></path>
                                             </svg>
-                                            <span>{{ (int) ($room->available_count ?? 0) }} phòng trống</span>
+                                            <span data-count-up="{{ (int) ($room->available_count ?? 0) }}">{{ (int) ($room->available_count ?? 0) }} phòng trống</span>
                                         </span>
                                     </div>
 
@@ -226,38 +251,21 @@
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         const track = document.querySelector('[data-carousel-track]');
+        const viewport = document.querySelector('[data-carousel-viewport]');
         const prevBtn = document.querySelector('[data-carousel-prev]');
         const nextBtn = document.querySelector('[data-carousel-next]');
         const cards = document.querySelectorAll('.figma-room-card');
-        const wrapper = document.querySelector('.figma-carousel-wrapper');
         if (!track || !cards.length) return;
 
-        // Auto-fit scale to ensure 5 cards & 2 arrows are always fully visible with balanced margins
-        function updateResponsiveScale() {
-            if (!wrapper) return;
-            const windowWidth = window.innerWidth;
-            if (windowWidth >= 1720) {
-                wrapper.style.zoom = '1';
-            } else if (windowWidth >= 1025) {
-                const scale = Math.min(1, Math.max(0.68, (windowWidth - 48) / 1760));
-                wrapper.style.zoom = scale;
-            } else {
-                wrapper.style.zoom = '1';
-            }
-        }
-        updateResponsiveScale();
-        window.addEventListener('resize', updateResponsiveScale);
-
-        // Coverflow state: window of 5 cards visible (1 edge-left, 3 center, 1 edge-right)
-        // cardWidth (300) + gap (24) = 324px
-        const cardStep = 324;
+        const isCompact = () => window.matchMedia('(max-width: 1024px)').matches;
+        const cardStep = () => cards[0].offsetWidth + parseFloat(getComputedStyle(track).gap || 0);
         let centerStart = 1; // index 1, 2, 3 are center; index 0 is left edge; index 4 is right edge
-        const maxIndex = cards.length - 4;
+        const maxIndex = () => isCompact() ? cards.length - 1 : cards.length - 4;
 
         function updateCoverflow() {
             cards.forEach((card, idx) => {
-                const isCenter = (idx >= centerStart && idx <= centerStart + 2);
-                const isEdge = (idx === centerStart - 1 || idx === centerStart + 3);
+                const isCenter = isCompact() ? idx === centerStart : (idx >= centerStart && idx <= centerStart + 2);
+                const isEdge = isCompact() ? idx !== centerStart : (idx === centerStart - 1 || idx === centerStart + 3);
 
                 if (isCenter) {
                     card.classList.add('is-center');
@@ -272,19 +280,23 @@
             });
 
             // Translate track so that the 5 cards are positioned with the 3 center cards centered
-            const offset = (centerStart - 1) * cardStep;
+            const offset = isCompact()
+                ? cards[centerStart].offsetLeft + cards[centerStart].offsetWidth / 2 - viewport.clientWidth / 2
+                : cards[centerStart + 1].offsetLeft + cards[centerStart + 1].offsetWidth / 2 - viewport.clientWidth / 2;
             track.style.transform = `translateX(-${offset}px)`;
         }
 
         updateCoverflow();
+        window.addEventListener('resize', updateCoverflow);
 
         if (nextBtn) {
             nextBtn.addEventListener('click', function () {
-                if (centerStart < maxIndex) {
+                if (centerStart < maxIndex()) {
                     centerStart++;
                 } else {
                     centerStart = 1; // Loop back
                 }
+                track.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
                 updateCoverflow();
             });
         }
@@ -294,11 +306,85 @@
                 if (centerStart > 1) {
                     centerStart--;
                 } else {
-                    centerStart = maxIndex; // Loop to end
+                    centerStart = maxIndex(); // Loop to end
                 }
+                track.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
                 updateCoverflow();
             });
         }
+
+        // =====================================================================
+        // MOUSE DRAG SCRUBBING (Hold left-click to scrub cards smoothly)
+        // =====================================================================
+        let isDragging = false;
+        let startX = 0;
+        let currentX = 0;
+        let initialTranslate = 0;
+        let hasDragged = false;
+
+        const getTranslateX = () => new DOMMatrixReadOnly(getComputedStyle(track).transform).m41;
+
+        const onPointerDown = (e) => {
+            // Only primary button (left mouse) or touch
+            if (e.button !== undefined && e.button !== 0) return;
+            // Don't drag if clicking dot or fav button
+            if (e.target.closest('.figma-room-card__dots') || e.target.closest('.figma-room-card__fav')) return;
+
+            isDragging = true;
+            hasDragged = false;
+            startX = e.clientX;
+            currentX = e.clientX;
+            initialTranslate = getTranslateX();
+            track.style.transition = 'none'; // Instant responsive scrub without lag
+            track.classList.add('is-dragging');
+            if (viewport) viewport.classList.add('is-dragging');
+        };
+
+        const onPointerMove = (e) => {
+            if (!isDragging) return;
+            currentX = e.clientX;
+            const deltaX = currentX - startX;
+            if (Math.abs(deltaX) > 6) {
+                hasDragged = true;
+            }
+            track.style.transform = `translateX(${initialTranslate + deltaX}px)`;
+        };
+
+        const onPointerUp = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            track.classList.remove('is-dragging');
+            if (viewport) viewport.classList.remove('is-dragging');
+            track.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+
+            const deltaX = currentX - startX;
+            const threshold = isCompact() ? 38 : 70;
+
+            if (deltaX < -threshold) {
+                const steps = Math.min(3, Math.max(1, Math.round(Math.abs(deltaX) / cardStep())));
+                centerStart = Math.min(maxIndex(), centerStart + steps);
+            } else if (deltaX > threshold) {
+                const steps = Math.min(3, Math.max(1, Math.round(deltaX / cardStep())));
+                centerStart = Math.max(1, centerStart - steps);
+            }
+
+            updateCoverflow();
+        };
+
+        track.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+
+        // Suppress room link navigation if the user was dragging/scrubbing
+        track.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', function (e) {
+                if (hasDragged) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+        });
 
         // Photo Album Inside Each Card
         cards.forEach((card) => {
@@ -308,9 +394,11 @@
             if (!albumContainer || !dots.length || !images.length) return;
 
             dots.forEach((dot) => {
-                dot.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                const switchDot = function (e) {
+                    if (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
                     const targetIdx = parseInt(this.getAttribute('data-dot-idx'), 10);
 
                     // Switch image
@@ -322,6 +410,24 @@
                     dots.forEach((d, i) => {
                         d.classList.toggle('dot--active', i === targetIdx);
                     });
+                };
+
+                dot.addEventListener('click', switchDot);
+                dot.addEventListener('mouseenter', switchDot);
+            });
+
+            // Hover scrubbing across the album: moving mouse from left to right previews photos
+            albumContainer.addEventListener('mousemove', function (e) {
+                if (e.target.closest('.figma-room-card__fav') || e.target.closest('.figma-room-card__dots')) return;
+                const rect = albumContainer.getBoundingClientRect();
+                if (rect.width <= 0) return;
+                const ratio = Math.max(0, Math.min(0.999, (e.clientX - rect.left) / rect.width));
+                const targetIdx = Math.floor(ratio * images.length);
+                images.forEach((img, i) => {
+                    img.classList.toggle('is-active', i === targetIdx);
+                });
+                dots.forEach((d, i) => {
+                    d.classList.toggle('dot--active', i === targetIdx);
                 });
             });
 
@@ -525,8 +631,9 @@
                 </p>
             </div>
 
-            <div class="melia-activities__grid">
+            <div class="melia-activities__grid" data-scroll-stack>
                 {{-- Activity 1: Hoan Kiem Walk --}}
+                <div class="melia-activity-slot" data-stack-slot>
                 <article class="melia-activity-card" data-rb-spotlight>
                     <div class="melia-activity-card__thumb" data-rb-glare>
                         <img src="{{ asset('images/hanoi/hanoi-hoan-kiem.jpg') }}" alt="Khám phá Hồ Gươm và 36 Phố Phường" loading="lazy">
@@ -536,8 +643,10 @@
                         <p class="melia-activity-card__desc">Tản bộ bên Hồ Hoàn Kiếm, ngắm Tháp Rùa trong sương sớm và cảm nhận nhịp phố vừa thức giấc.</p>
                     </div>
                 </article>
+                </div>
 
                 {{-- Activity 2: Lotus Tea Ceremony --}}
+                <div class="melia-activity-slot" data-stack-slot>
                 <article class="melia-activity-card" data-rb-spotlight>
                     <div class="melia-activity-card__thumb" data-rb-glare>
                         <img src="{{ asset('images/hanoi/hanoi-egg-coffee.jpg') }}" alt="Văn hóa trà Việt" loading="lazy">
@@ -547,8 +656,10 @@
                         <p class="melia-activity-card__desc">Dành một khoảng lặng để thưởng trà và tìm hiểu nét thanh nhã trong văn hóa Việt.</p>
                     </div>
                 </article>
+                </div>
 
                 {{-- Activity 3: Culinary & Heritage Walk --}}
+                <div class="melia-activity-slot" data-stack-slot>
                 <article class="melia-activity-card" data-rb-spotlight>
                     <div class="melia-activity-card__thumb" data-rb-glare>
                         <img src="{{ asset('images/hanoi/hanoi-pho-bo.jpg') }}" alt="Ẩm thực Phố Cổ & Di sản Pháp Cổ" loading="lazy">
@@ -558,6 +669,7 @@
                         <p class="melia-activity-card__desc">Thưởng thức cà phê trứng, phở Hà Nội và dạo quanh những công trình kiến trúc Pháp cổ.</p>
                     </div>
                 </article>
+                </div>
             </div>
         </div>
     </section>

@@ -1,4 +1,5 @@
 import './animated-toast';
+import { initCountUp } from './count-up';
 import { gsap } from 'gsap';
 import '../css/date-picker.css';
 import { enhanceDatePickers } from './date-picker';
@@ -201,3 +202,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 });
+document.addEventListener('DOMContentLoaded', initCountUp);

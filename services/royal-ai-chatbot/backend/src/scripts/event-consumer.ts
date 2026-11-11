@@ -47,8 +47,22 @@ async function main() {
 
       await consumer.run({
         eachMessage: async ({ topic, message }) => {
-          const raw = message.value?.toString() || '{}';
-          const parsed = JSON.parse(raw);
+          let parsed: Record<string, unknown>;
+          try {
+            const value = JSON.parse(message.value?.toString() || 'null');
+            if (!value || typeof value !== 'object' || Array.isArray(value)) {
+              throw new Error('INVALID_EVENT_SHAPE');
+            }
+            parsed = value;
+          } catch {
+            console.warn(JSON.stringify({
+              service: 'royal-event-consumer',
+              topic,
+              event: 'invalid_event_skipped',
+              offset: message.offset,
+            }));
+            return;
+          }
           const eventId = String(parsed.event_id || '');
 
           if (eventId && processedEventIds.has(eventId)) {

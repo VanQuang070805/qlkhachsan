@@ -13,7 +13,7 @@ class VerifiedCustomMiddleware
         $user = $isStaffPath ? (session('staff_user') ?? session('user')) : (session('customer_user') ?? session('user'));
 
         if (!$user || !($user['verified'] ?? false)) {
-            session()->put('url.intended', $request->fullUrl());
+            session()->put('url.intended', $request->getRequestUri());
             return redirect()->route('verify')
                 ->with('error', 'Vui lòng xác thực email trước khi tiếp tục.');
         }

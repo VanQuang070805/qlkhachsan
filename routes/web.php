@@ -29,9 +29,9 @@ Route::post('/chatbot/api', [ChatbotController::class, 'api'])->middleware('thro
 Route::post('/chatbot/stream', [ChatbotController::class, 'stream'])->middleware('throttle:chatbot')->name('chatbot.stream');
 
 // Phòng
-Route::get('/rooms',               [RoomController::class, 'index'])->name('rooms.index');
-Route::get('/rooms/search',        [RoomController::class, 'search'])->name('rooms.search');
-Route::get('/rooms/{id}',          [RoomController::class, 'detail'])->name('rooms.detail');
+Route::get('/rooms',               [RoomController::class, 'index'])->middleware('throttle:public-availability')->name('rooms.index');
+Route::get('/rooms/search',        [RoomController::class, 'search'])->middleware('throttle:public-availability')->name('rooms.search');
+Route::get('/rooms/{id}',          [RoomController::class, 'detail'])->middleware('throttle:public-availability')->name('rooms.detail');
 Route::get('/rooms/{id}/amenities',[RoomController::class, 'amenities'])->name('rooms.amenities');
 Route::redirect('/amenities', '/rooms', 301)->name('amenities');
 
@@ -44,7 +44,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/register',               [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register',              [AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::get('/verify',                 [AuthController::class, 'showVerify'])->name('verify');
-    Route::post('/verify',                [AuthController::class, 'verify'])->middleware('throttle:8,1');
+    Route::post('/verify',                [AuthController::class, 'verify'])->middleware('throttle:otp-verify');
     Route::post('/verify/resend',         [AuthController::class, 'resendVerifyOtp'])->middleware('throttle:3,1')->name('verify.resend');
     Route::get('/auth/google',             [GoogleAuthController::class, 'redirect'])->name('auth.google');
     Route::get('/auth/google/callback',    [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
@@ -57,7 +57,7 @@ Route::post('/forgot-password/resend',[AuthController::class, 'resendResetOtp'])
 Route::get('/reset-password',         [AuthController::class, 'showReset'])->name('password.reset');
 Route::post('/reset-password',        [AuthController::class, 'reset'])->middleware('throttle:password-reset');
 Route::get('/verify-reset-otp',       [AuthController::class, 'showVerifyOtp'])->name('password.verify-otp');
-Route::post('/verify-reset-otp',      [AuthController::class, 'verifyOtp'])->middleware('throttle:8,1');
+Route::post('/verify-reset-otp',      [AuthController::class, 'verifyOtp'])->middleware('throttle:otp-verify');
 
 // Internal Auth (Nhân viên & Quản trị — 2 cổng riêng + tương thích đường dẫn cũ)
 Route::get('/staff/login',          [InternalAuthController::class, 'showStaffLogin'])->name('staff.login');

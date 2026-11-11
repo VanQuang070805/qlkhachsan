@@ -33,7 +33,7 @@ class ChatbotController extends Controller
         if (! $this->langGraph->configured()) {
             return response()->json([
                 'source' => 'error',
-                'message' => 'Rosaliza Concierge đang tạm thời bảo trì. Bạn vui lòng thử lại sau ít phút.',
+                'message' => 'Pico đang tạm thời bảo trì. Bạn vui lòng thử lại sau ít phút.',
             ], 503);
         }
 
@@ -41,7 +41,7 @@ class ChatbotController extends Controller
         if (! $answer) {
             return response()->json([
                 'source' => 'error',
-                'message' => 'Rosaliza Concierge đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
+                'message' => 'Pico đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
             ], 503);
         }
 
@@ -66,16 +66,21 @@ class ChatbotController extends Controller
         if (! $this->langGraph->configured()) {
             return response()->json([
                 'source' => 'error',
-                'message' => 'Rosaliza Concierge đang tạm thời bảo trì. Bạn vui lòng thử lại sau ít phút.',
+                'message' => 'Pico đang tạm thời bảo trì. Bạn vui lòng thử lại sau ít phút.',
             ], 503);
         }
 
         $threadId = $this->langGraph->ensureThreadId($request);
 
         return response()->stream(function () use ($request, $message, $threadId, $history) {
+            echo ": connected\n\n";
+            if (ob_get_level() > 0) {
+                ob_flush();
+            }
+            flush();
             if (! $threadId) {
                 echo 'data: '.json_encode([
-                    'error' => 'Rosaliza Concierge đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
+                    'error' => 'Pico đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
                 ], JSON_UNESCAPED_UNICODE)."\n\n";
                 if (ob_get_level() > 0) {
                     ob_flush();
@@ -98,7 +103,7 @@ class ChatbotController extends Controller
 
             if (! $ok || ! $emitted) {
                 echo 'data: '.json_encode([
-                    'error' => 'Rosaliza Concierge đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
+                    'error' => 'Pico đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
                 ], JSON_UNESCAPED_UNICODE)."\n\n";
                 if (ob_get_level() > 0) {
                     ob_flush();
@@ -135,7 +140,7 @@ class ChatbotController extends Controller
             return response()->json([
                 'error' => [
                     'code' => 'CHATBOT_UNAVAILABLE',
-                    'message' => 'Rosaliza Concierge đang tạm thời bảo trì.',
+                    'message' => 'Pico đang tạm thời bảo trì.',
                     'fields' => (object) [],
                     'correlation_id' => $corrId,
                 ],
@@ -301,7 +306,7 @@ class ChatbotController extends Controller
                 ]), now()->addMinutes(15));
 
                 echo 'data: '.json_encode([
-                    'error' => 'Rosaliza Concierge đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
+                    'error' => 'Pico đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
                 ], JSON_UNESCAPED_UNICODE)."\n\n";
                 return;
             }

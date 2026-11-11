@@ -2,9 +2,11 @@ import { StateGraph, START, END } from '@langchain/langgraph';
 import { AgentStateAnnotation } from './state.js';
 import { makeRetriever } from '../shared/retrieval.js';
 import { formatDocs } from './utils.js';
-import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
+import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { z } from 'zod';
 import { RESPONSE_SYSTEM_PROMPT, ROUTER_SYSTEM_PROMPT } from './prompts.js';
+import { answerClockQuestion, hotelClock, PICO_STYLE, recentConversation, retrievalQuestion } from './conversation.js';
+import { fetchWeather, isWeatherQuestion, weatherLocation } from './weather.js';
 import { RunnableConfig } from '@langchain/core/runnables';
 import {
   AgentConfigurationAnnotation,
@@ -17,53 +19,45 @@ import {
 } from '../shared/utils.js';
 
 const HOTEL_FACT_KEYWORDS = [
-  'phong',
-  'phòng',
-  'gia',
-  'giá',
-  'dat',
-  'đặt',
-  'book',
-  'check',
-  'nhan',
-  'nhận',
-  'tra',
-  'trả',
-  'huy',
-  'hủy',
-  'hoan',
-  'hoàn',
-  'thanh toan',
-  'thanh toán',
-  'coc',
-  'cọc',
-  'nguoi',
-  'người',
-  'khach',
-  'khách',
+  'giá phòng',
+  'gia phong',
+  'đặt phòng',
+  'dat phong',
+  'hạng phòng',
+  'hang phong',
+  'phòng trống',
+  'phong trong',
+  'trả phòng',
+  'tra phong',
+  'nhận phòng',
+  'nhan phong',
+  'khách sạn',
+  'khach san',
+  'check-in',
+  'check-out',
+  'booking',
   'suite',
   'deluxe',
   'standard',
   'triple',
   'vip',
-  'gia dinh',
-  'gia đình',
   'rosaliza',
-  'royal',
-  'tien ich',
-  'tiện ích',
-  'phu thu',
-  'phụ thu',
-  'gia han',
-  'gia hạn',
-  'con trong',
-  'còn trống',
+  'phụ thu phòng',
+  'phu thu phong',
+  'gia hạn lưu trú',
+  'gia han luu tru',
+  'hoàn tiền đặt phòng',
+  'hoan tien dat phong',
+  'hủy phòng',
+  'huy phong',
   'đơn của tôi',
   'don cua toi',
 ];
 
 function isHotelQuery(query: string): boolean {
   const lower = query.toLowerCase();
+  const normalized = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
+  if (/\b(gia|dat|hang|loai|con|huy|thue|phu thu|tra|nhan|tim)\s+phog\b/.test(normalized)) return true;
   return HOTEL_FACT_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
@@ -253,8 +247,33 @@ async function checkQueryType(
 ): Promise<{
   route: 'retrieve' | 'direct';
 }> {
+  if (answerClockQuestion(state.query || '')) {
+    return { route: 'direct' };
+  }
+
+  if (isWeatherQuestion(state.query || '')) {
+    return { route: 'direct' };
+  }
+
   if (isHotelQuery(state.query || '')) {
     return { route: 'retrieve' };
+  }
+
+  const lastUserQuestion = [...(state.messages || [])].reverse()
+    .find((message) => message instanceof HumanMessage);
+  const followup = /^(còn|con|thế|the|vậy|vay|nó|no|loại đó|loai do|bao nhiêu|bao nhieu|giá thì sao|gia thi sao)/i.test((state.query || '').trim());
+  if (followup && lastUserQuestion && isHotelQuery(String(lastUserQuestion.content || ''))) {
+    return { route: 'retrieve' };
+  }
+
+  if (/^(chào|xin chào|hello|hi\b|cảm ơn|cám ơn|kể (mình|tôi) (một )?chuyện cười|bạn (có )?khỏe không)/i.test((state.query || '').trim())) {
+    return { route: 'direct' };
+  }
+
+  // General questions go straight to Gemini. The extra model router was adding
+  // one full provider round trip before every ordinary answer.
+  if (!/phòng|phong|phog|khách sạn|khach san|đặt|dat|hủy|huy|hoàn tiền|hoan tien/i.test(state.query || '')) {
+    return { route: 'direct' };
   }
 
   const schema = z.object({
@@ -267,6 +286,7 @@ async function checkQueryType(
     const model = await loadChatModel(configuration.queryModel);
     const formattedPrompt = await ROUTER_SYSTEM_PROMPT.invoke({
       query: state.query,
+      history: recentConversation(state.messages || []),
     });
 
     const structuredModel = model.withStructuredOutput(schema);
@@ -274,9 +294,9 @@ async function checkQueryType(
       structuredModel.invoke(formattedPrompt.toString(), { signal }),
     );
 
-    return { route: response.route || 'retrieve' };
+    return { route: response.route || 'direct' };
   } catch {
-    return { route: 'retrieve' };
+    return { route: 'direct' };
   }
 }
 
@@ -286,12 +306,30 @@ async function answerQueryDirectly(
 ): Promise<typeof AgentStateAnnotation.Update> {
   const configuration = ensureAgentConfiguration(config);
   const userHumanMessage = new HumanMessage(state.query);
+  const clockAnswer = answerClockQuestion(state.query);
+  if (clockAnswer) {
+    return { messages: [userHumanMessage, new AIMessage(clockAnswer)] };
+  }
+
+  let weatherContext = '';
+  if (isWeatherQuestion(state.query)) {
+    const place = weatherLocation(state.query, state.messages || []);
+    try {
+      const weather = await fetchWeather(place);
+      if (!weather) {
+        return { messages: [userHumanMessage, new AIMessage(`Mình chưa xác định được địa điểm “${place}”. Bạn cho mình tên thành phố hoặc quốc gia cụ thể hơn nhé.`)] };
+      }
+      weatherContext = `\nDữ liệu thời tiết trực tiếp từ Open-Meteo, cập nhật lúc ${weather.observedAt} theo múi giờ ${weather.timezone}: ${JSON.stringify(weather)}. Chỉ dùng các số liệu này để trả lời thời tiết; không tự suy đoán. Nêu tên địa điểm và thời điểm của số liệu. Xác suất mưa cực đại trong ngày không đồng nghĩa chắc chắn mưa.`;
+    } catch {
+      return { messages: [userHumanMessage, new AIMessage('Mình chưa lấy được dữ liệu thời tiết trực tiếp lúc này, nên không muốn đoán bừa. Bạn thử lại sau ít phút nhé.') ] };
+    }
+  }
 
   const response = await invokeChatModelWithFallback(
     [
-      new HumanMessage(
-        `Bạn là Rosaliza Concierge của Rosaliza Hotel. Hãy phản hồi lịch sự bằng tiếng Việt cho lời chào hoặc tin nhắn sau mà không bịa bất kỳ giá phòng hay chính sách nào: "${state.query}"`,
-      ),
+      new SystemMessage(`Bạn là Pico, trợ lý AI thân thiện của Rosaliza Hotel. Với chuyện đời thường, hãy trả lời tự nhiên bằng ngôn ngữ khách đang dùng. Trả lời đúng trọng tâm từng ý khách hỏi; nếu một từ viết tắt mơ hồ, suy từ ngữ cảnh hoặc hỏi lại ngắn. "NYC" có thể là New York City khi hỏi địa điểm/thời tiết, hoặc "người yêu cũ" khi nói chuyện tình cảm; không áp một nghĩa cho mọi câu. Đừng ép câu chuyện về khách sạn hoặc bịa dữ kiện riêng của khách sạn. ${PICO_STYLE}\nĐồng hồ hệ thống tại Hà Nội: ${hotelClock()}. Đây là thời gian thực, không phải kiến thức của mô hình.${weatherContext}`),
+      ...state.messages.slice(-6),
+      userHumanMessage,
     ],
     configuration.queryModel,
   );
@@ -321,7 +359,7 @@ async function retrieveDocuments(
   config: RunnableConfig,
 ): Promise<typeof AgentStateAnnotation.Update> {
   const retriever = await makeRetriever(config);
-  const response = await retriever.invoke(state.query);
+  const response = await retriever.invoke(retrievalQuestion(state.query, state.messages || []));
 
   return { documents: response };
 }
@@ -344,12 +382,12 @@ async function generateResponse(
     question: state.query,
     context: docContext,
     toolContext: liveToolsXml,
+    currentTime: hotelClock(),
   });
 
   const userHumanMessage = new HumanMessage(state.query);
-  const formattedPromptMessage = new HumanMessage(formattedPrompt.toString());
-
-  const messageHistory = [...state.messages.slice(-6), formattedPromptMessage];
+  const promptMessages = formattedPrompt.toChatMessages();
+  const messageHistory = [promptMessages[0], ...state.messages.slice(-6), ...promptMessages.slice(1)];
 
   const response = await invokeChatModelWithFallback(
     messageHistory,

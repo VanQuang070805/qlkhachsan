@@ -330,7 +330,26 @@
     }
     @media (max-width: 575.98px) {
         .rooms-five-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+        }
+        .room-card {
+            padding: 8px 10px !important;
+            border-radius: 12px !important;
+        }
+        .room-number {
+            font-size: 1rem !important;
+        }
+        .room-type-name {
+            font-size: 0.72rem !important;
+        }
+        .room-capacity {
+            font-size: 0.68rem !important;
+        }
+        .room-guest-chip,
+        .room-ready-chip {
+            font-size: 0.68rem !important;
+            padding: 2px 6px !important;
         }
     }
     .room-card-wrapper {
@@ -402,11 +421,17 @@
     
     /* Status-specific badge colors */
     .badge-status-available {
-        background: #ecfdf5;
-        color: #065f46;
-        border: 1px solid rgba(16, 185, 129, 0.22);
+        background: #d1fae5 !important;
+        color: #065f46 !important;
+        border: 1.5px solid #34d399 !important;
+        font-weight: 700 !important;
     }
-    .badge-status-available .badge-dot { background: #10b981; }
+    .badge-status-available .badge-dot {
+        background: #059669 !important;
+        border-radius: 50% !important;
+        aspect-ratio: 1/1 !important;
+        flex-shrink: 0 !important;
+    }
 
     .room-cleaning-request-tag {
         display: inline-flex;
@@ -663,11 +688,75 @@
 .staff-floor-list small { color: inherit; opacity: .8; }
 .staff-room-results { min-width: 0; }
 .staff-room-empty { padding: 32px 18px; border: 1px dashed #cbd5e1; border-radius: 12px; color: #64748b; text-align: center; }
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .staff-room-layout { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .staff-floor-nav { position: static; padding: 10px; }
-  .staff-floor-list { display: flex; overflow-x: auto; }
+  .staff-floor-list {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .staff-floor-list::-webkit-scrollbar { display: none; }
   .staff-floor-list button { width: auto; flex: 0 0 auto; white-space: nowrap; }
+
+  /* Mobile App Cupertino Operations Toolbar */
+  .operations-tier-1 {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .operations-search-box {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+  .operations-quick-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .operations-quick-actions::-webkit-scrollbar { display: none; }
+  .action-pill-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .operations-tier-2 {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px;
+  }
+  .status-segmented-group {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .status-segmented-group::-webkit-scrollbar { display: none; }
+  .legend-badge {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .filter-dropdowns-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    width: 100%;
+  }
+  .filter-select {
+    width: 100%;
+    font-size: 16px; /* Stop iOS Safari auto-zoom */
+  }
 }
 </style>
 
@@ -1690,7 +1779,7 @@
             let badgeClass = 'bg-secondary';
             let statusText = '';
                 switch(roomData.ui_status || roomData.status) {
-                case 'available': badgeClass = 'bg-success'; statusText = 'Đang trống'; break;
+                case 'available': badgeClass = 'bg-success text-white'; statusText = 'Đang trống'; break;
                 case 'occupied': badgeClass = 'bg-primary'; statusText = 'Đang lưu trú'; break;
                 case 'cleaning': badgeClass = 'bg-warning text-dark'; statusText = 'Đang dọn dẹp'; break;
                 case 'maintenance': badgeClass = 'bg-danger'; statusText = 'Bảo trì'; break;

@@ -1077,14 +1077,16 @@ function createEngine({ root, canvas, button, cursor, ramp, props }) {
   const measure = () => {
     const r = root.getBoundingClientRect();
     const W0 = s.W;
-    s.W = Math.max(1, r.width);
+    s.W = Math.max(1, Math.min(r.width, window.innerWidth));
     s.H = Math.max(1, r.height);
     s.bw = button.offsetWidth;
     s.bh = button.offsetHeight;
-    if (!s.placed) {
+    if (!s.placed || s.phase === 'rest' || s.phase === 'landed' || s.phase === 'ground' || !s.running) {
       s.x = home();
       s.placed = true;
-    } else if (W0 > 0 && W0 !== s.W) s.x *= s.W / W0;
+    } else if (W0 > 0 && W0 !== s.W) {
+      s.x *= s.W / W0;
+    }
     if (!riding()) {
       const [lo, hi] = xLimits();
       s.x = clamp(s.x, lo, hi);
@@ -1128,6 +1130,7 @@ function createEngine({ root, canvas, button, cursor, ramp, props }) {
     const P = props.current;
     begin();
     s.phase = 'ignite';
+    root.dataset.flying = '';
     s.delay = s.delay.map(() => Math.random() * 0.07);
     const top = s.H - s.bh - podH() - 30 - REST;
     s.alt = clamp(s.y + num(P.altitude, 170), s.y + 24, Math.max(s.y + 24, top));
@@ -1487,8 +1490,11 @@ function createEngine({ root, canvas, button, cursor, ramp, props }) {
     s.last = now;
     if (dt > 0) {
       if (s.phase !== 'rest') {
+        root.dataset.flying = '';
         const steps = 6;
         for (let i = 0; i < steps; i += 1) physics(dt / steps);
+      } else {
+        delete root.dataset.flying;
       }
       const kf = 1 - Math.exp(-dt / 0.12);
       s.fvx += (s.vx - s.fvx) * kf;
@@ -1608,6 +1614,9 @@ function createEngine({ root, canvas, button, cursor, ramp, props }) {
     if (!overCraft(f.x, f.y, s.attached ? 10 : 0)) return;
     if (p.type !== 'mouse' && s.phase === 'rest' && props.current.trigger !== 'click' && !rampOn()) launch();
     s.press = { x: q.x, y: q.y };
+    try {
+      root.setPointerCapture(e.pointerId);
+    } catch {}
     if (s.carry && p.type === 'mouse') {
       s.pressed = true;
       button.dataset.pressed = '';
@@ -1619,6 +1628,9 @@ function createEngine({ root, canvas, button, cursor, ramp, props }) {
       endDrag(e);
       return;
     }
+    try {
+      root.releasePointerCapture(e.pointerId);
+    } catch {}
     s.press = null;
     if (!s.pressed) return;
     s.pressed = false;
@@ -1635,6 +1647,10 @@ function createEngine({ root, canvas, button, cursor, ramp, props }) {
       s.suppress = false;
       e.stopPropagation();
       e.preventDefault();
+      return;
+    }
+    if (s.phase === 'climb' || s.phase === 'hover' || s.phase === 'descend') {
+      if (props.current.onClick) props.current.onClick(e);
       return;
     }
     if (s.phase !== 'rest') return;
@@ -1988,24 +2004,55 @@ function createSim(gl) {
 
 // Adapter for the server-rendered homepage; the animation engine above is from React Bits.
 export function initFlyingButton() {
-  const root = document.querySelector('[data-flying-button]');
-  if (!root) return;
-  const button = root.querySelector('.flying-button__craft');
-  const navigate = () => window.location.assign(root.dataset.href);
-  button.addEventListener('click', navigate);
-  try {
-    const engine = createEngine({
-      root, canvas: root.querySelector('canvas'), button,
-      cursor: root.querySelector('.flying-button__cursor'),
-      ramp: root.querySelector('.flying-button__ramp'),
-      props: { current: { size: 'large', altitude: 150, hoverTime: 2.4, jets: 2,
-        thrusters: true, trigger: 'hover', carryCursor: false, ramp: false, smoke: 1,
-        turbulence: 1, wobble: 1, thrustColor: '#8ec5ff', smokeColor: '#eef1f6',
-        theme: 'dark', onClick: null } }
-    });
-    window.addEventListener('pagehide', () => engine.destroy(), { once: true });
-  } catch (error) {
-    console.error('FlyingButton could not initialize:', error);
-    root.removeAttribute('data-ready');
-  }
+  document.querySelectorAll('[data-flying-button]').forEach(root => {
+    if (root.dataset.rbInit === '1') return;
+    root.dataset.rbInit = '1';
+    const button = root.querySelector('.flying-button__craft');
+    const canvas = root.querySelector('canvas');
+    if (!button || !canvas) return;
+
+    const props = { current: {
+      size: 'large', altitude: 150, hoverTime: 2.4, jets: 2,
+      thrusters: true, trigger: root.dataset.trigger || 'hover', carryCursor: false,
+      ramp: false, smoke: 1, turbulence: 1, wobble: 1,
+      thrustColor: '#8ec5ff', smokeColor: '#eef1f6', theme: root.dataset.theme || 'dark', onClick: null
+    } };
+    const applyResponsiveProps = () => {
+      const width = root.clientWidth;
+      const height = root.clientHeight;
+      const compact = width <= 768;
+      props.current.size = compact ? 'medium' : 'large';
+      props.current.altitude = compact ? Math.max(160, Math.min(340, height * 0.48)) : Math.max(170, Math.min(340, height * 0.52));
+      props.current.hoverTime = compact ? 2.2 : 2.4;
+      props.current.turbulence = compact ? 0.85 : 1;
+      props.current.wobble = compact ? 0.8 : 1;
+    };
+    const navigate = (e) => {
+      if (root.dataset.href) window.location.assign(root.dataset.href);
+    };
+    props.current.onClick = navigate;
+    try {
+      applyResponsiveProps();
+      const engine = createEngine({
+        root, canvas, button,
+        cursor: root.querySelector('.flying-button__cursor'),
+        ramp: root.querySelector('.flying-button__ramp'),
+        props
+      });
+      const observer = new ResizeObserver(() => {
+        applyResponsiveProps();
+        engine.refresh();
+      });
+      observer.observe(root);
+      window.addEventListener('pagehide', () => {
+        observer.disconnect();
+        engine.destroy();
+        delete root.dataset.rbInit;
+      }, { once: true });
+    } catch (error) {
+      console.error('FlyingButton could not initialize:', error);
+      root.removeAttribute('data-ready');
+      delete root.dataset.rbInit;
+    }
+  });
 }

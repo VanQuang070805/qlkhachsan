@@ -269,8 +269,8 @@
     border-radius: 50%;
     flex-shrink: 0;
 }
-.apple-status-pill--available { background: #ecfdf5; color: #047857; }
-.apple-status-pill--available .apple-dot { background: #10b981; }
+.apple-status-pill--available { background: #d1fae5 !important; color: #065f46 !important; border: 1.5px solid #34d399 !important; font-weight: 700 !important; }
+.apple-status-pill--available .apple-dot { background: #059669 !important; border-radius: 50% !important; aspect-ratio: 1/1 !important; flex-shrink: 0 !important; }
 .apple-status-pill--occupied { background: #eff6ff; color: #1d4ed8; }
 .apple-status-pill--occupied .apple-dot { background: #3b82f6; }
 .apple-status-pill--reserved { background: #fef3c7; color: #b45309; }

@@ -1310,14 +1310,16 @@
     width: 100% !important;
     height: 20px !important;
     position: relative !important;
+    top: -1px !important;
     margin-bottom: 56px !important;
+    border: 0 !important;
 }
 
 .supaste-footer__tongue {
     background: #ffffff !important;
     width: min(580px, calc(100% - 100px)) !important;
     height: 20px !important;
-    border-radius: 0 0 18px 18px !important;
+    border-radius: 0 0 20px 20px !important;
     position: relative !important;
 }
 
@@ -2955,3 +2957,47 @@
     overflow: hidden !important;
 }
 
+
+
+/* ==========================================================================
+   SUPASTE FOOTER MOBILE RESPONSIVE CLEANUP
+   ========================================================================== */
+@media (max-width: 768px) {
+    .site-footer,
+    .supaste-footer {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+        padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    .supaste-footer__honors {
+        display: none !important; /* Eliminate ribbon pushing viewport horizontally */
+    }
+    .supaste-footer__tongue {
+        width: min(320px, calc(100% - 40px)) !important;
+    }
+    .supaste-footer__container {
+        grid-template-columns: 1fr !important;
+        gap: 28px !important;
+        padding: 0 20px !important;
+        text-align: center !important;
+    }
+    .supaste-footer__left {
+        align-items: center !important;
+        text-align: center !important;
+    }
+    .supaste-footer__desc {
+        max-width: 100% !important;
+        text-align: center !important;
+    }
+    .supaste-footer__nav {
+        align-items: center !important;
+    }
+    .supaste-footer__col h6 {
+        text-align: center !important;
+    }
+    .supaste-footer__copyright,
+    .supaste-footer__credit {
+        text-align: center !important;
+        justify-content: center !important;
+    }
+}

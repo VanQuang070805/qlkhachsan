@@ -40,7 +40,7 @@ async function relayBatch(pool: mysql.Pool): Promise<number> {
        WHERE published_at IS NULL AND available_at <= NOW()
        ORDER BY id ASC
        LIMIT 25
-       FOR UPDATE SKIP LOCKED`,
+       FOR UPDATE`,
     );
 
     if (!rows.length) {
@@ -101,8 +101,13 @@ async function relayBatch(pool: mysql.Pool): Promise<number> {
 
     await conn.commit();
     return publishedCount;
-  } catch {
+  } catch (error: any) {
     await conn.rollback();
+    console.warn(JSON.stringify({
+      service: 'royal-chatbot-event-relay',
+      event: 'outbox_batch_failed',
+      error_code: String(error?.code || error?.name || 'OUTBOX_BATCH_FAILED'),
+    }));
     return 0;
   } finally {
     conn.release();

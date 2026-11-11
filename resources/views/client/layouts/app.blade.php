@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Rosaliza Hotel - Không gian nghỉ dưỡng riêng tư và thư thái.">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('layouts.partials.portal-tab-session', ['portal' => 'customer'])
     <title>@yield('title', 'Rosaliza Hotel')</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">

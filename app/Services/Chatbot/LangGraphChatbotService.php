@@ -70,6 +70,11 @@ class LangGraphChatbotService
         return false;
     }
 
+    private function isTimeSensitiveQuery(string $message): bool
+    {
+        return (bool) preg_match('/hôm nay|ngày mai|bây giờ|hiện tại|mấy giờ|thứ mấy|thời tiết|thoi tiet|nhiệt độ|nhiet do|mưa|weather|forecast|temperature/ui', $message);
+    }
+
     /**
      * Build a deterministic, scope-aware deduplication and cache fingerprint (Section 8.2).
      *
@@ -177,7 +182,7 @@ class LangGraphChatbotService
             'cache_status' => 'pending',
         ], $correlationId);
 
-        if (! $isPersonal && $history === []) {
+        if (! $isPersonal && ! $this->isTimeSensitiveQuery($message) && $history === []) {
             $cached = Cache::get("royal:chatbot:answer:{$fingerprint}");
             if (is_array($cached) && isset($cached['reply']) && is_string($cached['reply']) && $cached['reply'] !== '') {
                 $this->outbox->recordChatbotEvent('cache_hit', [
@@ -212,6 +217,7 @@ class LangGraphChatbotService
                     'assistant_id' => config('services.langgraph.retrieval_assistant_id', 'retrieval_graph'),
                     'input' => [
                         'query' => $message,
+                        'history' => $history,
                     ],
                     'config' => [
                         'configurable' => [
@@ -254,7 +260,7 @@ class LangGraphChatbotService
                 'sources' => is_array($data['sources'] ?? null) ? $data['sources'] : [],
             ];
 
-            if (! $isPersonal && $history === []) {
+            if (! $isPersonal && ! $this->isTimeSensitiveQuery($message) && $history === []) {
                 Cache::put("royal:chatbot:answer:{$fingerprint}", $result, now()->addMinutes(10));
             }
 
@@ -336,6 +342,7 @@ class LangGraphChatbotService
                     'assistant_id' => config('services.langgraph.retrieval_assistant_id', 'retrieval_graph'),
                     'input' => [
                         'query' => $message,
+                        'history' => $history,
                     ],
                     'streamMode' => ['messages', 'updates'],
                     'config' => [
@@ -430,7 +437,7 @@ class LangGraphChatbotService
             }
 
             if ($emittedAny) {
-                if (! $isPersonal && $history === [] && $accumulated !== '') {
+                if (! $isPersonal && ! $this->isTimeSensitiveQuery($message) && $history === [] && $accumulated !== '') {
                     Cache::put("royal:chatbot:answer:{$fingerprint}", [
                         'reply' => $accumulated,
                         'sources' => $sources,

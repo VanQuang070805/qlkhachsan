@@ -10,22 +10,27 @@ use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
 use App\Services\ExpirePendingBookingHolds;
+use App\Services\SessionRevocationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 class CustomerPortalApiController extends ApiController
 {
     public function register(Request $request)
     {
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'min:2', 'max:100'],
             'email' => ['required', 'email', 'max:190', 'unique:users,email'],
             'phone' => ['required', 'regex:/^0[0-9]{9,10}$/'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'confirmed', Password::min(10)->mixedCase()->numbers()],
         ]);
 
         if ($validator->fails()) {
@@ -33,6 +38,7 @@ class CustomerPortalApiController extends ApiController
         }
 
         $data = $validator->validated();
+        $otp = $this->newOtp();
         $user = User::create([
             'username' => $data['email'],
             'fullname' => $data['name'],
@@ -41,7 +47,13 @@ class CustomerPortalApiController extends ApiController
             'password' => Hash::make($data['password']),
             'role' => 'customer',
             'verified' => false,
+            'otp_code' => Hash::make($otp),
+            'otp_expires_at' => now()->addMinutes(10),
         ]);
+
+        if (! $this->sendOtpEmail($user, $otp, 'Xác thực tài khoản Rosaliza Hotel')) {
+            return $this->fail('EMAIL_UNAVAILABLE', 'Chưa thể gửi email xác thực. Vui lòng thử gửi lại OTP.', 503);
+        }
 
         return $this->ok([
             'id' => (int) $user->id,
@@ -131,34 +143,56 @@ class CustomerPortalApiController extends ApiController
         }
 
         $user = User::where('email', $request->input('email'))->where('role', 'customer')->first();
-        if (! $user || ! $user->otp_code || ! Hash::check((string) $request->input('otp'), $user->otp_code)) {
+        if (! $user || ! $user->otp_code || ! $user->otp_expires_at || now()->greaterThan($user->otp_expires_at) || ! Hash::check((string) $request->input('otp'), $user->otp_code)) {
             return $this->fail('INVALID_OTP', 'Mã OTP không chính xác hoặc đã hết hạn.', 422);
         }
 
-        $user->update(['verified' => true, 'otp_code' => null]);
+        $updated = User::query()
+            ->whereKey($user->id)
+            ->where('otp_code', $user->otp_code)
+            ->where('otp_expires_at', '>', now())
+            ->where('verified', false)
+            ->update(['verified' => true, 'otp_code' => null, 'otp_expires_at' => null]);
+        if ($updated !== 1) {
+            return $this->fail('INVALID_OTP', 'Mã OTP không chính xác hoặc đã hết hạn.', 422);
+        }
 
         return $this->ok(['verified' => true]);
     }
 
     public function resendOtp(Request $request)
     {
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email'],
+            'email' => ['required', 'email', 'max:190'],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Email không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
-        return $this->ok(['sent' => true]);
+        $user = User::query()->where('role', 'customer')->where('email', $request->input('email'))
+            ->where('verified', false)->whereNotNull('otp_code')->first();
+        if ($user) {
+            $this->issueOtp($user, 'Xác thực tài khoản Rosaliza Hotel');
+        }
+
+        return $this->ok(['accepted' => true]);
     }
 
     public function forgotPassword(Request $request)
     {
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email'],
+            'email' => ['required', 'email', 'max:190'],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Email không hợp lệ.', 422, $validator->errors()->toArray());
+        }
+
+        $user = User::query()->where('role', 'customer')->where('email', $request->input('email'))
+            ->where('verified', true)->first();
+        if ($user) {
+            $this->issueOtp($user, 'Đặt lại mật khẩu Rosaliza Hotel');
         }
 
         return $this->ok(['accepted' => true]);
@@ -166,16 +200,81 @@ class CustomerPortalApiController extends ApiController
 
     public function resetPassword(Request $request)
     {
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email'],
-            'otp' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'email' => ['required', 'email', 'max:190'],
+            'otp' => ['required', 'string', 'regex:/^[0-9]{6}$/'],
+            'password' => ['required', 'confirmed', Password::min(10)->mixedCase()->numbers()],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Thông tin đặt lại mật khẩu chưa hợp lệ.', 422, $validator->errors()->toArray());
         }
 
+        $data = $validator->validated();
+        $reset = DB::transaction(function () use ($data): bool {
+            $user = User::query()->where('role', 'customer')->where('email', $data['email'])
+                ->where('verified', true)->lockForUpdate()->first();
+            if (! $user || ! $user->otp_code || ! $user->otp_expires_at
+                || now()->greaterThanOrEqualTo($user->otp_expires_at)
+                || ! Hash::check($data['otp'], $user->otp_code)) {
+                return false;
+            }
+
+            $user->update([
+                'password' => Hash::make($data['password']),
+                'otp_code' => null,
+                'otp_expires_at' => null,
+            ]);
+            app(SessionRevocationService::class)->revoke($user);
+
+            return true;
+        });
+
+        if (! $reset) {
+            return $this->fail('INVALID_OTP', 'Mã OTP không chính xác hoặc đã hết hạn.', 422);
+        }
+
+        Auth::guard('customer')->logout();
+        $request->session()->forget(['customer_user_id', 'customer_user', 'user_id', 'auth_user_id', 'user']);
+        $request->session()->regenerate();
+        $request->session()->regenerateToken();
+
         return $this->ok(['reset' => true]);
+    }
+
+    private function newOtp(): string
+    {
+        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    }
+
+    private function issueOtp(User $user, string $subject): void
+    {
+        $previousCode = $user->otp_code;
+        $previousExpiry = $user->otp_expires_at;
+        $otp = $this->newOtp();
+        $newHash = Hash::make($otp);
+        $user->update(['otp_code' => $newHash, 'otp_expires_at' => now()->addMinutes(10)]);
+
+        if (! $this->sendOtpEmail($user, $otp, $subject)) {
+            User::query()->whereKey($user->id)->where('otp_code', $newHash)
+                ->update(['otp_code' => $previousCode, 'otp_expires_at' => $previousExpiry]);
+        }
+    }
+
+    private function sendOtpEmail(User $user, string $otp, string $subject): bool
+    {
+        try {
+            Mail::raw(
+                "Mã OTP của bạn là: {$otp}\n\nMã có hiệu lực trong 10 phút.\nNếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.",
+                fn ($message) => $message->to($user->email)->subject($subject)
+            );
+
+            return true;
+        } catch (\Throwable $exception) {
+            Log::error('OTP email delivery failed.', ['user_id' => $user->id, 'exception' => get_class($exception)]);
+
+            return false;
+        }
     }
 
     public function me(Request $request)

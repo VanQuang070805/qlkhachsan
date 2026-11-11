@@ -36,7 +36,7 @@ class AuthCustomMiddleware
         $loginRoute = $isAdminPath ? 'admin.login' : ($isStaffPath ? 'staff.login' : 'login');
 
         if (! $userId) {
-            session()->put('url.intended', $request->fullUrl());
+            session()->put('url.intended', $request->getRequestUri());
 
             return redirect()->route($loginRoute)
                 ->with('error', 'Vui lòng đăng nhập để tiếp tục.');

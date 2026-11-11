@@ -4,6 +4,7 @@ import './animated-toast';
 import './bootstrap';
 import '../css/flying-button.css';
 import { initFlyingButton } from './flying-button';
+import { initCountUp } from './count-up';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { Draggable } from 'gsap/Draggable';
@@ -21,6 +22,7 @@ gsap.registerPlugin(Draggable, Flip, ScrollToPlugin, ScrollTrigger, SplitText);
 window.gsap = gsap;
 
 document.addEventListener('DOMContentLoaded', () => {
+    initCountUp();
     initHoloRooms();
     initFlyingButton();
     const pageLoader = document.querySelector('[data-page-loader]');

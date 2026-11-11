@@ -261,8 +261,8 @@
                             </div>
                         </div>
 
-                        {{-- Nút Tiếp tục đến thanh toán (Chuyển sang card bên phải) --}}
-                        <div class="mt-4 pt-1">
+                        {{-- Nút Tiếp tục đến thanh toán (Desktop) --}}
+                        <div class="mt-4 pt-1 d-none d-lg-block">
                             <button type="submit" form="bookingForm" class="aeth-btn-primary" id="btnSubmitStep1"
                                 onclick="document.getElementById('bookingForm').requestSubmit ? document.getElementById('bookingForm').requestSubmit() : document.getElementById('bookingForm').submit()"
                                 style="height: 52px; font-size: 16px; font-weight: 700; border-radius: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -278,9 +278,23 @@
                 </div>
             </div>
 
-        </div>
 
+
+    {{-- Native App Sticky Bottom Action Dock (Mobile <= 991px) --}}
+    <div class="app-bottom-dock d-lg-none" aria-label="Tiếp tục thanh toán">
+        <div class="app-bottom-dock__content">
+            <div class="app-bottom-dock__price">
+                <span class="app-bottom-dock__amount">{{ number_format($total, 0, ',', '.') }}đ</span>
+                <span class="app-bottom-dock__unit">{{ $nights }} đêm · {{ $rooms->count() }} phòng</span>
+            </div>
+            <button type="submit" form="bookingForm" class="app-bottom-dock__btn" id="btnMobileSubmitStep1"
+                onclick="document.getElementById('bookingForm').requestSubmit ? document.getElementById('bookingForm').requestSubmit() : document.getElementById('bookingForm').submit()">
+                <span>Tiếp tục</span>
+                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </button>
+        </div>
     </div>
+</div>
 </div>
 
 <script>

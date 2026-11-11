@@ -14,7 +14,7 @@
     <div class="account-profile__layout">
         <aside class="account-profile__identity" data-reveal style="padding: 0 !important; overflow: hidden; border-radius: 24px;">
             <div class="macos-card-bar" style="border-radius: 0; padding: 12px 18px; border-bottom: 1px solid rgba(0,0,0,0.06); background: #f8fafc; margin: 0; display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important;">
-                <div style="display:flex !important; flex-direction:row !important; align-items:center !important; gap:6px !important; border:none !important; padding:0 !important; margin:0 !important;">
+                <div class="d-none d-md-flex" style="flex-direction:row !important; align-items:center !important; gap:6px !important; border:none !important; padding:0 !important; margin:0 !important;">
                     <span class="ctrl-dot ctrl-red"></span>
                     <span class="ctrl-dot ctrl-yellow"></span>
                     <span class="ctrl-dot ctrl-green"></span>
@@ -36,7 +36,7 @@
         <form class="account-profile__form" action="{{ route('account.update') }}" method="POST" data-reveal style="padding: 0 !important; overflow: hidden; border-radius: 24px;">
             @csrf @method('PATCH')
             <div class="macos-card-bar" style="border-radius: 0; padding: 12px 18px; border-bottom: 1px solid rgba(0,0,0,0.06); background: #f8fafc; margin: 0;">
-                <div style="display:flex;gap:6px;">
+                <div class="d-none d-md-flex" style="gap:6px;">
                     <span class="ctrl-dot ctrl-red"></span>
                     <span class="ctrl-dot ctrl-yellow"></span>
                     <span class="ctrl-dot ctrl-green"></span>

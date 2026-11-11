@@ -1,20 +1,19 @@
 <header class="site-header" data-site-header data-home-header data-homepage-header aria-label="Thanh điều hướng Rosaliza Hotel">
+    {{-- Main Site Notch Header (Floating Dynamic Island Header active on ALL pages) --}}
     <div class="site-header__inner">
         <a href="{{ route('home') }}" class="site-header__brand-spacer" aria-label="Rosa Hotel">
             <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosa Hotel" class="site-header__logo-img">
         </a>
-        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" data-nav-toggle>
-            <span class="sr-only">Mở menu</span><span></span><span></span>
-        </button>
         <nav class="primary-nav" id="primary-navigation" aria-label="Điều hướng chính" data-primary-nav>
             <a class="{{ request()->routeIs('home') ? 'is-active' : '' }}" href="{{ route('home') }}">Trang chủ</a>
+            <a class="{{ request()->routeIs('rooms.index', 'rooms.detail') ? 'is-active' : '' }}" href="{{ route('rooms.index') }}">Phòng nghỉ</a>
             <a class="{{ request()->routeIs('contact', 'about') ? 'is-active' : '' }}" href="{{ route('contact') }}">Giới thiệu &amp; Liên hệ</a>
             <span class="primary-nav__divider" aria-hidden="true"></span>
             @if(session('user_id'))
-                <a class="primary-nav__mobile-account" href="{{ route('booking.mine') }}">Lịch sử đặt phòng</a>
-                <a class="primary-nav__mobile-account" href="{{ route('account.show') }}">Thông tin cá nhân</a>
+                <a class="primary-nav__mobile-account {{ request()->routeIs('booking.mine') ? 'is-active' : '' }}" href="{{ route('booking.mine') }}">Lịch sử đặt phòng</a>
+                <a class="primary-nav__mobile-account {{ request()->routeIs('account.show') ? 'is-active' : '' }}" href="{{ route('account.show') }}">Thông tin cá nhân</a>
             @else
-                <a class="primary-nav__mobile-account" href="{{ route('login') }}">Đăng nhập</a>
+                <a class="primary-nav__mobile-account {{ request()->routeIs('login') ? 'is-active' : '' }}" href="{{ route('login') }}">Đăng nhập</a>
             @endif
         </nav>
         <div class="site-header__actions">

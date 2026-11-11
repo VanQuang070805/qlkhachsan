@@ -902,7 +902,7 @@ class SecurityFlowsTest extends TestCase
 
         $results = app(\App\Services\RoyalKnowledgeService::class)->search('Giờ nhận phòng và trả phòng');
         $this->assertNotEmpty($results);
-        $this->assertStringContainsString('Nhận và trả phòng', $results[0]['source']);
+        $this->assertStringContainsString('nhận phòng', mb_strtolower($results[0]['content']));
 
     }
 

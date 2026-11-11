@@ -320,3 +320,51 @@
     background: #000;
     pointer-events: none;
 }
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE SIZING
+   Scales down the iPhone 17 Pro mockup gracefully to fit mobile viewports
+   without dominating the entire screen height.
+   ========================================================================== */
+@media (max-width: 768px) {
+    .rb-iphone-showcase {
+        padding: 44px 0 !important;
+    }
+    .rb-iphone-showcase__grid {
+        gap: 20px !important;
+    }
+    .booking-preview .stepper {
+        margin-top: 12px !important;
+    }
+    .booking-preview .stepper__viewport {
+        min-height: 110px !important;
+    }
+    .silver-phone-stage {
+        padding: 10px 8px 24px !important;
+    }
+    .silver-phone-stage::before {
+        width: min(240px, 75vw) !important;
+        height: min(240px, 75vw) !important;
+    }
+    .silver-phone-stage::after {
+        width: min(150px, 48vw) !important;
+        height: 16px !important;
+        bottom: 12px !important;
+    }
+    .silver-phone-stage .silver-phone {
+        width: min(214px, 58vw) !important;
+        max-width: 220px !important;
+        margin: 0 auto !important;
+        filter: drop-shadow(0 20px 36px rgba(15, 23, 42, .22))
+                drop-shadow(0 8px 16px rgba(15, 23, 42, .12))
+                drop-shadow(0 2px 4px rgba(15, 23, 42, .06)) !important;
+    }
+}
+
+@media (max-width: 440px) {
+    .silver-phone-stage .silver-phone {
+        width: min(202px, 56vw) !important;
+        max-width: 206px !important;
+    }
+}
+

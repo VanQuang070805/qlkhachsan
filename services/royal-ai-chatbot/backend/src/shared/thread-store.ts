@@ -7,6 +7,19 @@ export interface SerializedMessage {
   content: string;
 }
 
+export function conversationFromClient(history: unknown): BaseMessage[] {
+  if (!Array.isArray(history)) return [];
+  return history.slice(-8).flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const role = item.role;
+    const content = typeof item.content === 'string' ? item.content.trim().slice(0, 1000) : '';
+    if (!content) return [];
+    if (role === 'user') return [new HumanMessage(content)];
+    if (role === 'assistant') return [new AIMessage(content)];
+    return [];
+  });
+}
+
 export interface ThreadRecord {
   thread_id: string;
   created_at: string;

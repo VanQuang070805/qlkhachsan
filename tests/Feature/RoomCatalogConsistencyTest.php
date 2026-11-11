@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Room;
+use App\Models\Booking;
 use App\Models\RoomType;
 use App\Models\User;
 use App\Models\PriceSetting;
@@ -15,6 +16,43 @@ use Tests\TestCase;
 class RoomCatalogConsistencyTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_home_room_cards_follow_live_capacity_price_and_reserved_room_count(): void
+    {
+        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(10, 0));
+        $type = RoomType::create([
+            'type_name' => 'Live Family Room', 'price' => 50000,
+            'max_adults' => 2, 'max_children' => 1, 'max_guests' => 3,
+        ]);
+        $reservedRoom = Room::create(['room_number' => 'LIVE-101', 'room_type_id' => $type->id, 'floor' => 1, 'status' => Room::STATUS_AVAILABLE]);
+        $otherRoom = Room::create(['room_number' => 'LIVE-102', 'room_type_id' => $type->id, 'floor' => 1, 'status' => Room::STATUS_AVAILABLE]);
+        $customer = User::create([
+            'username' => 'live-room-customer', 'fullname' => 'Live Guest', 'email' => 'live-room@example.test',
+            'phone' => '0912345678', 'password' => Hash::make('password123'), 'role' => 'customer', 'verified' => true,
+        ]);
+        $booking = Booking::create([
+            'user_id' => $customer->id, 'customer_name' => $customer->fullname,
+            'customer_email' => $customer->email, 'customer_phone' => $customer->phone,
+            'check_in' => now('Asia/Ho_Chi_Minh')->toDateString(),
+            'check_out' => now('Asia/Ho_Chi_Minh')->addDay()->toDateString(),
+            'adult_count' => 2, 'child_count' => 1, 'total_price' => 50000,
+            'deposit_amount' => 25000, 'payment_status' => 'paid', 'status' => 'confirmed',
+        ]);
+        $booking->rooms()->attach($reservedRoom->id);
+        PriceSetting::create([
+            'name' => 'Live pricing', 'start_date' => now('Asia/Ho_Chi_Minh')->toDateString(),
+            'end_date' => now('Asia/Ho_Chi_Minh')->toDateString(), 'adjustment_type' => 'percent',
+            'adjustment_value' => 20, 'status' => true,
+        ]);
+
+        $this->get(route('home'))->assertOk()->assertSee('Live Family Room')->assertSee('60.000 đ')
+            ->assertSee('3 khách')->assertSee('1 phòng trống');
+
+        $type->update(['price' => 80000, 'max_guests' => 4]);
+        $otherRoom->update(['status' => Room::STATUS_MAINTENANCE]);
+        $this->get(route('home'))->assertOk()->assertSee('96.000 đ')
+            ->assertSee('4 khách')->assertSee('0 phòng trống');
+    }
 
     public function test_home_phone_preview_uses_the_actual_price_policy_for_its_dates(): void
     {
