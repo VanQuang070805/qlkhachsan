@@ -35,6 +35,9 @@ if (-not (Test-DockerEngine)) {
 & $npm run build --workspace backend --prefix $chatbotRoot | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Chatbot TypeScript build failed.' }
 
+& $docker build -t rosaliza-local-php:latest -f (Join-Path $projectRoot 'docker\php\Dockerfile.local') $projectRoot
+if ($LASTEXITCODE -ne 0) { throw 'Local PHP/Node runtime image build failed.' }
+
 & $docker compose -f $infraCompose up -d
 if ($LASTEXITCODE -ne 0) { throw 'Docker stack failed to start.' }
 

@@ -3,6 +3,7 @@ FROM alpine:3.20
 RUN apk add --no-cache \
     bash \
     mariadb-client \
+    nodejs \
     php83 \
     php83-cli \
     php83-pdo \
@@ -30,17 +31,9 @@ RUN apk add --no-cache \
 
 WORKDIR /var/www/html
 
-COPY composer.json composer.lock artisan /var/www/html/
-COPY vendor /var/www/html/vendor
-COPY docker /var/www/html/docker
 COPY docker/php/local-entrypoint.sh /usr/local/bin/local-entrypoint.sh
 
 RUN sed -i 's/\r$//' /usr/local/bin/local-entrypoint.sh \
-    && chmod +x /usr/local/bin/local-entrypoint.sh \
-    && mkdir -p storage/framework/cache/data \
-                storage/framework/sessions \
-                storage/framework/views \
-                storage/logs \
-                bootstrap/cache
+    && chmod +x /usr/local/bin/local-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/local-entrypoint.sh"]

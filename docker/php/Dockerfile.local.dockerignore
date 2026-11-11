@@ -1,6 +1,2 @@
 *
-!composer.json
-!composer.lock
-!artisan
-!vendor/**
-!docker/**
+!docker/php/local-entrypoint.sh

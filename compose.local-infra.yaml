@@ -25,14 +25,7 @@ x-laravel-env: &laravel-env
   PHP_CLI_SERVER_WORKERS: 4
 
 x-laravel-volumes: &laravel-volumes
-  - ./app:/var/www/html/app
-  - ./bootstrap:/var/www/html/bootstrap
-  - ./config:/var/www/html/config
-  - ./database:/var/www/html/database
-  - ./public:/var/www/html/public
-  - ./resources:/var/www/html/resources
-  - ./routes:/var/www/html/routes
-  - ./storage:/var/www/html/storage
+  - .:/var/www/html
 
 x-chatbot-env: &chatbot-env
   VECTOR_PROVIDER: mysql
@@ -53,7 +46,7 @@ x-chatbot-env: &chatbot-env
   LANGGRAPH_PORT: 2024
 
 x-chatbot-volumes: &chatbot-volumes
-  - ./services/royal-ai-chatbot/backend/dist:/workspace/backend/dist:ro
+  - ./services/royal-ai-chatbot:/workspace
   - ./resources/knowledge:/workspace/resources/knowledge:ro
 
 services:
@@ -271,11 +264,9 @@ services:
         condition: service_started
 
   chatbot-api:
-    image: royal-hotel-nhom10-v2-chatbot-api:latest
+    image: rosaliza-local-php:latest
     pull_policy: never
-    build:
-      context: .
-      dockerfile: docker/chatbot/Dockerfile
+    working_dir: /workspace/backend
     restart: unless-stopped
     command: ["node", "dist/src/server.js"]
     ports:
@@ -299,8 +290,9 @@ services:
       retries: 12
 
   chatbot-worker:
-    image: royal-hotel-nhom10-v2-chatbot-api:latest
+    image: rosaliza-local-php:latest
     pull_policy: never
+    working_dir: /workspace/backend
     restart: unless-stopped
     command: ["node", "dist/src/worker.js"]
     env_file:
@@ -317,8 +309,9 @@ services:
         condition: service_started
 
   chatbot-kafka-relay:
-    image: royal-hotel-nhom10-v2-chatbot-api:latest
+    image: rosaliza-local-php:latest
     pull_policy: never
+    working_dir: /workspace/backend
     restart: unless-stopped
     command: ["node", "dist/src/scripts/event-relay.js"]
     env_file:
@@ -333,8 +326,9 @@ services:
         condition: service_completed_successfully
 
   chatbot-kafka-consumer:
-    image: royal-hotel-nhom10-v2-chatbot-api:latest
+    image: rosaliza-local-php:latest
     pull_policy: never
+    working_dir: /workspace/backend
     restart: unless-stopped
     command: ["node", "dist/src/scripts/event-consumer.js"]
     env_file:
