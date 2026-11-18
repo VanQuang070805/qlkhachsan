@@ -1649,18 +1649,13 @@ function createEngine({ root, canvas, button, cursor, ramp, props }) {
       e.preventDefault();
       return;
     }
-    if (s.phase === 'climb' || s.phase === 'hover' || s.phase === 'descend') {
-      if (props.current.onClick) props.current.onClick(e);
-      return;
+    if (s.phase === 'rest') {
+      if (rampOn()) ride();
+      else if (launch() && s.pointer.type === 'mouse' && s.pointer.in && s.hover) {
+        s.attached = Boolean(props.current.carryCursor);
+      }
     }
-    if (s.phase !== 'rest') return;
-    if (rampOn()) {
-      ride();
-      return;
-    }
-    if (launch() && s.pointer.type === 'mouse' && s.pointer.in && s.hover) {
-      s.attached = Boolean(props.current.carryCursor);
-    }
+    if (props.current.onClick) props.current.onClick(e);
   };
 
   root.addEventListener('pointermove', onMove);

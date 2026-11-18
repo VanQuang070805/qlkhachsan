@@ -7,12 +7,12 @@
     <div class="supaste-footer__container">
         {{-- Left Column: Brand, Headline, Desc, CTA, Copyright, Team --}}
         <div class="supaste-footer__left">
-            <a href="{{ route('home') }}" class="supaste-footer__brand" aria-label="Về trang chủ Rosa Hotel">
-                <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosa Hotel" class="supaste-footer__logo-img">
+            <a href="{{ route('home') }}" class="supaste-footer__brand" aria-label="Về trang chủ Rosaliza Hotel">
+                <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosaliza Hotel" class="supaste-footer__logo-img">
             </a>
 
             <div class="supaste-footer__headline">
-                <span class="supaste-footer__headline-sans">Rosa Hotel</span>
+                <span class="supaste-footer__headline-sans">Rosaliza Hotel</span>
                 <span class="supaste-footer__headline-serif">Rest effortlessly.</span>
             </div>
 

@@ -144,7 +144,7 @@ class ReceptionController extends Controller
                     (SELECT SUM(rt.price)
                     FROM booking_rooms br
                     JOIN bookings b ON b.id = br.booking_id
-                    JOIN rooms r2 ON r2.id = br.room_id
+                    JOIN rooms r2 ON r2.id = br.room_id AND r2.status IN ('occupied', 'overdue')
                     JOIN room_types rt ON rt.id = r2.room_type_id
                     WHERE b.id = (
                         SELECT b2.id FROM booking_rooms br2
@@ -431,11 +431,11 @@ class ReceptionController extends Controller
             }
 
             $currentRoom = \App\Models\Room::lockForUpdate()->findOrFail($roomId);
-            if (($status === 'available' && $currentRoom->status !== 'cleaning') || ($status === 'occupied' && $currentRoom->status !== 'available')) {
+            if (($status === 'available' && !in_array($currentRoom->status, ['cleaning', 'maintenance'], true)) || ($status === 'occupied' && $currentRoom->status !== 'available')) {
                 DB::rollBack();
                 return response()->json(['success'=>false, 'message'=>'Trạng thái phòng đã thay đổi. Vui lòng tải lại.'], 409);
             }
-            if ($status === 'cleaning' && $currentRoom->status === 'occupied') {
+            if ($status === 'cleaning' && in_array($currentRoom->status, ['occupied', 'overdue'], true)) {
                 DB::rollBack();
                 return response()->json(['success'=>false, 'message'=>'Vui lòng hoàn tất bước thanh toán trả phòng trước khi chuyển sang dọn dẹp.'], 422);
             }
@@ -554,7 +554,14 @@ class ReceptionController extends Controller
             'child_count' => 'required|integer|min:0|max:100',
             'check_out' => 'required|date_format:Y-m-d|after:today',
         ]);
-        return DB::transaction(function () use ($data) {
+        $today = now('Asia/Ho_Chi_Minh')->toDateString();
+        if ($data['walkin_type'] === 'hold' && now('Asia/Ho_Chi_Minh')->hour >= 18) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sau 18:00 không thể tạo đơn giữ phòng chờ nhận trong ngày. Vui lòng chọn nhận phòng ngay.',
+            ], 422);
+        }
+        return DB::transaction(function () use ($data, $today) {
             $rooms = \App\Models\Room::with('roomType')->whereIn('id', $data['room_ids'])->orderBy('id')->lockForUpdate()->get();
             if ($rooms->count() !== count($data['room_ids']) || $rooms->contains(fn ($room) => $room->status !== 'available')) {
                 return response()->json(['success'=>false, 'message'=>'Phòng chưa sẵn sàng. Vui lòng chọn phòng đang trống.'], 409);
@@ -566,15 +573,15 @@ class ReceptionController extends Controller
                 || $rooms->sum(fn ($room) => (int) $room->roomType->max_children) < $data['child_count']) {
                 return response()->json(['success'=>false, 'message'=>'Các phòng đã chọn không phù hợp với cơ cấu người lớn và trẻ em.'], 422);
             }
-            $reserved = \App\Models\Booking::reservedRoomIds(now()->toDateString(), $data['check_out']);
+            $reserved = \App\Models\Booking::reservedRoomIds($today, $data['check_out']);
             $conflict = $rooms->pluck('id')->intersect($reserved)->isNotEmpty();
             if ($conflict) return response()->json(['success'=>false, 'message'=>'Phòng đã có lịch đặt trong thời gian này. Vui lòng chọn lại.'], 409);
-            $total = $rooms->sum(fn ($room) => PriceSetting::calculateTotalPrice((float) $room->roomType->price, now()->toDateString(), $data['check_out']));
+            $total = round($rooms->sum(fn ($room) => PriceSetting::calculateTotalPrice((float) $room->roomType->price, $today, $data['check_out'])));
             $isImmediateCheckin = $data['walkin_type'] === 'now';
             $booking = \App\Models\Booking::create([
                 'user_id'=>null, 'customer_name'=>$data['customer_name'],
                 'customer_phone'=>$data['customer_phone'], 'customer_email'=>$data['customer_email'] ?? '',
-                'check_in'=>now()->toDateString(), 'check_out'=>$data['check_out'],
+                'check_in'=>$today, 'check_out'=>$data['check_out'],
                 'actual_check_in'=>$isImmediateCheckin ? now() : null,
                 'adult_count'=>$data['adult_count'], 'child_count'=>$data['child_count'],
                 'total_price'=>$total, 'deposit_amount'=>0, 'payment_method'=>'cash', 'payment_status'=>'pending',
@@ -621,7 +628,7 @@ class ReceptionController extends Controller
         }
 
         try {
-            $result = app(\App\Services\StayExtensionService::class)->extend($booking->id, $mode, $amount);
+            $result = app(\App\Services\StayExtensionService::class)->extend($booking->id, $mode, $amount, true);
             return response()->json([
                 'success' => true,
                 'message' => $result['message'].' Chi phí bổ sung: '.number_format($result['added_amount'], 0, ',', '.').'đ.',
@@ -671,17 +678,27 @@ class ReceptionController extends Controller
     }
 
     /**
-     * Quét QR lấy thông tin booking.
+     * Quét QR hoặc tra cứu ID đặt phòng thủ công để lấy thông tin booking.
      */
     public function getBookingByScan(Request $request)
     {
-        $qrPayload = (string) $request->query('payload', $request->query('token', ''));
-        try {
-            $tokens = app(\App\Services\CheckInTokenService::class);
-            $token = $tokens->tokenFromQrPayload($qrPayload);
-            $bookingId = $tokens->bookingId($token);
-        } catch (\RuntimeException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        $token = null;
+
+        if ($request->filled('booking_id')) {
+            $rawId = ltrim(trim((string) $request->query('booking_id')), '#');
+            if ($rawId === '' || ! ctype_digit($rawId) || (int) $rawId <= 0) {
+                return response()->json(['success' => false, 'message' => 'ID đặt phòng không hợp lệ.'], 400);
+            }
+            $bookingId = (int) $rawId;
+        } else {
+            $qrPayload = (string) $request->query('payload', $request->query('token', ''));
+            try {
+                $tokens = app(\App\Services\CheckInTokenService::class);
+                $token = $tokens->tokenFromQrPayload($qrPayload);
+                $bookingId = $tokens->bookingId($token);
+            } catch (\RuntimeException $e) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+            }
         }
 
         try {
@@ -718,7 +735,7 @@ class ReceptionController extends Controller
     }
 
     /**
-     * Nhận phòng nhanh cho toàn bộ phòng thuộc booking (khi quét QR).
+     * Nhận phòng nhanh cho toàn bộ phòng thuộc booking (khi quét QR hoặc tra cứu ID đặt phòng).
      */
     public function quickCheckinMultipleRooms(Request $request)
     {
@@ -729,12 +746,25 @@ class ReceptionController extends Controller
             ], 403);
         }
 
-        $token = (string) $request->input('token', '');
+        $token = trim((string) $request->input('token', ''));
+        $rawBookingId = ltrim(trim((string) $request->input('booking_id', '')), '#');
+
         try {
-            $tokens = app(\App\Services\CheckInTokenService::class);
-            $bookingId = $tokens->bookingId($token);
-            $booking = app(\App\Services\BookingTransitionService::class)->checkIn($bookingId);
-            $tokens->consume($token);
+            if ($token !== '') {
+                $tokens = app(\App\Services\CheckInTokenService::class);
+                $bookingId = $tokens->bookingId($token);
+                $booking = app(\App\Services\BookingTransitionService::class)->checkIn($bookingId);
+                $tokens->consume($token);
+            } elseif ($rawBookingId !== '' && ctype_digit($rawBookingId) && (int) $rawBookingId > 0) {
+                $bookingId = (int) $rawBookingId;
+                $booking = app(\App\Services\BookingTransitionService::class)->checkIn($bookingId);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thiếu thông tin mã QR hoặc ID đặt phòng.',
+                ], 422);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Nhận phòng nhanh thành công cho ' . $booking->rooms->count() . ' phòng!'
@@ -772,9 +802,9 @@ class ReceptionController extends Controller
 
     private function pendingHoldExpirySql(): string
     {
-        return DB::getDriverName() === 'sqlite'
-            ? "datetime(b.updated_at) > datetime('now', '-".Booking::PAYMENT_HOLD_MINUTES." minutes')"
-            : 'b.updated_at > DATE_SUB(NOW(), INTERVAL '.Booking::PAYMENT_HOLD_MINUTES.' MINUTE)';
+        $cutoff = DB::getPdo()->quote(now()->subMinutes(Booking::PAYMENT_HOLD_MINUTES)->toDateTimeString());
+
+        return "b.updated_at > {$cutoff}";
     }
     
 }

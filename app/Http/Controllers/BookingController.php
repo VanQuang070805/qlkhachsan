@@ -32,6 +32,7 @@ class BookingController extends Controller
             'check_out' => 'required|date_format:Y-m-d|after:check_in',
             'adults' => 'nullable|integer|min:1|max:100',
             'children' => 'nullable|integer|min:0|max:100',
+            'booking_id' => 'nullable|integer|min:1',
         ]);
         $roomIds   = (array) $request->input('room_ids', []);
         $checkIn   = $request->input('check_in');
@@ -39,12 +40,30 @@ class BookingController extends Controller
         $adults    = (int) $request->input('adults', 1);
         $children  = (int) $request->input('children', 0);
 
+        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 18
+            ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString()
+            : now('Asia/Ho_Chi_Minh')->toDateString();
+        if ($checkIn < $earliestCheckIn) {
+            return redirect()->route('rooms.index')
+                ->with('error', 'Từ 18:00, ngày nhận phòng sớm nhất là ngày mai. Giờ nhận phòng từ 14:00 đến trước 18:00.');
+        }
+
         if (empty($roomIds) || !$checkIn || !$checkOut) {
             return redirect()->route('rooms.index')
                 ->with('error', 'Vui lòng chọn phòng và ngày trước khi đặt.');
         }
 
-        $reservedRoomIds = Booking::reservedRoomIds($checkIn, $checkOut);
+        $excludeBookingId = null;
+        if ($request->filled('booking_id')) {
+            $ownedPending = Booking::query()
+                ->whereKey((int) $request->input('booking_id'))
+                ->where('user_id', Auth::id())
+                ->where('status', 'pending')
+                ->first(['id']);
+            $excludeBookingId = $ownedPending?->id;
+        }
+
+        $reservedRoomIds = Booking::reservedRoomIds($checkIn, $checkOut, $excludeBookingId);
         $rooms = Room::with('roomType')
             ->whereIn('id', $roomIds)
             ->where('status', Room::STATUS_AVAILABLE)
@@ -85,7 +104,7 @@ class BookingController extends Controller
      */
     public function store(Request $request)
     {
-        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 16
+        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 18
             ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString()
             : now('Asia/Ho_Chi_Minh')->toDateString();
         $validated = $request->validate([
@@ -102,7 +121,7 @@ class BookingController extends Controller
 
         if ($validated['check_in'] < $earliestCheckIn) {
             return back()->withInput()->withErrors([
-                'check_in' => 'Từ 16:00, ngày nhận phòng sớm nhất là ngày mai. Giờ nhận phòng từ 12:00 đến trước 16:00.',
+                'check_in' => 'Từ 18:00, ngày nhận phòng sớm nhất là ngày mai. Giờ nhận phòng từ 14:00 đến trước 18:00.',
             ]);
         }
 
@@ -151,6 +170,8 @@ class BookingController extends Controller
                 $total += PriceSetting::calculateTotalPrice($basePrice, $validated['check_in'], $validated['check_out']);
             }
 
+            $total = round($total);
+
             $booking = Booking::create([
                 'user_id'        => Auth::id(),
                 'customer_name'  => $validated['customer_name'],
@@ -161,7 +182,7 @@ class BookingController extends Controller
                 'adult_count'    => $validated['adult_count'],
                 'child_count'    => $validated['child_count'],
                 'total_price'    => $total,
-                'deposit_amount' => round($total * 0.5, 2),
+                'deposit_amount' => round($total * 0.5),
                 'payment_method' => null,
                 'payment_status' => 'pending',
                 'status'         => 'pending',
@@ -169,6 +190,14 @@ class BookingController extends Controller
 
             // Gán phòng vào booking_rooms pivot (chưa đánh dấu booked, chờ thanh toán xong)
             $booking->rooms()->attach($rooms->pluck('id'));
+
+            $currentUser = Auth::user();
+            if ($currentUser instanceof \App\Models\User && empty($currentUser->phone)) {
+                $currentUser->forceFill(['phone' => $validated['customer_phone']])->save();
+                if (session()->has('customer_user')) {
+                    session(['customer_user.phone' => $validated['customer_phone']]);
+                }
+            }
 
             return redirect()->route('payment.form', $booking->id);
         });
@@ -200,11 +229,14 @@ class BookingController extends Controller
     {
         $filters = $request->validate([
             'status' => ['nullable', 'in:all,upcoming,completed,cancelled'],
+            'room_type' => ['nullable', 'integer', 'min:1'],
             'q' => ['nullable', 'string', 'max:100'],
         ]);
         $status = $filters['status'] ?? 'all';
+        $roomTypeId = isset($filters['room_type']) ? (int) $filters['room_type'] : null;
         $q = trim($filters['q'] ?? '');
-        $searchTerm = ltrim($q, '#');
+        $searchTerm = preg_replace('/^(mã|ma|đơn|don|phòng|phong|p\.|#)\s*/iu', '', $q) ?? $q;
+        $searchTerm = trim(ltrim($searchTerm, '#'));
         $noShows = app(\App\Services\ExpireNoShowBookings::class);
         Booking::query()->where('user_id', Auth::id())->where('status', 'confirmed')
             ->whereDate('check_in', '<=', now('Asia/Ho_Chi_Minh')->toDateString())
@@ -217,9 +249,13 @@ class BookingController extends Controller
                 'completed' => ['completed'],
                 'cancelled' => ['cancelled', 'rejected'],
             }))
+            ->when($roomTypeId, function ($query) use ($roomTypeId) {
+                $query->whereHas('rooms', fn ($rooms) => $rooms->where('room_type_id', $roomTypeId));
+            })
             ->when($searchTerm !== '', function ($query) use ($searchTerm) {
                 $query->where(function ($match) use ($searchTerm) {
                     $match->where('customer_name', 'like', "%{$searchTerm}%")
+                        ->orWhere('customer_phone', 'like', "%{$searchTerm}%")
                         ->orWhereHas('rooms', fn ($rooms) => $rooms->where('room_number', 'like', "%{$searchTerm}%")
                             ->orWhereHas('roomType', fn ($types) => $types->where('type_name', 'like', "%{$searchTerm}%")));
                     if (ctype_digit($searchTerm)) {
@@ -239,13 +275,15 @@ class BookingController extends Controller
                 ['pending', 'confirmed', 'checked_in', 'completed', 'cancelled', 'rejected']
             )->first();
 
+        $roomTypes = \App\Models\RoomType::orderBy('price')->get(['id', 'type_name']);
+
         $checkinTokens = $bookings->getCollection()
             ->filter(fn (Booking $booking) => in_array($booking->status, ['confirmed', 'checked_in'], true))
             ->mapWithKeys(fn (Booking $booking) => [
                 $booking->id => app(\App\Services\CheckInTokenService::class)->qrPayload($booking),
             ]);
 
-        return view('booking.my_bookings', compact('bookings', 'bookingCounts', 'checkinTokens', 'status', 'q'));
+        return view('booking.my_bookings', compact('bookings', 'bookingCounts', 'checkinTokens', 'status', 'q', 'roomTypeId', 'roomTypes'));
     }
 
     public function extendCustomerStay(Request $request, Booking $booking)
@@ -431,12 +469,20 @@ class BookingController extends Controller
 
         // Hỗ trợ check-in khách vãng lai
         if ($request->input('is_walkin')) {
+            $staffId = session('staff_user_id') ?: session('auth_user_id') ?: Auth::id();
+            $staff = $staffId ? \App\Models\User::find($staffId) : null;
+            if (! $staff || ! $staff->hasInternalPermission('bp_create_booking')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tài khoản chưa được cấp quyền tạo đặt phòng tại quầy.',
+                ], 403);
+            }
             $request->merge(['room_ids' => [$roomId]]);
             return app(ReceptionController::class)->walkinCheckin($request);
         }
 
         $booking = Booking::whereHas('rooms', fn($q) => $q->where('rooms.id', $roomId))
-            ->whereDate('check_in', now()->toDateString())
+            ->whereDate('check_in', now('Asia/Ho_Chi_Minh')->toDateString())
             ->where('status', 'confirmed')
             ->first();
 
@@ -478,7 +524,7 @@ class BookingController extends Controller
         ]);
 
         try {
-            $result = app(\App\Services\StayExtensionService::class)->extend($bookingId, 'days', (int) $validated['days']);
+            $result = app(\App\Services\StayExtensionService::class)->extend($bookingId, 'days', (int) $validated['days'], true);
             return response()->json([
                 'success' => true,
                 'message' => $result['message'],
@@ -504,11 +550,11 @@ class BookingController extends Controller
 
         $room = DB::transaction(function () use ($roomId, $newStatus) {
             $room = Room::query()->lockForUpdate()->findOrFail($roomId);
-            if ($room->status === Room::STATUS_OCCUPIED) {
+            if (in_array($room->status, [Room::STATUS_OCCUPIED, Room::STATUS_OVERDUE], true)) {
                 abort(422, 'Vui lòng hoàn tất thanh toán trả phòng trước.');
             }
-            if ($newStatus === Room::STATUS_AVAILABLE && $room->status !== Room::STATUS_CLEANING) {
-                abort(422, 'Chỉ phòng đang dọn mới được chuyển sang đang trống.');
+            if ($newStatus === Room::STATUS_AVAILABLE && ! in_array($room->status, [Room::STATUS_CLEANING, Room::STATUS_MAINTENANCE], true)) {
+                abort(422, 'Chỉ phòng đang dọn hoặc hoàn tất bảo trì mới được chuyển sang đang trống.');
             }
 
             $room->update([

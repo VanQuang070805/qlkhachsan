@@ -4,17 +4,19 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Amenity;
 use App\Models\Booking;
-use App\Models\DatabaseRole;
 use App\Models\PriceSetting;
+use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\SessionRevocationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class AdminPortalApiController extends ApiController
 {
@@ -54,16 +56,23 @@ class AdminPortalApiController extends ApiController
         if (! $staff) {
             return $this->fail('UNAUTHENTICATED', 'Vui lòng đăng nhập.', 401);
         }
-        if (! $staff->hasInternalPermission('tk_view_dashboard')) {
+        if (! $staff->hasInternalPermission('rp_view_reports')) {
             return $this->fail('FORBIDDEN_PERMISSION', 'Không có quyền xem báo cáo thống kê.', 403);
         }
 
-        $completedBookings = Booking::where('status', 'completed')->count();
-        $totalRevenueVnd = (int) round((float) Booking::where('payment_status', 'paid')->sum('total_price'));
+        $filters = [
+            'start_date' => (string) $request->query('start_date', ''),
+            'end_date' => (string) $request->query('end_date', ''),
+            'room_type_id' => (string) $request->query('room_type_id', ''),
+            'status' => (string) $request->query('status', ''),
+        ];
+        $stats = (new Booking())->getReportStats($filters);
 
         return $this->ok([
-            'completed_bookings' => $completedBookings,
-            'total_revenue_vnd' => $totalRevenueVnd,
+            'completed_bookings' => (int) ($stats['completed_count'] ?? 0),
+            'total_bookings' => (int) ($stats['total_bookings'] ?? 0),
+            'total_nights' => (int) ($stats['total_nights'] ?? 0),
+            'total_revenue_vnd' => (int) round((float) ($stats['total_revenue'] ?? 0)),
         ]);
     }
 
@@ -94,8 +103,8 @@ class AdminPortalApiController extends ApiController
         $validator = Validator::make($request->all(), [
             'room_number' => ['required', 'string', 'max:20', 'unique:rooms,room_number'],
             'room_type_id' => ['required', 'integer', 'exists:room_types,id'],
-            'floor' => ['required', 'integer', 'min:1', 'max:50'],
-            'status' => ['sometimes', 'in:available,occupied,cleaning,maintenance'],
+            'floor' => ['required', 'integer', 'min:1', 'max:10'],
+            'status' => ['sometimes', 'in:available,cleaning,maintenance'],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Dữ liệu phòng không hợp lệ.', 422, $validator->errors()->toArray());
@@ -121,11 +130,15 @@ class AdminPortalApiController extends ApiController
         $validator = Validator::make($request->all(), [
             'room_number' => ['sometimes', 'string', 'max:20', 'unique:rooms,room_number,'.$room->id],
             'room_type_id' => ['sometimes', 'integer', 'exists:room_types,id'],
-            'floor' => ['sometimes', 'integer', 'min:1', 'max:50'],
-            'status' => ['sometimes', 'in:available,occupied,cleaning,maintenance'],
+            'floor' => ['sometimes', 'integer', 'min:1', 'max:10'],
+            'status' => ['sometimes', 'in:available,cleaning,maintenance'],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Dữ liệu cập nhật phòng không hợp lệ.', 422, $validator->errors()->toArray());
+        }
+
+        if (in_array($room->status, [Room::STATUS_OCCUPIED, Room::STATUS_OVERDUE], true) && $request->has('status')) {
+            return $this->fail('ROOM_OCCUPIED', 'Không thể đổi trạng thái phòng đang có khách lưu trú.', 409);
         }
 
         $room->update($validator->validated());
@@ -165,18 +178,26 @@ class AdminPortalApiController extends ApiController
         }
 
         $validator = Validator::make($request->all(), [
-            'type_name' => ['required', 'string', 'max:100'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'max_adults' => ['required', 'integer', 'min:1'],
-            'max_children' => ['sometimes', 'integer', 'min:0'],
-            'max_guests' => ['required', 'integer', 'min:1'],
-            'description' => ['nullable', 'string'],
+            'type_name' => ['required', 'string', 'max:100', 'unique:room_types,type_name'],
+            'price' => ['required', 'numeric', 'min:1', 'max:9999999999.99'],
+            'max_adults' => ['required', 'integer', 'min:1', 'max:100'],
+            'max_children' => ['sometimes', 'integer', 'min:0', 'max:100'],
+            'max_guests' => ['required', 'integer', 'min:1', 'max:100'],
+            'description' => ['nullable', 'string', 'max:2000'],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Dữ liệu hạng phòng không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
-        $rt = RoomType::create($validator->validated());
+        $data = $validator->validated();
+        $children = (int) ($data['max_children'] ?? 0);
+        if ((int) $data['max_guests'] < (int) $data['max_adults'] + $children) {
+            return $this->fail('VALIDATION_ERROR', 'Tổng sức chứa phải lớn hơn hoặc bằng sức chứa người lớn và trẻ em.', 422, [
+                'max_guests' => ['Tổng sức chứa phải lớn hơn hoặc bằng sức chứa người lớn và trẻ em.'],
+            ]);
+        }
+
+        $rt = RoomType::create($data);
 
         return $this->ok([
             'id' => (int) $rt->id,
@@ -193,18 +214,28 @@ class AdminPortalApiController extends ApiController
         }
 
         $validator = Validator::make($request->all(), [
-            'type_name' => ['sometimes', 'string', 'max:100'],
-            'price' => ['sometimes', 'numeric', 'min:0'],
-            'max_adults' => ['sometimes', 'integer', 'min:1'],
-            'max_children' => ['sometimes', 'integer', 'min:0'],
-            'max_guests' => ['sometimes', 'integer', 'min:1'],
-            'description' => ['nullable', 'string'],
+            'type_name' => ['sometimes', 'string', 'max:100', Rule::unique('room_types', 'type_name')->ignore($roomType->id)],
+            'price' => ['sometimes', 'numeric', 'min:1', 'max:9999999999.99'],
+            'max_adults' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'max_children' => ['sometimes', 'integer', 'min:0', 'max:100'],
+            'max_guests' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'description' => ['nullable', 'string', 'max:2000'],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Dữ liệu cập nhật hạng phòng không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
-        $roomType->update($validator->validated());
+        $data = $validator->validated();
+        $maxAdults = (int) ($data['max_adults'] ?? $roomType->max_adults);
+        $maxChildren = (int) ($data['max_children'] ?? $roomType->max_children);
+        $maxGuests = (int) ($data['max_guests'] ?? $roomType->max_guests);
+        if ($maxGuests < $maxAdults + $maxChildren) {
+            return $this->fail('VALIDATION_ERROR', 'Tổng sức chứa phải lớn hơn hoặc bằng sức chứa người lớn và trẻ em.', 422, [
+                'max_guests' => ['Tổng sức chứa phải lớn hơn hoặc bằng sức chứa người lớn và trẻ em.'],
+            ]);
+        }
+
+        $roomType->update($data);
 
         return $this->ok([
             'id' => (int) $roomType->id,
@@ -220,7 +251,14 @@ class AdminPortalApiController extends ApiController
             return $this->fail('FORBIDDEN_ADMIN_ONLY', 'Chỉ Quản trị viên mới có quyền truy cập.', 403);
         }
 
-        return $this->ok(Amenity::orderBy('name')->get(['id', 'name', 'icon'])->toArray());
+        $items = Amenity::orderBy('amenity_name')->get(['id', 'amenity_name', 'icon'])->map(fn (Amenity $a) => [
+            'id' => (int) $a->id,
+            'name' => (string) $a->amenity_name,
+            'amenity_name' => (string) $a->amenity_name,
+            'icon' => (string) ($a->icon ?? ''),
+        ])->values()->all();
+
+        return $this->ok($items);
     }
 
     public function storeAmenity(Request $request)
@@ -229,8 +267,9 @@ class AdminPortalApiController extends ApiController
             return $this->fail('FORBIDDEN_ADMIN_ONLY', 'Chỉ Quản trị viên mới có quyền truy cập.', 403);
         }
 
-        $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:100'],
+        $nameInput = $request->input('amenity_name', $request->input('name'));
+        $validator = Validator::make(['amenity_name' => $nameInput, 'icon' => $request->input('icon')], [
+            'amenity_name' => ['required', 'string', 'max:100', 'unique:amenities,amenity_name'],
             'icon' => ['nullable', 'string', 'max:100'],
         ]);
         if ($validator->fails()) {
@@ -239,7 +278,7 @@ class AdminPortalApiController extends ApiController
 
         $amenity = Amenity::create($validator->validated());
 
-        return $this->ok(['id' => (int) $amenity->id, 'name' => (string) $amenity->name], 201);
+        return $this->ok(['id' => (int) $amenity->id, 'name' => (string) $amenity->amenity_name, 'amenity_name' => (string) $amenity->amenity_name], 201);
     }
 
     public function updateAmenity(Request $request, Amenity $amenity)
@@ -248,8 +287,15 @@ class AdminPortalApiController extends ApiController
             return $this->fail('FORBIDDEN_ADMIN_ONLY', 'Chỉ Quản trị viên mới có quyền truy cập.', 403);
         }
 
-        $validator = Validator::make($request->all(), [
-            'name' => ['sometimes', 'string', 'max:100'],
+        $payload = [];
+        if ($request->has('amenity_name') || $request->has('name')) {
+            $payload['amenity_name'] = $request->input('amenity_name', $request->input('name'));
+        }
+        if ($request->has('icon')) {
+            $payload['icon'] = $request->input('icon');
+        }
+        $validator = Validator::make($payload, [
+            'amenity_name' => ['sometimes', 'string', 'max:100', Rule::unique('amenities', 'amenity_name')->ignore($amenity->id)],
             'icon' => ['nullable', 'string', 'max:100'],
         ]);
         if ($validator->fails()) {
@@ -258,7 +304,7 @@ class AdminPortalApiController extends ApiController
 
         $amenity->update($validator->validated());
 
-        return $this->ok(['id' => (int) $amenity->id, 'name' => (string) $amenity->name]);
+        return $this->ok(['id' => (int) $amenity->id, 'name' => (string) $amenity->amenity_name, 'amenity_name' => (string) $amenity->amenity_name]);
     }
 
     public function priceSettings(Request $request)
@@ -287,12 +333,13 @@ class AdminPortalApiController extends ApiController
             return $this->fail('FORBIDDEN_ADMIN_ONLY', 'Chỉ Quản trị viên mới có quyền truy cập.', 403);
         }
 
+        $maxVal = $request->input('adjustment_type') === 'percent' ? 500 : 9999999999.99;
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:100'],
             'start_date' => ['required', 'date_format:Y-m-d'],
             'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
             'adjustment_type' => ['required', 'in:percent,fixed'],
-            'adjustment_value' => ['required', 'numeric', 'min:0.01'],
+            'adjustment_value' => ['required', 'numeric', 'min:0.01', 'max:'.$maxVal],
             'is_active' => ['sometimes', 'boolean'],
             'status' => ['sometimes', 'boolean'],
         ]);
@@ -339,12 +386,14 @@ class AdminPortalApiController extends ApiController
             return $this->fail('FORBIDDEN_ADMIN_ONLY', 'Chỉ Quản trị viên mới có quyền truy cập.', 403);
         }
 
+        $adjType = (string) $request->input('adjustment_type', $priceSetting->adjustment_type);
+        $maxVal = $adjType === 'percent' ? 500 : 9999999999.99;
         $validator = Validator::make($request->all(), [
             'name' => ['sometimes', 'string', 'max:100'],
             'start_date' => ['sometimes', 'date_format:Y-m-d'],
             'end_date' => ['sometimes', 'date_format:Y-m-d'],
             'adjustment_type' => ['sometimes', 'in:percent,fixed'],
-            'adjustment_value' => ['sometimes', 'numeric', 'min:0.01'],
+            'adjustment_value' => ['sometimes', 'numeric', 'min:0.01', 'max:'.$maxVal],
             'is_active' => ['sometimes', 'boolean'],
             'status' => ['sometimes', 'boolean'],
         ]);
@@ -421,9 +470,9 @@ class AdminPortalApiController extends ApiController
             'username' => ['required', 'string', 'max:100', 'unique:users,username'],
             'fullname' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:190', 'unique:users,email'],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required', 'regex:/^[0-9]{7,15}$/'],
             'role' => ['required', 'in:admin,receptionist'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', 'min:6'],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Dữ liệu nhân sự không hợp lệ.', 422, $validator->errors()->toArray());
@@ -433,7 +482,7 @@ class AdminPortalApiController extends ApiController
         $user = User::create([
             'username' => $data['username'],
             'fullname' => $data['fullname'],
-            'email' => $data['email'],
+            'email' => mb_strtolower($data['email']),
             'phone' => $data['phone'],
             'role' => $data['role'],
             'password' => Hash::make($data['password']),
@@ -449,25 +498,43 @@ class AdminPortalApiController extends ApiController
 
     public function updateInternalUser(Request $request, User $user)
     {
-        if (! $this->requireAdmin($request)) {
+        $admin = $this->requireAdmin($request);
+        if (! $admin) {
             return $this->fail('FORBIDDEN_ADMIN_ONLY', 'Chỉ Quản trị viên mới có quyền truy cập.', 403);
+        }
+        if ($user->isCustomer()) {
+            return $this->fail('FORBIDDEN_TARGET_USER', 'Không thể cập nhật khách hàng qua cổng nhân sự nội bộ.', 403);
         }
 
         $validator = Validator::make($request->all(), [
             'fullname' => ['sometimes', 'string', 'max:100'],
-            'phone' => ['sometimes', 'string', 'max:20'],
+            'phone' => ['sometimes', 'regex:/^[0-9]{7,15}$/'],
             'verified' => ['sometimes', 'boolean'],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Dữ liệu cập nhật không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
-        $user->update($validator->validated());
+        $data = $validator->validated();
+        if (array_key_exists('verified', $data) && $data['verified'] === false) {
+            if ((int) $user->id === (int) $admin->id) {
+                return $this->fail('CANNOT_LOCK_SELF', 'Không thể tự khóa tài khoản đang đăng nhập.', 409);
+            }
+            if ($user->isAdmin() && $user->verified && User::where('role', 'admin')->where('verified', true)->count() <= 1) {
+                return $this->fail('LAST_ACTIVE_ADMIN', 'Không thể khóa quản trị viên hoạt động cuối cùng.', 409);
+            }
+        }
+
+        $user->update($data);
+        if (array_key_exists('verified', $data) && $data['verified'] === false) {
+            app(SessionRevocationService::class)->revoke($user);
+        }
 
         return $this->ok([
             'id' => (int) $user->id,
             'fullname' => (string) $user->fullname,
             'role' => (string) $user->role,
+            'verified' => (bool) $user->verified,
         ]);
     }
 
@@ -477,11 +544,14 @@ class AdminPortalApiController extends ApiController
             return $this->fail('FORBIDDEN_ADMIN_ONLY', 'Chỉ Quản trị viên mới có quyền truy cập.', 403);
         }
 
-        $roles = DatabaseRole::orderBy('id')->get()->map(fn (DatabaseRole $r) => [
+        $roles = Role::where('slug', '<>', 'customer')->orderBy('id')->get()->map(fn (Role $r) => [
             'id' => (int) $r->id,
-            'code' => (string) $r->code,
+            'code' => (string) $r->slug,
+            'slug' => (string) $r->slug,
             'name' => (string) $r->name,
-            'permissions' => $r->permissions ?? [],
+            'permissions' => $r->slug === 'admin'
+                ? array_keys(User::INTERNAL_PERMISSION_CATALOG)
+                : $r->permissionKeys(),
         ])->values()->all();
 
         return $this->ok($roles);
@@ -495,22 +565,35 @@ class AdminPortalApiController extends ApiController
 
         $validator = Validator::make($request->all(), [
             'permissions' => ['required', 'array'],
-            'permissions.*' => ['string'],
+            'permissions.*' => ['string', Rule::in(array_keys(User::INTERNAL_PERMISSION_CATALOG))],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Danh sách quyền không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
-        $record = DatabaseRole::where('code', $role)->orWhere('id', $role)->first();
-        if (! $record) {
-            return $this->fail('ROLE_NOT_FOUND', 'Không tìm thấy nhóm quyền.', 404);
+        $record = Role::where('slug', $role)->when(ctype_digit($role), fn ($q) => $q->orWhere('id', (int) $role))->first();
+        if (! $record || in_array($record->slug, ['admin', 'customer'], true)) {
+            return $this->fail('ROLE_NOT_FOUND', 'Không tìm thấy nhóm quyền hợp lệ để chỉnh sửa.', 404);
         }
 
-        $record->update(['permissions' => array_values($validator->validated()['permissions'])]);
+        $keys = array_values(array_unique($validator->validated()['permissions']));
+        DB::transaction(function () use ($record, $keys): void {
+            DB::table('role_permissions')->where('role_id', $record->id)->delete();
+            $now = now();
+            if ($keys !== []) {
+                DB::table('role_permissions')->insert(array_map(fn (string $key) => [
+                    'role_id' => $record->id,
+                    'permission_key' => $key,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ], $keys));
+            }
+        });
 
         return $this->ok([
-            'code' => (string) $record->code,
-            'permissions' => $record->permissions,
+            'code' => (string) $record->slug,
+            'slug' => (string) $record->slug,
+            'permissions' => $record->permissionKeys(),
         ]);
     }
 
@@ -519,20 +602,40 @@ class AdminPortalApiController extends ApiController
         if (! $this->requireAdmin($request)) {
             return $this->fail('FORBIDDEN_ADMIN_ONLY', 'Chỉ Quản trị viên mới có quyền truy cập.', 403);
         }
+        if ($user->isCustomer() || $user->isAdmin()) {
+            return $this->fail('FORBIDDEN_TARGET_USER', 'Chỉ áp dụng bộ quyền riêng cho nhân viên vận hành.', 422);
+        }
 
         $validator = Validator::make($request->all(), [
             'permissions' => ['required', 'array'],
-            'permissions.*' => ['string'],
+            'permissions.*' => ['string', Rule::in(array_keys(User::INTERNAL_PERMISSION_CATALOG))],
         ]);
         if ($validator->fails()) {
             return $this->fail('VALIDATION_ERROR', 'Danh sách quyền không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
-        $user->update(['internal_permissions' => array_values($validator->validated()['permissions'])]);
+        $keys = array_values(array_unique($validator->validated()['permissions']));
+        DB::transaction(function () use ($user, $keys): void {
+            DB::table('user_permissions')->where('user_id', $user->id)->delete();
+            $now = now();
+            $rows = array_map(fn (string $key) => [
+                'user_id' => $user->id,
+                'permission_key' => $key,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], $keys);
+            array_unshift($rows, [
+                'user_id' => $user->id,
+                'permission_key' => User::PERMISSIONS_CONFIGURED_MARKER,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            DB::table('user_permissions')->insert($rows);
+        });
 
         return $this->ok([
             'id' => (int) $user->id,
-            'permissions' => $user->effectiveInternalPermissions(),
+            'permissions' => $user->fresh()->effectiveInternalPermissions(),
         ]);
     }
 
@@ -545,7 +648,7 @@ class AdminPortalApiController extends ApiController
 
         $user = User::find($id);
 
-        return ($user && $user->role === 'admin') ? $user : null;
+        return ($user && $user->role === 'admin' && $user->verified) ? $user : null;
     }
 
     private function requireStaffOrAdmin(Request $request): ?User
@@ -557,6 +660,6 @@ class AdminPortalApiController extends ApiController
 
         $user = User::find($id);
 
-        return ($user && in_array($user->role, ['admin', 'receptionist'], true)) ? $user : null;
+        return ($user && in_array($user->role, ['admin', 'receptionist'], true) && $user->verified) ? $user : null;
     }
 }

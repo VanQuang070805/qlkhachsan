@@ -45,4 +45,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Local PHP/Node runtime image build failed.' }
 & $docker compose -f $infraCompose up -d
 if ($LASTEXITCODE -ne 0) { throw 'Docker stack failed to start.' }
 
-Write-Host 'Ready (All-in-Docker rosaliza-local-infra): customer http://127.0.0.1:18080 | staff :18081 | admin :18082 | internal :18084 | chatbot :2024 | MySQL :3306 | Redis :16379/:16380 | Kafka :19092'
+& $docker compose -f $infraCompose exec -T -w /srv/app customer-portal php artisan migrate --force | Out-Null
+& $docker compose -f $infraCompose exec -T -w /srv/app customer-portal php artisan db:seed --class=InternalAccountsSeeder --force | Out-Null
+& $docker compose -f $infraCompose exec -T -w /srv/app customer-portal php artisan knowledge:index | Out-Null
+
+Write-Host 'Ready (All-in-Docker rosaliza-local-infra): customer http://127.0.0.1:18080 (:10800) | staff :18081 (:10801) | admin :18082 (:10802) | internal :18084 | chatbot :2024 | MySQL :3306 | Redis :16379/:16380 | Kafka :19092'

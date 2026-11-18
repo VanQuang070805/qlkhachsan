@@ -18,12 +18,7 @@
 <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 <div class="workspace-shell">
 <aside class="workspace-sidebar" id="workspaceSidebar">
-    <div class="sidebar-macos-dots" style="display: flex; gap: 7px; padding: 18px 18px 12px;" aria-hidden="true">
-        <span class="ctrl-dot ctrl-red"></span>
-        <span class="ctrl-dot ctrl-yellow"></span>
-        <span class="ctrl-dot ctrl-green"></span>
-    </div>
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" style="padding-top: 14px;">
         <div class="sidebar-section-label">BÁO CÁO &amp; PHÂN TÍCH</div>
         <a class="{{ request()->routeIs('admin.dashboard','admin.reports')?'is-active':'' }}" href="{{ route('admin.reports') }}"><i class="bi bi-grid-1x2" aria-hidden="true"></i><span>Tổng quan</span></a>
         

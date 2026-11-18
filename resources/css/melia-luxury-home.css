@@ -12,8 +12,9 @@
     --melia-border: #E5E1D8;
     --melia-text: #181715;
     --melia-text-muted: #5C5852;
-    --melia-text-soft: #8C877E;
+    --melia-text-soft: #66615A;
     --melia-gold: #B89C72;
+    --melia-gold-ink: #785D32;
     --melia-gold-hover: #A08359;
     --melia-dark: #141413;
     --melia-dark-surface: #1E1D1B;
@@ -665,7 +666,8 @@
 
 .melia-room-price__val {
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
     color: var(--melia-text);
 }
 
@@ -958,7 +960,7 @@
 }
 
 .melia-package-tag {
-    color: var(--melia-gold);
+    color: var(--melia-gold-ink);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;

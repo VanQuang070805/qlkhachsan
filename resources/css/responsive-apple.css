@@ -1777,11 +1777,63 @@
 
 
 /* =========================================================================
-   GEOMETRIC PRESERVATION: Circles & Rectangles NEVER Distort
+   GEOMETRIC PRESERVATION & DECORATIVE DOT REMOVAL
    ========================================================================= */
 .badge-dot,
 .status-dot,
 .ctrl-dot,
+.aeth-pulse-dot,
+.presence-dot,
+.topbar-status-dot,
+.status-dot-emerald,
+.sana-laptop__workspace-dot {
+    display: none !important;
+    content: none !important;
+}
+
+@media (max-width: 960px) {
+    .account-profile__layout {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 20px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .aeth-canvas,
+    .commerce-page,
+    .review-wrapper,
+    .booking-cancel-container {
+        padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .account-profile__identity,
+    .account-profile__form {
+        padding: 0 !important;
+    }
+
+    .account-profile__form-inner {
+        padding: 20px 16px !important;
+    }
+
+    .booking-cancel-card__body {
+        padding: 18px 16px !important;
+    }
+
+    .booking-cancel-container form .d-flex.justify-content-end {
+        flex-direction: column-reverse !important;
+        align-items: stretch !important;
+    }
+
+    .booking-cancel-container form .d-flex.justify-content-end > a,
+    .booking-cancel-container form .d-flex.justify-content-end > button {
+        width: 100% !important;
+        min-height: 46px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+}
+
 .dot,
 .apple-dot,
 .figma-room-card__dots .dot,

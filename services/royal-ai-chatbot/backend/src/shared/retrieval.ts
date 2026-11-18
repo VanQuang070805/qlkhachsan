@@ -19,17 +19,25 @@ export function getEmbeddingModelName(): string {
   return (process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001').trim();
 }
 
+let sharedEmbeddingsInstance: EmbeddingsInterface | null = null;
+let sharedEmbeddingsKey = '';
+
 export function createGeminiEmbeddings(): EmbeddingsInterface {
   const apiKey = (
     process.env.GOOGLE_API_KEY ||
     process.env.GEMINI_API_KEY ||
     ''
   ).trim();
+  const model = getEmbeddingModelName();
+  const cacheSig = `${model}:${apiKey.slice(-6)}`;
+
+  if (sharedEmbeddingsInstance && sharedEmbeddingsKey === cacheSig) {
+    return sharedEmbeddingsInstance;
+  }
 
   if (!apiKey) {
-    // Provide a deterministic fallback embedding generator only when no key is configured
-    // during offline tests/sync, while marking embedding_model appropriately.
-    return {
+    sharedEmbeddingsKey = cacheSig;
+    sharedEmbeddingsInstance = {
       embedDocuments: async (documents: string[]): Promise<number[][]> => {
         return documents.map(() => []);
       },
@@ -37,16 +45,19 @@ export function createGeminiEmbeddings(): EmbeddingsInterface {
         return [];
       },
     };
+    return sharedEmbeddingsInstance;
   }
 
-  return new GoogleGenerativeAIEmbeddings({
+  sharedEmbeddingsKey = cacheSig;
+  sharedEmbeddingsInstance = new GoogleGenerativeAIEmbeddings({
     apiKey,
-    model: getEmbeddingModelName(),
+    model,
     maxRetries: Math.min(
-      3,
+      2,
       Math.max(0, Number(process.env.GEMINI_MAX_RETRIES || 0)),
     ),
   });
+  return sharedEmbeddingsInstance;
 }
 
 function cosineSimilarity(left: number[], right: number[]): number {
@@ -131,10 +142,40 @@ export function getMySQLPool(config: MySQLVectorStoreConfig = {}): mysql.Pool {
       process.env.DB_DATABASE ||
       'qlkhachsan',
     waitForConnections: true,
-    connectionLimit: 5,
+    connectionLimit: 6,
     charset: 'utf8mb4',
+    timezone: '+07:00',
   });
   return sharedPool;
+}
+
+interface ParsedKnowledgeRow {
+  id: number | string;
+  source: string;
+  title: string;
+  content: string;
+  contentHash: string;
+  vector: number[];
+}
+
+const CHUNK_CACHE_TTL_MS = 30_000;
+let cachedMysqlChunks: ParsedKnowledgeRow[] | null = null;
+let cachedMysqlChunksExpiresAt = 0;
+let cachedMysqlTable = '';
+
+const MAX_QUERY_EMBEDDING_CACHE = 300;
+const queryEmbeddingCache = new Map<string, { vector: number[]; expires: number }>();
+
+export function invalidateMySQLKnowledgeCache(): void {
+  cachedMysqlChunks = null;
+  cachedMysqlChunksExpiresAt = 0;
+}
+
+function sanitizeIdentifier(identifier: string): string {
+  if (!/^[a-zA-Z0-9_]+$/.test(identifier)) {
+    throw new Error(`Invalid SQL table identifier: ${identifier}`);
+  }
+  return identifier;
 }
 
 export class MySQLKnowledgeVectorStore extends VectorStore {
@@ -152,8 +193,88 @@ export class MySQLKnowledgeVectorStore extends VectorStore {
   ) {
     super(embeddings, config);
     this.pool = getMySQLPool(config);
-    this.tableName = config.tableName || 'knowledge_chunks';
+    this.tableName = sanitizeIdentifier(config.tableName || 'knowledge_chunks');
     this.embeddingModelName = getEmbeddingModelName();
+  }
+
+  private async loadParsedChunks(): Promise<ParsedKnowledgeRow[]> {
+    const now = Date.now();
+    if (
+      cachedMysqlChunks &&
+      cachedMysqlTable === this.tableName &&
+      cachedMysqlChunksExpiresAt > now
+    ) {
+      return cachedMysqlChunks;
+    }
+
+    const [rows] = await this.pool.query<mysql.RowDataPacket[]>(
+      `SELECT \`id\`, \`source\`, \`title\`, \`content\`, \`content_hash\`, \`embedding\`
+       FROM \`${this.tableName}\``,
+    );
+
+    const parsed: ParsedKnowledgeRow[] = rows.map((row) => {
+      let vector: number[] = [];
+      if (row.embedding) {
+        try {
+          vector =
+            typeof row.embedding === 'string'
+              ? JSON.parse(row.embedding)
+              : Array.isArray(row.embedding)
+                ? row.embedding
+                : [];
+        } catch {
+          vector = [];
+        }
+      }
+
+      return {
+        id: row.id,
+        source: String(row.source || 'Rosaliza Hotel'),
+        title: String(row.title || ''),
+        content: String(row.content || ''),
+        contentHash: String(row.content_hash || row.id),
+        vector: Array.isArray(vector) ? vector : [],
+      };
+    });
+
+    cachedMysqlChunks = parsed;
+    cachedMysqlTable = this.tableName;
+    cachedMysqlChunksExpiresAt = now + CHUNK_CACHE_TTL_MS;
+    return parsed;
+  }
+
+  private async embedQueryCached(query: string): Promise<number[]> {
+    const cacheKey = `${this.embeddingModelName}|${normalizeVietnamese(query)}`;
+    const hit = queryEmbeddingCache.get(cacheKey);
+    if (hit && hit.expires > Date.now()) {
+      return hit.vector;
+    }
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const timeoutPromise = new Promise<number[]>((resolve) => {
+        timer = setTimeout(() => resolve([]), 3200);
+      });
+      const vector = await Promise.race([
+        this.embeddings.embedQuery(query),
+        timeoutPromise,
+      ]);
+      if (vector.length > 0) {
+        if (queryEmbeddingCache.size >= MAX_QUERY_EMBEDDING_CACHE) {
+          const oldest = queryEmbeddingCache.keys().next().value;
+          if (oldest) queryEmbeddingCache.delete(oldest);
+        }
+        queryEmbeddingCache.set(cacheKey, {
+          vector,
+          expires: Date.now() + 30 * 60_000,
+        });
+      }
+      return vector;
+    } catch {
+      return [];
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   async addDocuments(documents: Document[]): Promise<void> {
@@ -216,6 +337,7 @@ export class MySQLKnowledgeVectorStore extends VectorStore {
         ],
       );
     }
+    invalidateMySQLKnowledgeCache();
   }
 
   async deleteStaleHashes(activeHashes: string[]): Promise<void> {
@@ -225,6 +347,7 @@ export class MySQLKnowledgeVectorStore extends VectorStore {
       `DELETE FROM \`${this.tableName}\` WHERE \`content_hash\` NOT IN (${placeholders})`,
       activeHashes,
     );
+    invalidateMySQLKnowledgeCache();
   }
 
   async similaritySearchVectorWithScore(
@@ -232,39 +355,21 @@ export class MySQLKnowledgeVectorStore extends VectorStore {
     k: number,
     filter?: Record<string, unknown>,
   ): Promise<[Document, number][]> {
-    const [rows] = await this.pool.query<mysql.RowDataPacket[]>(
-      `SELECT \`id\`, \`source\`, \`title\`, \`content\`, \`content_hash\`, \`embedding\`, \`embedding_model\`
-       FROM \`${this.tableName}\``,
-    );
-
+    const rows = await this.loadParsedChunks();
     const lastQueryText = String(filter?.__queryText || '');
 
     const scored: Array<{ doc: Document; score: number }> = [];
     for (const row of rows) {
-      let rowVector: number[] = [];
-      if (row.embedding) {
-        try {
-          rowVector =
-            typeof row.embedding === 'string'
-              ? JSON.parse(row.embedding)
-              : Array.isArray(row.embedding)
-                ? row.embedding
-                : [];
-        } catch {
-          rowVector = [];
-        }
-      }
-
       const semantic =
-        queryVector.length > 0 && rowVector.length === queryVector.length
-          ? cosineSimilarity(queryVector, rowVector)
+        queryVector.length > 0 && row.vector.length === queryVector.length
+          ? cosineSimilarity(queryVector, row.vector)
           : 0;
 
       const titleLex = lastQueryText
-        ? lexicalScore(lastQueryText, String(row.title || ''))
+        ? lexicalScore(lastQueryText, row.title)
         : 0;
       const contentLex = lastQueryText
-        ? lexicalScore(lastQueryText, String(row.content || ''))
+        ? lexicalScore(lastQueryText, row.content)
         : 0;
 
       const combinedScore = Number(
@@ -282,11 +387,11 @@ export class MySQLKnowledgeVectorStore extends VectorStore {
         scored.push({
           score: combinedScore,
           doc: new Document({
-            pageContent: String(row.content || ''),
+            pageContent: row.content,
             metadata: {
-              uuid: String(row.content_hash || row.id),
-              source: String(row.source || 'Rosaliza Hotel'),
-              title: String(row.title || ''),
+              uuid: row.contentHash,
+              source: row.source,
+              title: row.title,
               version: 'approved-v1',
               visibility: 'public',
               score: combinedScore,
@@ -306,12 +411,27 @@ export class MySQLKnowledgeVectorStore extends VectorStore {
     k = 5,
     filter?: Record<string, unknown>,
   ): Promise<Document[]> {
-    let queryVector: number[] = [];
-    try {
-      queryVector = await this.embeddings.embedQuery(query);
-    } catch {
-      queryVector = [];
+    const chunks = await this.loadParsedChunks();
+    if (
+      chunks.length > 0 &&
+      chunks.length <= 40 &&
+      process.env.FORCE_SEMANTIC_EMBEDDING !== 'true'
+    ) {
+      const lexicalResults = await this.similaritySearchVectorWithScore([], k, {
+        ...(filter || {}),
+        __queryText: query,
+      });
+      if (
+        lexicalResults.length >= Math.min(2, chunks.length) &&
+        lexicalResults[0][1] >= 16
+      ) {
+        return lexicalResults.map(([doc]) => doc);
+      }
     }
+
+    const hasAnyVector = chunks.some((c) => c.vector.length > 0);
+    const queryVector = hasAnyVector ? await this.embedQueryCached(query) : [];
+
     const results = await this.similaritySearchVectorWithScore(queryVector, k, {
       ...(filter || {}),
       __queryText: query,

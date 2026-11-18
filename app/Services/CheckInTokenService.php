@@ -12,11 +12,49 @@ use Carbon\Carbon;
 class CheckInTokenService
 {
     public const QR_PREFIX = 'ROYAL-CHECKIN:';
+    public const ROSALIZA_QR_PREFIX = 'ROSALIZA-CHECKIN:';
     public const LEGACY_QR_PREFIX = 'POSH-CHECKIN:';
 
     public function qrPayload(Booking $booking): string
     {
-        return self::QR_PREFIX.$this->issue($booking);
+        $booking->loadMissing('rooms.roomType');
+
+        $roomNumbers = $booking->rooms
+            ->pluck('room_number')
+            ->filter()
+            ->unique()
+            ->values()
+            ->implode(',');
+
+        $roomTypes = $booking->rooms
+            ->map(fn ($room) => $room->roomType?->type_name)
+            ->filter()
+            ->unique()
+            ->map(fn ($name) => Str::limit(Str::ascii((string) $name), 36, ''))
+            ->values()
+            ->implode(',');
+
+        $checkIn = $booking->check_in ? Carbon::parse($booking->check_in)->format('Y-m-d') : '';
+        $checkOut = $booking->check_out ? Carbon::parse($booking->check_out)->format('Y-m-d') : '';
+
+        $segments = [
+            self::QR_PREFIX.$this->issue($booking),
+            'HOTEL:Rosaliza Hotel',
+            'BOOKING:#'.$booking->id,
+            'ROOMS:'.($roomNumbers !== '' ? $roomNumbers : 'TBA'),
+        ];
+
+        if ($roomTypes !== '') {
+            $segments[] = 'TYPE:'.$roomTypes;
+        }
+        if ($checkIn !== '') {
+            $segments[] = 'IN:'.$checkIn.' 14:00';
+        }
+        if ($checkOut !== '') {
+            $segments[] = 'OUT:'.$checkOut.' 12:00';
+        }
+
+        return implode('|', $segments);
     }
 
     public function issue(Booking $booking): string
@@ -34,21 +72,23 @@ class CheckInTokenService
     public function tokenFromQrPayload(string $payload): string
     {
         $payload = trim($payload);
-        foreach ([self::QR_PREFIX, self::LEGACY_QR_PREFIX] as $prefix) {
+        foreach ([self::QR_PREFIX, self::ROSALIZA_QR_PREFIX, 'ROSA-CHECKIN:', self::LEGACY_QR_PREFIX] as $prefix) {
             if (str_starts_with($payload, $prefix)) {
-                $token = substr($payload, strlen($prefix));
+                $rawToken = substr($payload, strlen($prefix));
+                $token = trim(explode('|', $rawToken, 2)[0]);
                 if ($token !== '') {
                     return $token;
                 }
             }
         }
 
-        throw new RuntimeException('Mã QR không đúng định dạng nhận phòng Royal.');
+        throw new RuntimeException('Mã QR không đúng định dạng nhận phòng Rosaliza Hotel.');
     }
 
     public function bookingId(string $token): int
     {
-        if (preg_match('/^v1:(\d+):([A-Za-z0-9]{32})$/', trim($token), $matches) === 1) {
+        $cleanToken = trim(explode('|', trim($token), 2)[0]);
+        if (preg_match('/^v1:(\d+):([A-Za-z0-9]{32})$/', $cleanToken, $matches) === 1) {
             $bookingId = (int) $matches[1];
             $cached = Cache::get('checkin-token:'.$matches[2]);
             if (! is_array($cached)
@@ -60,7 +100,7 @@ class CheckInTokenService
             return $bookingId;
         }
 
-        return $this->legacyBookingId($token);
+        return $this->legacyBookingId($cleanToken);
     }
 
     private function legacyBookingId(string $token): int
@@ -81,13 +121,14 @@ class CheckInTokenService
 
     public function consume(string $token): void
     {
-        if (preg_match('/^v1:\d+:([A-Za-z0-9]{32})$/', trim($token), $matches) === 1) {
+        $cleanToken = trim(explode('|', trim($token), 2)[0]);
+        if (preg_match('/^v1:\d+:([A-Za-z0-9]{32})$/', $cleanToken, $matches) === 1) {
             Cache::forget('checkin-token:'.$matches[1]);
             return;
         }
 
         try {
-            $payload = json_decode(Crypt::decryptString($token), true, flags: JSON_THROW_ON_ERROR);
+            $payload = json_decode(Crypt::decryptString($cleanToken), true, flags: JSON_THROW_ON_ERROR);
         } catch (\Throwable) {
             throw new RuntimeException('Mã nhận phòng không hợp lệ.');
         }

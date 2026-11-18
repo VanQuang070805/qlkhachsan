@@ -517,17 +517,18 @@ body.internal-shell {
   white-space: nowrap;
 }
 
-.ds-status-delivered { background: #00B69B; }
-.ds-status-pending   { background: #FCBE2D; }
-.ds-status-cancelled { background: #FD5454; }
-.ds-status-confirmed { background: #4880FF; }
-.ds-status-inhouse   { background: #8280FF; }
+.ds-status-delivered { background: #047857; color: #FFFFFF; }
+.ds-status-pending   { background: #FEF3C7; color: #92400E; }
+.ds-status-cancelled { background: #DC2626; color: #FFFFFF; }
+.ds-status-confirmed { background: #1D4ED8; color: #FFFFFF; }
+.ds-status-inhouse   { background: #5B21B6; color: #FFFFFF; }
 
 .ds-filter-bar { align-items: end; background: #fff; padding: 20px; gap: 16px; }
 .ds-filter-fields { display: grid; grid-template-columns: repeat(4, minmax(135px, 1fr)); gap: 14px; flex: 1 1 700px; min-width: 0; }
 .ds-filter-field { display: grid; gap: 7px; min-width: 0; color: #495466; font-size: 13px; font-weight: 700; }
 .ds-filter-field :is(input, select) { width: 100%; min-width: 0; min-height: 42px; padding: 8px 10px; background: #fff; color: #202224; border: 1px solid #d5d9e2; border-radius: 8px; }
-.ds-filter-field :is(input, select):focus-visible, .ds-filter-actions :is(button, a):focus-visible { outline: 3px solid #4880ff; outline-offset: 2px; }
+.ds-filter-field :is(input, select):is(:focus, :focus-visible) { border-color: #64748b; outline: none; box-shadow: none; }
+.ds-filter-actions :is(button, a):focus-visible { outline: none; box-shadow: none; }
 .ds-filter-actions { display: flex; align-items: center; gap: 12px; }
 .ds-filter-apply { min-height: 42px; padding: 0 18px; border: 0; border-radius: 8px; background: #3569de; color: #fff; font-weight: 700; cursor: pointer; }
 .ds-filter-error { flex-basis: 100%; margin: 0; color: #b42318; font-size: 13px; }
@@ -624,6 +625,25 @@ body.internal-shell {
         </div>
       </div>
       <div class="ds-kpi-foot"><span class="ds-trend-desc">Trạng thái hiện tại của các đơn phù hợp bộ lọc</span></div>
+    </div>
+  </div>
+
+  <!-- Hospitality Operational Indicators (ADR, RevPAR, Occupancy) -->
+  <div class="ds-kpi-row" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+    <div class="ds-kpi-card" style="min-height: 112px; padding: 16px 20px;">
+      <p class="ds-kpi-label">Giá phòng bình quân (ADR)</p>
+      <div class="ds-kpi-value" style="font-size: 22px;">{{ number_format($stats['adr'] ?? 0, 0, ',', '.') }} đ</div>
+      <div class="ds-kpi-foot" style="margin-top: 8px;"><span class="ds-trend-desc">Trung bình mỗi đêm phòng phát sinh</span></div>
+    </div>
+    <div class="ds-kpi-card" style="min-height: 112px; padding: 16px 20px;">
+      <p class="ds-kpi-label">Doanh thu trên mỗi phòng (RevPAR)</p>
+      <div class="ds-kpi-value" style="font-size: 22px;">{{ number_format($stats['revpar'] ?? 0, 0, ',', '.') }} đ</div>
+      <div class="ds-kpi-foot" style="margin-top: 8px;"><span class="ds-trend-desc">Trên tổng quỹ phòng khả dụng</span></div>
+    </div>
+    <div class="ds-kpi-card" style="min-height: 112px; padding: 16px 20px;">
+      <p class="ds-kpi-label">Công suất lấp đầy phòng</p>
+      <div class="ds-kpi-value" style="font-size: 22px;">{{ number_format((float) ($stats['occupancy_rate'] ?? 0), 1, ',', '.') }}%</div>
+      <div class="ds-kpi-foot" style="margin-top: 8px;"><span class="ds-trend-desc">Tỷ lệ đêm phòng đã khai thác</span></div>
     </div>
   </div>
 

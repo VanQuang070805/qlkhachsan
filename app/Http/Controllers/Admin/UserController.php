@@ -1,19 +1,19 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-use App\Mail\AccountLockedMail;
+
 use App\Http\Controllers\Controller;
+use App\Mail\AccountLockedMail;
+use App\Mail\AccountUpdatedMail;
+use App\Mail\ReceptionistAccountMail;
 use App\Models\Role;
 use App\Models\User;
-use App\Mail\ReceptionistAccountMail;
-use App\Mail\AccountUpdatedMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
@@ -25,8 +25,8 @@ class UserController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('fullname', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('username', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%");
             });
         }
 
@@ -65,9 +65,9 @@ class UserController extends Controller
             'username' => 'required|string|max:50|unique:users,username',
             'password' => ['required', 'confirmed', 'string', 'min:6'],
             'fullname' => 'required|string|max:150',
-            'email'    => 'required|email|max:150|unique:users,email',
-            'phone'    => ['nullable', 'regex:/^[0-9]{7,15}$/'],
-            'role'     => ['required', 'string', Rule::in($roles->keys()->all())],
+            'email' => 'required|email|max:150|unique:users,email',
+            'phone' => ['nullable', 'regex:/^[0-9]{7,15}$/'],
+            'role' => ['required', 'string', Rule::in($roles->keys()->all())],
         ], [
             'phone.regex' => 'Số điện thoại chỉ được chứa 7–15 chữ số.',
         ]);
@@ -75,21 +75,18 @@ class UserController extends Controller
         $assignedRole = $roles->get($validated['role']);
         $accessRole = $assignedRole->slug === 'admin' ? 'admin' : 'receptionist';
         $user = DB::transaction(function () use ($validated, $assignedRole, $accessRole): User {
-            $user = User::create([
+            return User::create([
                 'username' => $validated['username'],
                 'password' => Hash::make($validated['password']),
                 'fullname' => $validated['fullname'],
-                'email'    => $validated['email'],
-                'phone'    => $validated['phone'] ?? null,
-                'role'     => $accessRole,
-                'role_id'  => $assignedRole->id,
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'role' => $accessRole,
+                'role_id' => $assignedRole->id,
                 'verified' => 1,
             ]);
-
-            return $user;
         });
 
-        // Gửi mail thông tin cho lễ tân
         if ($accessRole === 'receptionist') {
             try {
                 Mail::to($user->email)->send(new ReceptionistAccountMail($user->fullname, $user->username, $assignedRole->name));
@@ -99,47 +96,59 @@ class UserController extends Controller
         }
 
         return redirect()->route('admin.users.index')
-                         ->with('success', 'Tạo tài khoản thành công!');
+            ->with('success', 'Tạo tài khoản thành công!');
     }
 
     public function edit(User $user)
     {
-        $roles = Role::orderBy('name')->get();
+        if ($user->isCustomer()) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Quản trị viên không có quyền chỉnh sửa thông tin hoặc mật khẩu của khách hàng.');
+        }
+
+        $roles = Role::where('slug', '<>', 'customer')->orderBy('name')->get();
+
         return view('admin.users.edit', compact('user', 'roles'));
     }
 
     public function update(Request $request, User $user)
     {
+        if ($user->isCustomer()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Quản trị viên không có quyền chỉnh sửa thông tin hoặc mật khẩu của khách hàng.',
+                ], 403);
+            }
+
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Quản trị viên không có quyền chỉnh sửa thông tin hoặc mật khẩu của khách hàng.');
+        }
+
         $request->merge(['email' => mb_strtolower(trim((string) $request->email))]);
-        $passwordRule = $request->input('role') === 'customer'
-            ? ['nullable', 'confirmed', Password::min(10)->mixedCase()->numbers()]
-            : ['nullable', 'confirmed', 'string', 'min:6'];
+        $allowedRoles = Role::where('slug', '<>', 'customer')->pluck('slug')->all();
 
         $validated = $request->validate([
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($user->id)],
-            'password' => $passwordRule,
+            'password' => ['nullable', 'confirmed', 'string', 'min:6'],
             'fullname' => 'required|string|max:150',
-            'email'    => ['required', 'email', 'max:150', Rule::unique('users')->ignore($user->id)],
-            'phone'    => ['nullable', 'regex:/^[0-9]{7,15}$/'],
-            'role'     => ['required', 'string', Rule::in(Role::pluck('slug')->all())],
+            'email' => ['required', 'email', 'max:150', Rule::unique('users')->ignore($user->id)],
+            'phone' => ['nullable', 'regex:/^[0-9]{7,15}$/'],
+            'role' => ['required', 'string', Rule::in($allowedRoles)],
         ], [
             'phone.regex' => 'Số điện thoại chỉ được chứa 7–15 chữ số.',
         ]);
 
         $assignedRole = Role::where('slug', $validated['role'])->firstOrFail();
-        $accessRole = match ($assignedRole->slug) {
-            'customer' => 'customer',
-            'admin' => 'admin',
-            default => 'receptionist',
-        };
+        $accessRole = $assignedRole->slug === 'admin' ? 'admin' : 'receptionist';
 
         $data = [
             'username' => $request->username,
             'fullname' => $request->fullname,
-            'email'    => $request->email,
-            'phone'    => $request->phone,
-            'role'     => $accessRole,
-            'role_id'  => $assignedRole->id,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'role' => $accessRole,
+            'role_id' => $assignedRole->id,
         ];
 
         if ($user->isAdmin() && $user->verified && $assignedRole->slug !== 'admin'
@@ -175,7 +184,7 @@ class UserController extends Controller
         }
 
         return redirect()->route('admin.users.index')
-                         ->with('success', 'Cập nhật tài khoản thành công!');
+            ->with('success', 'Cập nhật tài khoản thành công!');
     }
 
     public function destroy(User $user)
@@ -188,7 +197,6 @@ class UserController extends Controller
             return back()->with('error', 'Không thể xóa quản trị viên hoạt động cuối cùng.');
         }
 
-        // Kiểm tra xem khách hàng có lịch đặt phòng chưa hoàn thành không (pending, confirmed, checked_in)
         $hasActiveBookings = \App\Models\Booking::where('user_id', $user->id)
             ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
             ->exists();
@@ -201,38 +209,37 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('admin.users.index')
-                         ->with('success', 'Đã ngừng hoạt động tài khoản và giữ lại lịch sử liên quan.');
+            ->with('success', 'Đã ngừng hoạt động tài khoản và giữ lại lịch sử liên quan.');
     }
 
     public function toggleVerified(User $user)
-{
-    if ($user->id === auth()->id()) {
+    {
+        if ($user->id === auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể khóa tài khoản đang đăng nhập!',
+            ]);
+        }
+
+        if ($user->role === 'admin' && $user->verified && User::where('role', 'admin')->where('verified', true)->count() <= 1) {
+            return response()->json(['success' => false, 'message' => 'Không thể khóa quản trị viên hoạt động cuối cùng.'], 409);
+        }
+
+        $user->update(['verified' => ! $user->verified]);
+        if (! $user->verified) {
+            app(\App\Services\SessionRevocationService::class)->revoke($user);
+        }
+
+        try {
+            Mail::to($user->email)->send(new AccountLockedMail($user->fullname, ! $user->verified));
+        } catch (\Throwable $e) {
+            Log::warning('Account status notification failed', ['user_id' => $user->id, 'exception' => get_class($e)]);
+        }
+
         return response()->json([
-            'success' => false,
-            'message' => 'Không thể khóa tài khoản đang đăng nhập!'
+            'success' => true,
+            'verified' => $user->verified,
+            'message' => $user->verified ? 'Đã mở khóa tài khoản!' : 'Đã khóa tài khoản!',
         ]);
     }
-
-    if ($user->role === 'admin' && $user->verified && User::where('role', 'admin')->where('verified', true)->count() <= 1) {
-        return response()->json(['success' => false, 'message' => 'Không thể khóa quản trị viên hoạt động cuối cùng.'], 409);
-    }
-
-    // Toggle trạng thái
-    $user->update(['verified' => !$user->verified]);
-    if (!$user->verified) {
-        app(\App\Services\SessionRevocationService::class)->revoke($user);
-    }
-
-    try {
-        Mail::to($user->email)->send(new AccountLockedMail($user->fullname, !$user->verified));
-    } catch (\Throwable $e) {
-        Log::warning('Account status notification failed', ['user_id' => $user->id, 'exception' => get_class($e)]);
-    }
-
-    return response()->json([
-        'success'  => true,
-        'verified' => $user->verified,
-        'message'  => $user->verified ? 'Đã mở khóa tài khoản!' : 'Đã khóa tài khoản!',
-    ]);
-}
 }

@@ -129,8 +129,8 @@
 
 .search-input:focus {
     outline: none;
-    border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(37,151,208,.12);
+    border-color: #64748b;
+    box-shadow: none;
     background: #fff;
 }
 
@@ -307,7 +307,7 @@
     background: var(--cream);
     text-align: center;
 }
-.price-input:focus { outline: none; border-color: var(--gold); }
+.price-input:focus { outline: none; border-color: #64748b; box-shadow: none; }
 
 .amenity-item {
     display: flex;

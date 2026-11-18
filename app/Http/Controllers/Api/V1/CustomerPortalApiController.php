@@ -38,6 +38,12 @@ class CustomerPortalApiController extends ApiController
         }
 
         $data = $validator->validated();
+        $deliverabilityError = app(\App\Services\EmailDeliverabilityService::class)->validateRealEmail($data['email']);
+        if ($deliverabilityError !== null) {
+            return $this->fail('VALIDATION_ERROR', $deliverabilityError, 422, [
+                'email' => [$deliverabilityError],
+            ]);
+        }
         $otp = $this->newOtp();
         $user = User::create([
             'username' => $data['email'],
@@ -88,6 +94,9 @@ class CustomerPortalApiController extends ApiController
         }
 
         if (! $user->verified) {
+            if (! $user->otp_code) {
+                return $this->fail('ACCOUNT_LOCKED', 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.', 403);
+            }
             return $this->fail('EMAIL_UNVERIFIED', 'Tài khoản chưa xác thực email.', 403);
         }
 
@@ -266,7 +275,16 @@ class CustomerPortalApiController extends ApiController
         try {
             Mail::raw(
                 "Mã OTP của bạn là: {$otp}\n\nMã có hiệu lực trong 10 phút.\nNếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.",
-                fn ($message) => $message->to($user->email)->subject($subject)
+                function ($message) use ($user, $otp, $subject) {
+                    $message->to($user->email)->subject($subject);
+                    if (method_exists($message, 'getSymfonyMessage')) {
+                        $message->getSymfonyMessage()->html(view('emails.otp', [
+                            'otp' => $otp,
+                            'subject' => $subject,
+                            'recipientName' => $user->fullname,
+                        ])->render());
+                    }
+                }
             );
 
             return true;
@@ -354,7 +372,8 @@ class CustomerPortalApiController extends ApiController
             'adult_count' => ['required', 'integer', 'min:1', 'max:20'],
             'child_count' => ['sometimes', 'integer', 'min:0', 'max:20'],
             'room_count' => ['sometimes', 'integer', 'min:1', 'max:10'],
-            'payment_method' => ['sometimes', 'in:cash,vietqr,momo,zalopay,vnpay'],
+            'customer_phone' => ['sometimes', 'nullable', 'regex:/^0[0-9]{9}$/'],
+            'payment_method' => ['sometimes', 'nullable', 'in:vietqr,momo,zalopay,vnpay'],
         ]);
 
         if ($validator->fails()) {
@@ -362,16 +381,35 @@ class CustomerPortalApiController extends ApiController
         }
 
         $data = $validator->validated();
+        $resolvedPhone = trim((string) ($data['customer_phone'] ?? $customer->phone ?? ''));
+        if ($resolvedPhone === '') {
+            return $this->fail('PHONE_REQUIRED', 'Vui lòng bổ sung số điện thoại 10 chữ số trước khi đặt phòng.', 422, [
+                'customer_phone' => ['Vui lòng nhập số điện thoại 10 chữ số.'],
+            ]);
+        }
+        if ($data['check_in'] === now('Asia/Ho_Chi_Minh')->toDateString() && now('Asia/Ho_Chi_Minh')->hour >= 18) {
+            return $this->fail('CHECKIN_WINDOW_CLOSED', 'Từ 18:00, ngày nhận phòng sớm nhất là ngày mai. Giờ nhận phòng từ 14:00 đến trước 18:00.', 422);
+        }
+        try {
+            \App\Support\StayDates::validate($data['check_in'], $data['check_out']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return $this->fail('VALIDATION_ERROR', 'Khoảng ngày lưu trú không hợp lệ.', 422, $e->errors());
+        }
         $roomCount = (int) ($data['room_count'] ?? 1);
         $adults = (int) $data['adult_count'];
         $children = (int) ($data['child_count'] ?? 0);
         $roomType = RoomType::findOrFail((int) $data['room_type_id']);
 
-        if ((int) ceil(($adults + $children) / $roomCount) > (int) $roomType->max_guests) {
+        if ($adults > $roomCount * (int) $roomType->max_adults
+            || $children > $roomCount * (int) $roomType->max_children
+            || ($adults + $children) > $roomCount * (int) $roomType->max_guests) {
             return $this->fail('CAPACITY_EXCEEDED', 'Số lượng khách vượt quá sức chứa của hạng phòng.', 422);
         }
 
-        $createdBooking = DB::transaction(function () use ($customer, $roomType, $data, $roomCount, $adults, $children) {
+        $createdBooking = DB::transaction(function () use ($customer, $roomType, $data, $roomCount, $adults, $children, $resolvedPhone) {
+            if (empty($customer->phone)) {
+                $customer->forceFill(['phone' => $resolvedPhone])->save();
+            }
             $reservedIds = Booking::reservedRoomIds($data['check_in'], $data['check_out']);
 
             $availableRooms = Room::query()
@@ -395,7 +433,7 @@ class CustomerPortalApiController extends ApiController
                 'user_id' => $customer->id,
                 'customer_name' => $customer->fullname,
                 'customer_email' => $customer->email,
-                'customer_phone' => $customer->phone,
+                'customer_phone' => $resolvedPhone,
                 'check_in' => $data['check_in'],
                 'check_out' => $data['check_out'],
                 'adult_count' => $adults,
@@ -404,7 +442,7 @@ class CustomerPortalApiController extends ApiController
                 'deposit_amount' => $depositAmount,
                 'payment_method' => $data['payment_method'] ?? null,
                 'payment_status' => 'pending',
-                'status' => ($data['payment_method'] ?? null) === 'cash' ? 'confirmed' : 'pending',
+                'status' => 'pending',
             ]);
 
             $booking->rooms()->attach($availableRooms->pluck('id')->all());
@@ -457,17 +495,32 @@ class CustomerPortalApiController extends ApiController
             return $this->fail('FORBIDDEN_BOOKING_ACCESS', 'Bạn không có quyền hủy đơn đặt phòng của khách khác.', 403);
         }
 
-        if (! in_array($record->status, ['pending', 'confirmed'], true)) {
+        $reason = trim((string) $request->input('reason', '')) ?: null;
+        $cancelled = DB::transaction(function () use ($record, $reason) {
+            $locked = Booking::lockForUpdate()->find($record->id);
+            if (! $locked || ! in_array($locked->status, ['pending', 'confirmed'], true)) {
+                return null;
+            }
+            $isEligible = $locked->isRefundEligible();
+            $refundAmount = $isEligible
+                ? min((float) $locked->total_price, $locked->successfulPaymentAmount())
+                : 0;
+            $locked->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancellation_reason' => $reason,
+                'refund_status' => $refundAmount > 0 ? 'eligible' : 'none',
+                'refund_amount' => $refundAmount,
+            ]);
+
+            return $locked;
+        });
+
+        if (! $cancelled) {
             return $this->fail('BOOKING_CANNOT_BE_CANCELLED', 'Đơn đặt phòng ở trạng thái hiện tại không thể hủy.', 409);
         }
 
-        $record->update([
-            'status' => 'cancelled',
-            'cancelled_at' => now(),
-            'cancellation_reason' => trim((string) $request->input('reason', '')) ?: null,
-        ]);
-
-        return $this->ok($this->formatBooking($record->fresh('rooms.roomType')), 200, [
+        return $this->ok($this->formatBooking($cancelled->fresh('rooms.roomType')), 200, [
             'Cache-Control' => 'private, no-store',
         ]);
     }
@@ -488,26 +541,33 @@ class CustomerPortalApiController extends ApiController
         }
 
         $validator = Validator::make($request->all(), [
-            'new_check_out' => ['required', 'date_format:Y-m-d'],
+            'new_check_out' => ['sometimes', 'date_format:Y-m-d'],
+            'mode' => ['sometimes', 'in:hours,days'],
+            'amount' => ['sometimes', 'integer', 'min:1', 'max:30'],
         ]);
         if ($validator->fails()) {
-            return $this->fail('VALIDATION_ERROR', 'Ngày trả phòng mới không hợp lệ.', 422, $validator->errors()->toArray());
+            return $this->fail('VALIDATION_ERROR', 'Thông tin gia hạn không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
-        $newCheckOut = (string) $request->input('new_check_out');
-        if ($newCheckOut <= $record->check_out->toDateString()) {
-            return $this->fail('INVALID_EXTENSION_DATE', 'Ngày gia hạn phải sau ngày trả phòng hiện tại.', 422);
+        $mode = (string) $request->input('mode', 'days');
+        if ($request->filled('new_check_out')) {
+            $newCheckOut = (string) $request->input('new_check_out');
+            if ($newCheckOut <= $record->check_out->toDateString()) {
+                return $this->fail('INVALID_EXTENSION_DATE', 'Ngày gia hạn phải sau ngày trả phòng hiện tại.', 422);
+            }
+            $mode = 'days';
+            $amount = (int) $record->check_out->diffInDays(Carbon::parse($newCheckOut));
+        } else {
+            $amount = (int) $request->input('amount', 0);
         }
 
-        $conflicts = Booking::reservedRoomIds($record->check_out->toDateString(), $newCheckOut, $record->id)
-            ->intersect($record->rooms->pluck('id'));
-        if ($conflicts->isNotEmpty()) {
-            return $this->fail('EXTENSION_ROOM_CONFLICT', 'Phòng đã có lịch đặt kế tiếp trong khoảng thời gian gia hạn.', 409);
+        try {
+            $result = app(\App\Services\StayExtensionService::class)->extend($record->id, $mode, $amount, false);
+        } catch (\DomainException $e) {
+            return $this->fail('EXTENSION_DENIED', $e->getMessage(), 409);
         }
 
-        $record->update(['check_out' => $newCheckOut]);
-
-        return $this->ok($this->formatBooking($record->fresh('rooms.roomType')), 200, [
+        return $this->ok($this->formatBooking($result['booking']->load('rooms.roomType')), 200, [
             'Cache-Control' => 'private, no-store',
         ]);
     }
@@ -563,16 +623,15 @@ class CustomerPortalApiController extends ApiController
         }
 
         $validator = Validator::make($request->all(), [
-            'payment_method' => ['required', 'in:cash,vietqr,momo,zalopay,vnpay'],
+            'payment_method' => ['required', 'in:vietqr,momo,zalopay,vnpay'],
         ]);
         if ($validator->fails()) {
-            return $this->fail('VALIDATION_ERROR', 'Phương thức thanh toán không hợp lệ.', 422, $validator->errors()->toArray());
+            return $this->fail('VALIDATION_ERROR', 'Rosaliza Hotel chỉ nhận đặt cọc trực tuyến qua VietQR, MoMo, ZaloPay hoặc VNPay.', 422, $validator->errors()->toArray());
         }
 
         $method = (string) $request->input('payment_method');
         $record->update([
             'payment_method' => $method,
-            'status' => $method === 'cash' ? 'confirmed' : $record->status,
         ]);
 
         return $this->ok([
@@ -671,7 +730,7 @@ class CustomerPortalApiController extends ApiController
 
         $user = User::find($id);
 
-        return ($user && $user->role === 'customer') ? $user : null;
+        return ($user && $user->role === 'customer' && $user->verified) ? $user : null;
     }
 
     private function formatBooking(Booking $booking): array

@@ -1,34 +1,35 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Thông tin tài khoản nội bộ</title>
-</head>
-<body style="font-family: Arial, sans-serif; background:#f4f4f4; padding:20px; margin:0;">
-    <div style="max-width:600px; margin:0 auto; background:#fff; padding:30px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+@extends('emails.layouts.rosaliza')
 
-        <h2 style="color:#1e3a8a; text-align:center; margin-top:0;">
-            Thông tin tài khoản nội bộ
-        </h2>
+@section('title', 'Thông tin tài khoản nội bộ - Rosaliza Hotel')
+@section('subtitle', 'Thông Báo Cấp Tài Khoản Vận Hành')
 
-        <p style="color:#374151;">Xin chào <strong>{{ $fullname }}</strong>,</p>
-        <p style="color:#374151;">Tài khoản nội bộ với vai trò <strong>{{ $roleLabel }}</strong> đã được tạo. Dưới đây là thông tin đăng nhập:</p>
+@section('content')
+    <p style="margin:0 0 12px 0; font-size:16px; color:#141413; font-weight:600;">
+        Xin chào {{ $fullname }},
+    </p>
+    <p style="margin:0 0 18px 0; color:#44403C;">
+        Tài khoản vận hành nội bộ tại <strong>Rosaliza Hotel</strong> với vai trò <strong>{{ $roleLabel }}</strong> đã được khởi tạo trên hệ thống.
+    </p>
 
-        <div style="background:#eff6ff; padding:20px; border-radius:8px; margin:20px 0; border:1px dashed #1d4ed8;">
-            <p style="margin:8px 0; color:#1e3a8a;">
-                <strong>Tên đăng nhập:</strong> {{ $username }}
-            </p>
-        </div>
-
-        <p style="color:#6b7280; font-size:13px;">
-            Mật khẩu không được gửi qua email. Vui lòng dùng mật khẩu đã được cấp qua kênh nội bộ và đổi mật khẩu sau lần đăng nhập đầu tiên.
-        </p>
-
-        <hr style="border:none; border-top:1px solid #e5e7eb; margin:20px 0;">
-        <p style="color:#9ca3af; font-size:12px; text-align:center; margin-bottom:0;">
-            Trân trọng,<br>
-            <strong>{{ config('app.name') }}</strong>
-        </p>
+    <div style="background-color:#FAF9F6; border:1px solid #E6E1D6; border-radius:14px; padding:18px 20px; margin:0 0 18px 0;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse; font-size:13.5px;">
+            <tr>
+                <td style="padding:7px 0; color:#57534E; border-bottom:1px solid #EFECE6;">Tên đăng nhập</td>
+                <td style="padding:7px 0; text-align:right; font-weight:700; color:#141413; border-bottom:1px solid #EFECE6;">{{ $username }}</td>
+            </tr>
+            <tr>
+                <td style="padding:7px 0; color:#57534E;">Vai trò được gán</td>
+                <td style="padding:7px 0; text-align:right; font-weight:600; color:#785D32;">{{ $roleLabel }}</td>
+            </tr>
+        </table>
     </div>
-</body>
-</html>
+
+    <p style="margin:0 0 18px 0; font-size:13px; color:#57534E;">
+        Vì lý do bảo mật, mật khẩu không được đính kèm qua email. Vui lòng nhận mật khẩu ban đầu từ quản trị viên và chủ động đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
+    </p>
+
+    <p style="margin:0; font-size:13.5px; color:#44403C;">
+        Trân trọng,<br>
+        <strong style="color:#141413;">Ban Quản trị Rosaliza Hotel</strong>
+    </p>
+@endsection

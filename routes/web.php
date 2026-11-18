@@ -13,7 +13,6 @@ use App\Http\Controllers\ReceptionController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\RoomController as AdminRoomController;
-use App\Http\Controllers\RecceiptionUsserController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\FaceIdController;
@@ -27,6 +26,7 @@ Route::redirect('/about', '/contact', 301)->name('about');
 Route::get('/payment/momo/return', [PaymentController::class, 'momoReturn'])->name('payment.momo.return');
 Route::post('/chatbot/api', [ChatbotController::class, 'api'])->middleware('throttle:chatbot')->name('chatbot.api');
 Route::post('/chatbot/stream', [ChatbotController::class, 'stream'])->middleware('throttle:chatbot')->name('chatbot.stream');
+Route::post('/chatbot/reset', [ChatbotController::class, 'reset'])->middleware('throttle:30,1')->name('chatbot.reset');
 
 // Phòng
 Route::get('/rooms',               [RoomController::class, 'index'])->middleware('throttle:public-availability')->name('rooms.index');
@@ -46,9 +46,11 @@ Route::middleware('guest')->group(function () {
     Route::get('/verify',                 [AuthController::class, 'showVerify'])->name('verify');
     Route::post('/verify',                [AuthController::class, 'verify'])->middleware('throttle:otp-verify');
     Route::post('/verify/resend',         [AuthController::class, 'resendVerifyOtp'])->middleware('throttle:3,1')->name('verify.resend');
-    Route::get('/auth/google',             [GoogleAuthController::class, 'redirect'])->name('auth.google');
-    Route::get('/auth/google/callback',    [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 });
+
+// Google OAuth cho cổng khách hàng (hỗ trợ đăng ký/đăng nhập mới và liên kết tài khoản khách đã đăng nhập)
+Route::get('/auth/google',          [GoogleAuthController::class, 'redirect'])->middleware('throttle:15,1')->name('auth.google');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->middleware('throttle:15,1')->name('auth.google.callback');
 
 // Khách đã đăng nhập vẫn có thể xác minh email để đổi mật khẩu.
 Route::get('/forgot-password',        [AuthController::class, 'showForgot'])->name('password.forgot');
@@ -99,7 +101,7 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
     Route::get('/payment/error/{bookingId}',   [PaymentController::class, 'error'])->name('payment.error');
     Route::patch('/payment/{bookingId}',       [PaymentController::class, 'updateMethod'])->name('payment.update');
     Route::get('/payment/check/{bookingId}',   [PaymentController::class, 'checkStatus'])->name('payment.check');
-    Route::post('/payment/{bookingId}/keep-alive', [PaymentController::class, 'keepVietQrAlive'])->name('payment.keep-alive');
+    Route::post('/payment/{bookingId}/keep-alive', [PaymentController::class, 'keepVietQrAlive'])->middleware('throttle:15,1')->name('payment.keep-alive');
     Route::post('/payment/{bookingId}/cancel-pending', [PaymentController::class, 'cancelPendingPayment'])->name('payment.cancel-pending');
 
     // Hủy phòng
@@ -130,17 +132,19 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
     Route::post('/profile/update-password', [ReceptionUserController::class, 'updatePassword'])->name('profile.update-password');
     Route::get('/reports', [AdminController::class, 'reports'])->middleware('permission:rp_view_reports')->name('reports');
 
-    Route::get('/iot', [FaceIdController::class, 'index'])->name('iot');
-    Route::post('/face-id/sessions', [FaceIdController::class, 'createSession'])->middleware('throttle:10,1')->name('face-id.sessions.create');
-    Route::post('/face-id/sessions/{sessionId}/samples', [FaceIdController::class, 'addSample'])->middleware('throttle:30,1')->name('face-id.samples.store');
-    Route::delete('/face-id/sessions/{sessionId}', [FaceIdController::class, 'cancelSession'])->name('face-id.sessions.cancel');
-    Route::post('/face-id/recognize', [FaceIdController::class, 'recognize'])->middleware('throttle:12,1')->name('face-id.recognize');
-    Route::get('/face-id/profiles', [FaceIdController::class, 'profiles'])->name('face-id.profiles.index');
-    Route::patch('/face-id/profiles/{profile}', [FaceIdController::class, 'updateProfile'])->name('face-id.profiles.update');
-    Route::delete('/face-id/profiles/{profile}', [FaceIdController::class, 'deleteProfile'])->name('face-id.profiles.delete');
-    Route::get('/face-id/health', [FaceIdController::class, 'health'])->middleware('throttle:30,1')->name('face-id.health');
-    Route::post('/face-id/sync', [FaceIdController::class, 'sync'])->middleware('throttle:5,1')->name('face-id.sync');
-    Route::post('/face-id/full-sync', [FaceIdController::class, 'fullSync'])->middleware('throttle:2,1')->name('face-id.full-sync');
+    Route::middleware('permission:bp_checkin_checkout')->group(function () {
+        Route::get('/iot', [FaceIdController::class, 'index'])->name('iot');
+        Route::post('/face-id/sessions', [FaceIdController::class, 'createSession'])->middleware('throttle:10,1')->name('face-id.sessions.create');
+        Route::post('/face-id/sessions/{sessionId}/samples', [FaceIdController::class, 'addSample'])->middleware('throttle:30,1')->name('face-id.samples.store');
+        Route::delete('/face-id/sessions/{sessionId}', [FaceIdController::class, 'cancelSession'])->name('face-id.sessions.cancel');
+        Route::post('/face-id/recognize', [FaceIdController::class, 'recognize'])->middleware('throttle:12,1')->name('face-id.recognize');
+        Route::get('/face-id/profiles', [FaceIdController::class, 'profiles'])->name('face-id.profiles.index');
+        Route::patch('/face-id/profiles/{profile}', [FaceIdController::class, 'updateProfile'])->name('face-id.profiles.update');
+        Route::delete('/face-id/profiles/{profile}', [FaceIdController::class, 'deleteProfile'])->name('face-id.profiles.delete');
+        Route::get('/face-id/health', [FaceIdController::class, 'health'])->middleware('throttle:30,1')->name('face-id.health');
+        Route::post('/face-id/sync', [FaceIdController::class, 'sync'])->middleware('throttle:5,1')->name('face-id.sync');
+        Route::post('/face-id/full-sync', [FaceIdController::class, 'fullSync'])->middleware('throttle:2,1')->name('face-id.full-sync');
+    });
 
     Route::get('/bookings', [ReceptionController::class, 'index'])->middleware('permission:bp_view_schedule')->name('bookings');
     Route::patch('/bookings/{id}/confirm', [BookingController::class, 'confirm'])->middleware('permission:bp_create_booking')->name('bookings.confirm');

@@ -84,8 +84,8 @@ class HotelRoomToolService
             return ['error' => collect($e->errors())->flatten()->first()];
         }
 
-        if ($data['check_in'] === now('Asia/Ho_Chi_Minh')->toDateString() && now('Asia/Ho_Chi_Minh')->hour >= 16) {
-            return ['error' => 'Từ 16:00 không thể nhận phòng trong ngày hôm nay.'];
+        if ($data['check_in'] === now('Asia/Ho_Chi_Minh')->toDateString() && now('Asia/Ho_Chi_Minh')->hour >= 18) {
+            return ['error' => 'Từ 18:00 không thể nhận phòng trong ngày hôm nay. Giờ nhận phòng từ 14:00 đến trước 18:00.'];
         }
 
         $availabilityVersion = $this->versions->availabilityVersion();

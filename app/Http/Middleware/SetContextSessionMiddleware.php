@@ -14,9 +14,14 @@ class SetContextSessionMiddleware
     {
         $portMap = [
             18080 => 'customer',
+            10800 => 'customer',
             18081 => 'staff',
+            10801 => 'staff',
             18082 => 'admin',
+            10802 => 'admin',
             18083 => 'internal',
+            18084 => 'internal',
+            10804 => 'internal',
         ];
         $portalContext = $portMap[(int) $request->getPort()]
             ?? strtolower(trim((string) ($request->header('X-Portal-Context') ?: config('services.portal.context', 'all'))));
@@ -31,7 +36,7 @@ class SetContextSessionMiddleware
             $staffId = session('staff_user_id') ?: session('admin_user_id') ?: Auth::guard('staff')->id() ?: Auth::guard('admin')->id();
             $u = $staffId ? User::find($staffId) : null;
 
-            if ($u && in_array($u->role, ['admin', 'receptionist'], true)) {
+            if ($u && in_array($u->role, ['admin', 'receptionist'], true) && $u->verified) {
                 $staffUser = session('staff_user');
                 if (! is_array($staffUser) || (int) ($staffUser['id'] ?? 0) !== (int) $u->id) {
                     $staffUser = [
@@ -69,7 +74,7 @@ class SetContextSessionMiddleware
             }
 
             $u = $customerId ? User::find($customerId) : null;
-            if ($u && $u->role === 'customer') {
+            if ($u && $u->role === 'customer' && $u->verified) {
                 $customerUser = session('customer_user');
                 if (! is_array($customerUser) || (int) ($customerUser['id'] ?? 0) !== (int) $u->id) {
                     $customerUser = [

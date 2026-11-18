@@ -7,7 +7,15 @@ if ($uri !== '/' && $publicPath) {
     $target = $publicPath . $uri;
     if (file_exists($target) && !is_dir($target)) {
         $realTarget = realpath($target);
-        if ($realTarget && is_file($realTarget)) {
+        $allowedHostPublic = realpath('/var/www/html/public');
+        if (
+            $realTarget &&
+            is_file($realTarget) &&
+            (
+                str_starts_with($realTarget, $publicPath . DIRECTORY_SEPARATOR) ||
+                ($allowedHostPublic && str_starts_with($realTarget, $allowedHostPublic . DIRECTORY_SEPARATOR))
+            )
+        ) {
             $ext = strtolower(pathinfo($realTarget, PATHINFO_EXTENSION));
             $mimes = [
                 'jpg' => 'image/jpeg',

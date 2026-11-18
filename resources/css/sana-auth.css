@@ -249,8 +249,9 @@ body.auth-shell {
 }
 
 .sana-input:focus {
-    border-color: #B89C72 !important;
-    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.2) !important;
+    border-color: #64748b !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 .sana-input.is-invalid {
@@ -788,9 +789,9 @@ body.auth-shell {
 }
 
 .otp-cell:focus {
-    border-color: #09090b !important;
-    box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.12) !important;
-    transform: translateY(-1px) !important;
+    border-color: #52525b !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 .otp-cell.is-filled {

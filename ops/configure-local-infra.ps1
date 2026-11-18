@@ -33,13 +33,18 @@ $laravel = [ordered]@{
     REDIS_QUEUE_PORT = '16380'
     REDIS_QUEUE_DB = '0'
     REDIS_QUEUE = 'laravel-default'
+    GEMINI_CHAT_MODEL = 'gemini-3.1-flash-lite'
 }
 $chatbot = [ordered]@{
+    GEMINI_CHAT_MODEL = 'gemini-3.1-flash-lite'
+    GEMINI_FALLBACK_CHAT_MODEL = 'gemini-flash-lite-latest'
     REDIS_QUEUE_HOST = '127.0.0.1'
     REDIS_QUEUE_PORT = '16380'
     REDIS_QUEUE_DB = '0'
-    USE_BULLMQ_WORKER = 'true'
-    CHATBOT_WORKER_CONCURRENCY = '2'
+    USE_BULLMQ_WORKER = 'false'
+    CHATBOT_WORKER_CONCURRENCY = '1'
+    LANGCHAIN_TRACING_V2 = 'false'
+    LANGSMITH_TRACING = 'false'
     KAFKA_BROKERS = '127.0.0.1:19092'
     KAFKA_CLIENT_ID = 'rosaliza-local'
 }

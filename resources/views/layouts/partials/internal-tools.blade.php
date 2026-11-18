@@ -36,10 +36,10 @@
             <span class="fw-semibold text-muted small">Lệnh nhanh</span>
             <button type="button" class="btn-close m-0" data-command-close aria-label="Đóng lệnh nhanh" style="font-size: 0.75rem;"></button>
         </div>
-        <label style="height: 52px; padding: 0 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(0,0,0,0.06); margin: 0;">
-            <i class="bi bi-search text-muted" style="font-size: 0.95rem;"></i>
-            <input id="commandInput" type="search" placeholder="Tìm tính năng hoặc nhập lệnh…" autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent; font-size: 0.88rem; color: #0f172a;">
-            <kbd class="command-esc-badge" style="display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 24px; padding: 0 6px; font-size: 0.65rem; font-weight: 700; border-radius: 5px; background: #f1f5f9; color: #64748b; border: 1px solid rgba(0,0,0,0.14); box-shadow: 0 1px 1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;">ESC</kbd>
+        <label class="command-search-bar" for="commandInput" style="display: flex !important; align-items: center !important; gap: 10px !important; height: 52px !important; padding: 0 16px !important; margin: 0 !important; border: 0 !important; border-bottom: 1px solid #e2e8f0 !important; background: #ffffff !important; outline: none !important; box-shadow: none !important;">
+            <i class="bi bi-search command-search-icon" aria-hidden="true" style="font-size: 0.95rem !important; color: #64748b !important; flex: 0 0 auto !important; background: transparent !important; border: 0 !important; outline: none !important; box-shadow: none !important; padding: 0 !important;"></i>
+            <input id="commandInput" type="text" placeholder="Tìm tính năng hoặc nhập lệnh…" autocomplete="off" spellcheck="false" style="flex: 1 1 auto !important; min-width: 0 !important; height: 100% !important; border: 0 !important; outline: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; font-size: 0.9rem !important; color: #0f172a !important;">
+            <kbd class="command-esc-badge" style="flex: 0 0 auto !important; margin-left: auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; height: 20px !important; min-width: 24px !important; padding: 0 6px !important; font-size: 0.65rem !important; font-weight: 700 !important; border-radius: 5px !important; background: #f1f5f9 !important; color: #64748b !important; border: 1px solid rgba(0,0,0,0.14) !important; box-shadow: 0 1px 1px rgba(0,0,0,0.05) !important;">ESC</kbd>
         </label>
         <div class="command-results">
             @if(session('user.role') === 'admin')

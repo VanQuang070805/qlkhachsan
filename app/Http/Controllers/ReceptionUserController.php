@@ -96,6 +96,8 @@ class ReceptionUserController extends Controller
         $user->update([
             'password' => Hash::make($request->new_password),
         ]);
+        $request->session()->regenerate();
+        $request->session()->regenerateToken();
         app(\App\Services\SessionRevocationService::class)->revoke($user, $request->session()->getId());
 
         return redirect()->route('staff.profile')

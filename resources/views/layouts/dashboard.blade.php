@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}">
-    @include('layouts.partials.portal-tab-session', ['portal' => request()->getPort() == 18082 ? 'admin' : 'staff'])
+    @include('layouts.partials.portal-tab-session', ['portal' => in_array((int) request()->getPort(), [18082, 10802], true) ? 'admin' : (in_array((int) request()->getPort(), [18081, 10801], true) ? 'staff' : (request()->is('admin*') ? 'admin' : 'staff'))])
     <title>@yield('title','Vận hành · Rosaliza Hotel')</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
@@ -25,12 +25,7 @@
 <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 <div class="workspace-shell">
 <aside class="workspace-sidebar" id="workspaceSidebar">
-    <div class="sidebar-macos-dots" style="display: flex; gap: 7px; padding: 18px 18px 12px;" aria-hidden="true">
-        <span class="ctrl-dot ctrl-red"></span>
-        <span class="ctrl-dot ctrl-yellow"></span>
-        <span class="ctrl-dot ctrl-green"></span>
-    </div>
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" style="padding-top: 14px;">
     @if($isAdmin)
         <div class="sidebar-section-label">BÁO CÁO &amp; PHÂN TÍCH</div>
         <a class="{{ request()->routeIs('admin.dashboard','admin.reports')?'is-active':'' }}" href="{{ route('admin.reports') }}"><i class="bi bi-grid-1x2" aria-hidden="true"></i><span>Tổng quan</span></a>
@@ -72,7 +67,12 @@
 </aside>
 <section class="workspace-content">
     @include('layouts.partials.internal-topbar')
-    <div class="staff-workspace">@yield('content')</div>
+    <div class="staff-workspace">
+        @unless(request()->routeIs('staff.cancellations', 'staff.profile', 'receptionist.profile'))
+            @include('client.partials.flash')
+        @endunless
+        @yield('content')
+    </div>
 </section>
 </div>
 @include('layouts.partials.internal-tools')

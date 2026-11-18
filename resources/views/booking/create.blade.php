@@ -119,7 +119,7 @@
                             </div>
                         </div>
 
-                        {{-- Field 4: Khung giờ nhận phòng (Tiêu chuẩn 14:00 - 15:00) --}}
+                        {{-- Field 4: Khung giờ nhận phòng (Tiêu chuẩn 14:00 - trước 18:00) --}}
                         <div class="aeth-field-group">
                             <div class="aeth-field-header">
                                 <label class="aeth-label">Khung giờ nhận phòng</label>
@@ -134,15 +134,15 @@
                                         <i class="bi bi-clock-history"></i>
                                     </div>
                                     <div>
-                                    <strong style="display: block; font-size: 15px; font-weight: 700; color: #0f172a;">14:00</strong>
-                                        <span class="text-slate-500" style="font-size: 12px;">Khung giờ nhận phòng tiêu chuẩn trong ngày</span>
+                                    <strong style="display: block; font-size: 15px; font-weight: 700; color: #0f172a;">14:00 - trước 18:00</strong>
+                                        <span class="text-slate-600" style="font-size: 12px;">Quá 18:00 chưa nhận phòng, đơn đặt sẽ tự động hủy</span>
                                     </div>
                                 </div>
                                 <span class="badge bg-white text-slate-700 border border-slate-200 rounded-pill px-3 py-1.5" style="font-size: 12px; font-weight: 600;">
                                     <i class="bi bi-check2 text-emerald-600 me-1"></i> Mặc định
                                 </span>
                             </div>
-                            <input type="hidden" name="arrival_time" id="arrivalTimeInput" value="14:00 - 15:00">
+                            <input type="hidden" name="arrival_time" id="arrivalTimeInput" value="14:00 - 18:00">
                             <input type="hidden" name="special_requests" value="">
                         </div>
 
@@ -250,51 +250,35 @@
                         <div class="aeth-breakdown">
                             <div class="aeth-breakdown-row">
                                 <span style="font-size: 14px;">Tiền phòng ({{ $nights }} đêm)</span>
-                                <strong style="font-size: 15px;">{{ number_format($total, 0, ',', '.') }}đ</strong>
+                                <span style="font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; color: #0f172a;">{{ number_format($total, 0, ',', '.') }}đ</span>
                             </div>
                             <div class="aeth-total-box" style="margin-top:6px; border:none !important; outline:none !important; box-shadow:none !important; background:#f8fafc !important;">
                                 <div>
-                                    <div style="font-size: 14px; font-weight: 700; color: #0f172a;">Tổng thanh toán</div>
-                                    <small style="font-size: 11px; color: #64748b;">Theo giá phòng đã chọn</small>
+                                    <div style="font-size: 14px; font-weight: 600; color: #0f172a;">Tổng thanh toán</div>
+                                    <small style="font-size: 11px; color: #64748b;">Cọc trực tuyến 50% ở bước tiếp theo</small>
                                 </div>
-                                <strong style="font-size: 21px; font-weight: 800; color: #0f172a;">{{ number_format($total, 0, ',', '.') }}đ</strong>
+                                <strong style="font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; color: #0f172a;">{{ number_format($total, 0, ',', '.') }}đ</strong>
                             </div>
                         </div>
 
-                        {{-- Nút Tiếp tục đến thanh toán (Desktop) --}}
-                        <div class="mt-4 pt-1 d-none d-lg-block">
+                        {{-- Nút Tiếp tục đến thanh toán (Hiển thị thống nhất trên cả Mobile, Tablet & Desktop) --}}
+                        <div class="mt-4 pt-1">
                             <button type="submit" form="bookingForm" class="aeth-btn-primary" id="btnSubmitStep1"
                                 onclick="document.getElementById('bookingForm').requestSubmit ? document.getElementById('bookingForm').requestSubmit() : document.getElementById('bookingForm').submit()"
-                                style="height: 52px; font-size: 16px; font-weight: 700; border-radius: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                style="height: 52px; font-size: 15.5px; font-weight: 600; border-radius: 999px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
                                 <span>Tiếp tục đến thanh toán</span>
-                                <i class="bi bi-arrow-right"></i>
+                                <i class="bi bi-arrow-right" aria-hidden="true"></i>
                             </button>
                             <p class="text-center text-muted mt-2 mb-0" style="font-size: 11.5px;">
-                                <i class="bi bi-shield-check text-emerald-600 me-1"></i> Bảo mật giao dịch &amp; thanh toán an toàn
+                                <i class="bi bi-shield-check text-emerald-600 me-1" aria-hidden="true"></i> Bảo mật giao dịch &amp; giữ phòng 10 phút
                             </p>
                         </div>
 
                     </div>
                 </div>
             </div>
-
-
-
-    {{-- Native App Sticky Bottom Action Dock (Mobile <= 991px) --}}
-    <div class="app-bottom-dock d-lg-none" aria-label="Tiếp tục thanh toán">
-        <div class="app-bottom-dock__content">
-            <div class="app-bottom-dock__price">
-                <span class="app-bottom-dock__amount">{{ number_format($total, 0, ',', '.') }}đ</span>
-                <span class="app-bottom-dock__unit">{{ $nights }} đêm · {{ $rooms->count() }} phòng</span>
-            </div>
-            <button type="submit" form="bookingForm" class="app-bottom-dock__btn" id="btnMobileSubmitStep1"
-                onclick="document.getElementById('bookingForm').requestSubmit ? document.getElementById('bookingForm').requestSubmit() : document.getElementById('bookingForm').submit()">
-                <span>Tiếp tục</span>
-                <i class="bi bi-arrow-right" aria-hidden="true"></i>
-            </button>
         </div>
     </div>
-</div>
 </div>
 
 <script>

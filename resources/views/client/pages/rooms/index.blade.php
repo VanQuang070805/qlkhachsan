@@ -10,15 +10,15 @@
     <section class="melia-page-hero" aria-labelledby="rooms-page-title">
         <div class="melia-page-hero__inner">
             <span class="melia-page-hero__tag">
-                Rosaliza Accommodation &bull; Hoàn Kiếm, Hanoi
+                ROSALIZA HOTEL · HOÀN KIẾM, HÀ NỘI
             </span>
 
-            <h1 id="rooms-page-title" class="melia-page-hero__title" data-rb-split="words,chars">
-                A room for <em>every quiet journey.</em>
+            <h1 id="rooms-page-title" class="melia-page-hero__title">
+                Không gian lưu trú thanh lịch cho mỗi kỳ nghỉ
             </h1>
 
-            <p class="melia-page-hero__desc" data-rb-blur="words">
-                Khám phá bộ sưu tập phòng nghỉ boutique sang trọng tại Rosaliza Hotel HaNoi, từ các không gian Deluxe tinh tế đến các căn Grand Suite với view phố cổ thoáng đãng, mang đến cảm giác an yên tuyệt đối.
+            <p class="melia-page-hero__desc">
+                Khám phá bộ sưu tập hạng phòng tại Rosaliza Hotel Hà Nội, nơi ánh sáng tự nhiên, thiết kế cách âm yên tĩnh và dịch vụ chu đáo mang lại giấc ngủ sâu trọn vẹn.
             </p>
         </div>
     </section>
@@ -83,7 +83,7 @@
                         <input id="room-check-in" type="date" name="check_in"
                                value="{{ old('check_in', $filters['check_in']) }}"
                                min="{{ $earliestCheckIn }}" required>
-                        <small class="melia-field-hint">Từ 14:00 chiều</small>
+                        <small class="melia-field-hint">14:00 - trước 18:00</small>
                         @error('check_in')<small class="text-danger" style="font-size: 10px;">{{ $message }}</small>@enderror
                     </div>
 
@@ -155,10 +155,10 @@
     <div class="melia-page-container">
         <section class="melia-rooms-section" aria-labelledby="catalogue-title">
             <div class="melia-sec-header">
-                <span class="melia-sec-tag">Available Collection</span>
-                <h2 id="catalogue-title" class="melia-sec-title">Boutique Accommodations</h2>
+                <span class="melia-sec-tag">DANH MỤC HẠNG PHÒNG</span>
+                <h2 id="catalogue-title" class="melia-sec-title">Bộ sưu tập phòng nghỉ tại Rosaliza Hotel</h2>
                 <p class="melia-sec-subtitle">
-                    Không gian nghỉ ngơi thanh lịch, tích hợp nệm cao cấp, phòng tắm đá cẩm thạch và dịch vụ phòng 24/7.
+                    Không gian nghỉ ngơi thanh lịch, tích hợp nệm cao cấp, phòng tắm đá cẩm thạch và dịch vụ hỗ trợ 24/7.
                 </p>
             </div>
 
@@ -174,15 +174,15 @@
                             <div class="melia-room-card__thumb">
                                 <a href="{{ route('rooms.detail', array_merge(['id' => $room->id], $roomSearchQuery)) }}" aria-label="Xem chi tiết {{ $room->type_name }}">
                                     <img src="{{ $roomImg }}"
-                                         alt="{{ $room->type_name }} tại Rosaliza Hotel HaNoi"
+                                         alt="{{ $room->type_name }} tại Rosaliza Hotel Hà Nội"
                                          loading="lazy"
                                          onerror="this.onerror=null;this.src='{{ $fallbackImg }}';">
                                 </a>
                                 <div class="melia-room-card__badge-wrap">
-                                    <span class="melia-card-badge">Hạng phòng</span>
+                                    <span class="melia-card-badge">Rosaliza</span>
                                     @if(isset($room->available_count))
                                         <span class="melia-card-avail">
-                                            <i class="bi bi-check-circle-fill" style="color: #16a34a; font-size: 10px;"></i>
+                                            <i class="bi bi-check-circle-fill" style="color: #16a34a; font-size: 10px;" aria-hidden="true"></i>
                                             {{ $room->available_count }} phòng trống
                                         </span>
                                     @endif
@@ -191,8 +191,8 @@
 
                             <div class="melia-room-card__body">
                                 <div class="melia-room-card__meta-bar">
-                                    <span>Boutique Room</span>
-                                    <span>&bull;</span>
+                                    <span>Hạng phòng nghỉ dưỡng</span>
+                                    <span>·</span>
                                     <span>{{ $room->max_guests }} khách tối đa</span>
                                 </div>
 
@@ -203,11 +203,11 @@
                                 </h3>
 
                                 <div class="melia-room-card__specs">
-                                    <span><i class="bi bi-people"></i> {{ $room->max_adults }} người lớn, {{ $room->max_children }} trẻ em</span>
+                                    <span><i class="bi bi-people" aria-hidden="true"></i> {{ $room->max_adults }} người lớn, {{ $room->max_children }} trẻ em</span>
                                 </div>
 
                                 <p class="melia-room-card__desc">
-                                    {{ \Illuminate\Support\Str::limit($room->description ?: 'Thông tin hạng phòng đang được cập nhật.', 95) }}
+                                    {{ \Illuminate\Support\Str::limit($room->description ?: 'Không gian nghỉ ngơi yên tĩnh, thiết kế hài hòa cùng tiện nghi tiêu chuẩn tại trung tâm Hoàn Kiếm.', 110) }}
                                 </p>
 
                                 <div class="melia-room-card__amenities">
@@ -216,7 +216,7 @@
                                             {{ $amenity->amenity_name }}
                                         </span>
                                     @empty
-                                        <span class="melia-amenity-tag">Chưa cập nhật tiện nghi</span>
+                                        <span class="melia-amenity-tag">Tiện nghi tiêu chuẩn</span>
                                     @endforelse
                                 </div>
 
@@ -226,11 +226,11 @@
                                         <span class="melia-price-amount">
                                             {{ number_format((float) $room->price, 0, ',', '.') }} đ
                                         </span>
-                                        <span class="melia-price-unit">Giá theo ngày đã chọn</span>
+                                        <span class="melia-price-unit">Cọc trực tuyến 50%</span>
                                     </div>
                                     <a href="{{ route('rooms.detail', array_merge(['id' => $room->id], $roomSearchQuery)) }}" class="melia-card-btn">
                                         <span>Đặt phòng</span>
-                                        <i class="bi bi-arrow-right"></i>
+                                        <i class="bi bi-arrow-right" aria-hidden="true"></i>
                                     </a>
                                 </div>
                             </div>
@@ -239,7 +239,7 @@
                 </div>
             @else
                 <div class="melia-empty-state" role="status">
-                    <i class="bi bi-calendar2-x"></i>
+                    <i class="bi bi-calendar2-x" aria-hidden="true"></i>
                     <h3>Không tìm thấy phòng phù hợp</h3>
                     <p>{{ $searchSubmitted ? 'Không có hạng phòng phù hợp với ngày ở và số khách đã chọn. Bạn vui lòng thử ngày khác hoặc liên hệ lễ tân.' : 'Hiện chưa có hạng phòng trong hệ thống.' }}</p>
                     @if($searchSubmitted)
@@ -255,18 +255,15 @@
             @endif
         </section>
 
-        {{-- =========================================================================
-             4. STANDARDS & BESPOKE SERVICES (3-BENTO GRID)
-             ========================================================================= --}}
-        <section class="melia-values-section" style="margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; border-radius: 28px; margin-bottom: 72px;">
-            <div class="melia-page-container" style="padding: 0;">
-                <div class="melia-sec-header melia-sec-header--center">
-                    <span class="melia-sec-tag">Hospitality Standards</span>
-                    <h2 class="melia-sec-title">Đặc quyền nghỉ dưỡng chuẩn mực</h2>
-                    <p class="melia-sec-subtitle">
-                        Khám phá không gian lưu trú và những thông tin hữu ích cho kỳ nghỉ của bạn tại Rosaliza Hotel HaNoi.
-                    </p>
-                </div>
+        {{-- 4. STANDARDS & BESPOKE SERVICES --}}
+        <section class="melia-values-section melia-values-section--boxed">
+            <div class="melia-sec-header melia-sec-header--center">
+                <span class="melia-sec-tag">TIÊU CHUẨN PHỤC VỤ</span>
+                <h2 class="melia-sec-title">Đặc quyền nghỉ dưỡng chuẩn mực</h2>
+                <p class="melia-sec-subtitle">
+                    Khám phá không gian lưu trú và những tiện ích đồng hành cùng kỳ nghỉ của bạn tại Rosaliza Hotel Hà Nội.
+                </p>
+            </div>
 
                 <div class="melia-values-grid">
                     <article class="melia-value-card">
@@ -293,7 +290,6 @@
                         </p>
                     </article>
                 </div>
-            </div>
         </section>
 
         {{-- =========================================================================
@@ -301,10 +297,10 @@
              ========================================================================= --}}
         <section class="melia-faqs" style="padding-bottom: 80px;" aria-labelledby="faq-title">
             <div class="melia-sec-header melia-sec-header--center">
-                <span class="melia-sec-tag">Stay Questions</span>
+                <span class="melia-sec-tag">Thông tin lưu trú</span>
                 <h2 id="faq-title" class="melia-sec-title">Câu hỏi thường gặp khi đặt phòng</h2>
                 <p class="melia-sec-subtitle">
-                    Những thông tin hữu ích giúp kỳ nghỉ của Quý khách tại Rosaliza Hotel HaNoi diễn ra suôn sẻ và thuận tiện nhất.
+                    Những thông tin hữu ích giúp kỳ nghỉ của Quý khách tại Rosaliza Hotel Hà Nội diễn ra suôn sẻ và thuận tiện nhất.
                 </p>
             </div>
 
@@ -315,7 +311,7 @@
                         <i class="bi bi-plus-lg melia-faq-icon"></i>
                     </button>
                     <div class="melia-faq-answer">
-                        Giờ nhận phòng từ 12:00 đến trước 16:00 và giờ trả phòng trước 12:00. Nếu cần thay đổi thời gian lưu trú, bạn vui lòng hỏi lễ tân để kiểm tra tình trạng phòng và phụ phí áp dụng.
+                        Giờ nhận phòng từ 14:00 đến trước 18:00 và giờ trả phòng trước 12:00. Nếu quá 18:00 chưa làm thủ tục nhận phòng, hệ thống sẽ tự động hủy đơn. Khách sạn áp dụng đặt cọc trực tuyến 50% khi đặt phòng.
                     </div>
                 </div>
 

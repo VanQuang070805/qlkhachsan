@@ -3,6 +3,7 @@
     $signedIn = $portal === 'customer'
         ? (bool) session('customer_user_id')
         : ($portal === 'admin' ? (bool) session('admin_user_id') : (bool) session('staff_user_id'));
+    $rememberedCustomer = $portal === 'customer' && (auth()->viaRemember() || (bool) request()->cookie(auth()->getRecallerName()));
     $logoutUrl = $portal === 'customer' ? route('logout') : ($portal === 'admin' ? route('admin.logout') : route('staff.logout'));
     $loginUrl = $portal === 'customer' ? route('login') : ($portal === 'admin' ? route('admin.login') : route('staff.login'));
 @endphp
@@ -10,8 +11,13 @@
 <script>
 (() => {
     const key = 'rosaliza:{{ $portal }}:tab-session';
+    const allowRemembered = @json($rememberedCustomer);
     try {
         if (sessionStorage.getItem(key) === 'active') return;
+        if (allowRemembered) {
+            sessionStorage.setItem(key, 'active');
+            return;
+        }
         // A new tab has no tab-scoped proof of the previous sign-in.
         document.documentElement.style.visibility = 'hidden';
         fetch(@json($logoutUrl), {

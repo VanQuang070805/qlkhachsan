@@ -85,6 +85,11 @@
             const form = new FormData();
             form.append('frame', await captureFrame(), 'frame.jpg');
             const result = await jsonRequest(root.dataset.recognizeUrl, { method: 'POST', body: form });
+            if (result.matched === false || !result.customer_name) {
+                cameraStatus.className = 'status error';
+                cameraStatus.textContent = result.message || 'Không khớp hồ sơ khuôn mặt nào đã đăng ký.';
+                return;
+            }
             const score = Number(result.score);
             const scoreText = Number.isFinite(score) ? ` · độ khớp ${(score * 100).toFixed(1)}%` : '';
             const details = [

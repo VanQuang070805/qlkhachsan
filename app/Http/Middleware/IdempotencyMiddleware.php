@@ -29,61 +29,79 @@ class IdempotencyMiddleware
         ksort($payload);
         $requestHash = hash('sha256', json_encode($payload, JSON_UNESCAPED_UNICODE));
 
-        $existing = ApiIdempotencyKey::query()
-            ->where('actor_scope', $actorScope)
-            ->where('route_signature', $routeSignature)
-            ->where('idempotency_key_hash', $keyHash)
-            ->first();
-
-        if ($existing && $existing->expires_at && $existing->expires_at->isPast()) {
-            $existing->delete();
-            $existing = null;
-        }
-
-        if ($existing) {
-            if (! hash_equals($existing->request_hash, $requestHash)) {
-                return response()->json([
-                    'error' => [
-                        'code' => 'IDEMPOTENCY_KEY_CONFLICT',
-                        'message' => 'Idempotency-Key đã được sử dụng với dữ liệu đầu vào khác.',
-                        'fields' => (object) [],
-                        'correlation_id' => $correlationId,
-                    ],
-                ], 409)->withHeaders([
-                    'X-Correlation-ID' => $correlationId,
-                ]);
-            }
-
-            $body = $existing->response_body ?? [];
-            if (is_array($body) && isset($body['meta']) && is_array($body['meta'])) {
-                $body['meta']['correlation_id'] = $correlationId;
-            }
-
-            return response()->json($body, (int) $existing->status_code)->withHeaders([
+        $lock = \Illuminate\Support\Facades\Cache::lock("idemp:{$actorScope}:{$routeSignature}:{$keyHash}", 15);
+        if (! $lock->get()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'IDEMPOTENCY_IN_FLIGHT',
+                    'message' => 'Yêu cầu với Idempotency-Key này đang được xử lý.',
+                    'fields' => (object) [],
+                    'correlation_id' => $correlationId,
+                ],
+            ], 409)->withHeaders([
                 'X-Correlation-ID' => $correlationId,
-                'X-Idempotent-Replay' => 'true',
             ]);
         }
 
-        $response = $next($request);
+        try {
+            $existing = ApiIdempotencyKey::query()
+                ->where('actor_scope', $actorScope)
+                ->where('route_signature', $routeSignature)
+                ->where('idempotency_key_hash', $keyHash)
+                ->first();
 
-        if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300) {
-            $decoded = json_decode((string) $response->getContent(), true);
-            if (is_array($decoded)) {
-                ApiIdempotencyKey::query()->updateOrCreate([
-                    'actor_scope' => $actorScope,
-                    'route_signature' => $routeSignature,
-                    'idempotency_key_hash' => $keyHash,
-                ], [
-                    'request_hash' => $requestHash,
-                    'status_code' => $response->getStatusCode(),
-                    'response_body' => $decoded,
-                    'expires_at' => now()->addHours(24),
+            if ($existing && $existing->expires_at && $existing->expires_at->isPast()) {
+                $existing->delete();
+                $existing = null;
+            }
+
+            if ($existing) {
+                if (! hash_equals($existing->request_hash, $requestHash)) {
+                    return response()->json([
+                        'error' => [
+                            'code' => 'IDEMPOTENCY_KEY_CONFLICT',
+                            'message' => 'Idempotency-Key đã được sử dụng với dữ liệu đầu vào khác.',
+                            'fields' => (object) [],
+                            'correlation_id' => $correlationId,
+                        ],
+                    ], 409)->withHeaders([
+                        'X-Correlation-ID' => $correlationId,
+                    ]);
+                }
+
+                $body = $existing->response_body ?? [];
+                if (is_array($body) && isset($body['meta']) && is_array($body['meta'])) {
+                    $body['meta']['correlation_id'] = $correlationId;
+                }
+
+                return response()->json($body, (int) $existing->status_code)->withHeaders([
+                    'X-Correlation-ID' => $correlationId,
+                    'X-Idempotent-Replay' => 'true',
                 ]);
             }
-        }
 
-        return $response;
+            $response = $next($request);
+
+            if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300) {
+                $decoded = json_decode((string) $response->getContent(), true);
+                if (is_array($decoded)) {
+                    ApiIdempotencyKey::query()->updateOrCreate([
+                        'actor_scope' => $actorScope,
+                        'route_signature' => $routeSignature,
+                        'idempotency_key_hash' => $keyHash,
+                    ], [
+                        'request_hash' => $requestHash,
+                        'status_code' => $response->getStatusCode(),
+                        'response_body' => $decoded,
+                        'expires_at' => now()->addHours(24),
+                    ]);
+                }
+            }
+
+            return $response;
+        } finally {
+            $lock->release();
+        }
     }
 
     private function resolveActorScope(Request $request): string

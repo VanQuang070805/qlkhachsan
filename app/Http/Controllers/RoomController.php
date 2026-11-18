@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
+use App\Models\PriceSetting;
 use App\Models\Room;
 use App\Models\RoomType;
-use App\Models\PriceSetting;
-use App\Models\Booking;
 use App\Support\StayDates;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Carbon\Carbon;
 
 class RoomController extends Controller
 {
@@ -20,7 +20,7 @@ class RoomController extends Controller
     {
         $now = now('Asia/Ho_Chi_Minh');
         $earliestCheckIn = $now->copy()->startOfDay();
-        if ($now->hour >= 16) {
+        if ($now->hour >= 18) {
             $earliestCheckIn->addDay();
         }
 
@@ -37,8 +37,8 @@ class RoomController extends Controller
         $checkOut = $filters['check_out'] ?? $earliestCheckIn->copy()->addDay()->toDateString();
         if ($searchSubmitted && $checkIn < $earliestCheckIn->toDateString()) {
             throw ValidationException::withMessages([
-                'check_in' => $now->hour >= 16
-                    ? 'Từ 16:00, vui lòng chọn ngày nhận phòng từ ngày mai.'
+                'check_in' => $now->hour >= 18
+                    ? 'Từ 18:00, vui lòng chọn ngày nhận phòng từ ngày mai.'
                     : 'Ngày nhận phòng không thể ở trong quá khứ.',
             ]);
         }
@@ -68,9 +68,10 @@ class RoomController extends Controller
             ->get()
             ->map(function (RoomType $type) use ($reservedRoomIds, $checkIn, $checkOut, $nights) {
                 $type->available_count = $type->rooms->filter(fn (Room $room) =>
-                    $room->status === Room::STATUS_AVAILABLE && !$reservedRoomIds->has((int) $room->id)
+                    $room->status === Room::STATUS_AVAILABLE && ! $reservedRoomIds->has((int) $room->id)
                 )->count();
-                $type->price = PriceSetting::calculateTotalPrice((float) $type->price, $checkIn, $checkOut) / max($nights, 1);
+                $type->price = round(PriceSetting::calculateTotalPrice((float) $type->price, $checkIn, $checkOut) / max($nights, 1));
+
                 return $type;
             });
 
@@ -108,29 +109,27 @@ class RoomController extends Controller
     public function search(Request $request)
     {
         $request->validate([
-            'check_in'  => 'required|date|after_or_equal:today',
+            'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
-            'adults'    => 'required|integer|min:1',
-            'children'  => 'nullable|integer|min:0',
+            'adults' => 'required|integer|min:1',
+            'children' => 'nullable|integer|min:0',
         ]);
 
-        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 16 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
+        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 18 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
         if ($request->check_in < $earliestCheckIn) {
-            return back()->withInput()->withErrors(['check_in' => 'Từ 16:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
+            return back()->withInput()->withErrors(['check_in' => 'Từ 18:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
         }
 
-        $checkIn   = $request->check_in;
-        $checkOut  = $request->check_out;
+        $checkIn = $request->check_in;
+        $checkOut = $request->check_out;
         StayDates::validate($checkIn, $checkOut);
-        $adults    = (int) $request->adults;
-        $children  = (int) ($request->children ?? 0);
-        $guests    = $adults + $children;
-        $nights    = Carbon::parse($checkIn)->diffInDays($checkOut);
+        $adults = (int) $request->adults;
+        $children = (int) ($request->children ?? 0);
+        $guests = $adults + $children;
+        $nights = Carbon::parse($checkIn)->diffInDays($checkOut);
 
-        // Room_id đã bị đặt trùng ngày
-        $bookedRoomIds = \App\Models\Booking::reservedRoomIds($checkIn, $checkOut);
+        $bookedRoomIds = Booking::reservedRoomIds($checkIn, $checkOut);
 
-        // Giữ cả hạng phòng hiện hết phòng để khách thấy các số phòng bị vô hiệu hóa.
         $roomTypes = RoomType::with(['amenities', 'rooms'])
             ->whereHas('rooms')
             ->withCount(['rooms as inventory_count'])
@@ -142,12 +141,12 @@ class RoomController extends Controller
             )->values();
 
         foreach ($roomTypes as $roomType) {
-            // Tính giá trung bình sau khi điều chỉnh cho khoảng ngày lưu trú
             $totalAdjustedPrice = PriceSetting::calculateTotalPrice((float) $roomType->price, $checkIn, $checkOut);
-            $roomType->price = $totalAdjustedPrice / max($nights, 1);
+            $roomType->price = round($totalAdjustedPrice / max($nights, 1));
 
             $roomType->available_rooms = $roomType->rooms->map(function ($r) use ($bookedRoomIds) {
                 $r->is_booked = $bookedRoomIds->contains($r->id);
+
                 return $r;
             })->sortBy(['floor', 'room_number']);
         }
@@ -173,51 +172,52 @@ class RoomController extends Controller
             'children' => 'nullable|integer|min:0|max:20',
         ]);
 
-        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 16 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
+        $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 18 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
         if ($request->filled('check_in') && $request->check_in < $earliestCheckIn) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['check_in' => 'Từ 16:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
+            throw ValidationException::withMessages(['check_in' => 'Từ 18:00, vui lòng chọn ngày nhận phòng từ ngày mai.']);
         }
 
-        $room      = RoomType::with(['amenities', 'reviews.user'])->findOrFail($id);
+        $room = RoomType::with(['amenities', 'reviews.user'])->findOrFail($id);
         $avgRating = $room->averageRating();
 
-        $checkIn  = $request->check_in ?: $earliestCheckIn;
+        $checkIn = $request->check_in ?: $earliestCheckIn;
         $checkOut = $request->check_out ?: Carbon::parse($checkIn)->addDay()->toDateString();
         StayDates::validate($checkIn, $checkOut);
 
-        // Lấy room_id đã bị đặt trong khoảng ngày (nếu có chọn ngày)
         $bookedRoomIds = collect();
+        $totalAdjustedPrice = (float) $room->price;
         if ($checkIn && $checkOut) {
             $nights = Carbon::parse($checkIn)->diffInDays(Carbon::parse($checkOut));
             $totalAdjustedPrice = PriceSetting::calculateTotalPrice((float) $room->price, $checkIn, $checkOut);
-            $room->price = $totalAdjustedPrice / max($nights, 1);
+            $room->price = round($totalAdjustedPrice / max($nights, 1));
 
-            $bookedRoomIds = \App\Models\Booking::reservedRoomIds($checkIn, $checkOut);
+            $bookedRoomIds = Booking::reservedRoomIds($checkIn, $checkOut);
         }
-    
-        // Lấy tất cả phòng của loại này
+
         $allRoomsOfType = Room::where('room_type_id', $id)
             ->orderBy('floor')
             ->orderBy('room_number')
             ->get()
             ->map(function ($r) use ($bookedRoomIds) {
                 $r->is_booked = $bookedRoomIds->contains($r->id);
+
                 return $r;
             });
 
         if ($request->expectsJson()) {
             return response()->json([
-                'available_ids' => $allRoomsOfType->filter(fn ($item) => !$item->is_booked && $item->status === 'available')->pluck('id')->values(),
+                'available_ids' => $allRoomsOfType->filter(fn ($item) => ! $item->is_booked && $item->status === 'available')->pluck('id')->values(),
                 'rooms' => $allRoomsOfType->map(fn ($item) => [
                     'id' => $item->id,
-                    'available' => !$item->is_booked && $item->status === 'available',
+                    'available' => ! $item->is_booked && $item->status === 'available',
                     'status' => $item->is_booked ? 'reserved' : $item->status,
                 ])->values(),
-                'nightly_price' => (float) $room->price,
+                'nightly_price' => (int) round((float) $room->price),
+                'stay_total_per_room' => (int) round($totalAdjustedPrice),
             ])->header('Cache-Control', 'no-store');
         }
 
-        $adults   = (int) ($request->adults ?? 1);
+        $adults = (int) ($request->adults ?? 1);
         $children = (int) ($request->children ?? 0);
 
         return view('room.detail', compact(

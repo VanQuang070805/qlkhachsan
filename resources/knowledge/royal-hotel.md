@@ -1,19 +1,19 @@
-## Nhận và trả phòng
+## Nhận và trả phòng tại Rosaliza Hotel
 
-Khách nhận phòng từ 12:00 đến trước 16:00. Từ 16:00, hệ thống không cho chọn ngày hiện tại làm ngày nhận phòng. Khách trả phòng trước 12:00. Trả phòng thực tế sau 13:00 mới phát sinh phụ thu; phụ thu bằng 50% giá một đêm của phòng.
+Khách hàng nhận phòng từ 14:00 đến trước 18:00 tại số 5B Trần Quốc Toản, Phường Hàng Bài, Quận Hoàn Kiếm, Hà Nội. Nếu quá 18:00 khách chưa đến nhận phòng, hệ thống tự động hủy đơn đặt phòng. Từ 18:00, hệ thống không nhận đặt phòng cho ngày hiện tại. Giờ trả phòng tiêu chuẩn là trước 12:00 trưa; trả phòng sau 13:00 phát sinh phụ thu bằng 50% giá một đêm.
 
-## Tìm và đặt phòng
+## Tìm phòng và giữ chỗ
 
-Khách chọn ngày nhận, ngày trả và số người để hệ thống kiểm tra phòng trống theo dữ liệu hiện tại. Sức chứa của các phòng được chọn phải bằng hoặc lớn hơn tổng số khách. Một đơn chờ thanh toán giữ phòng trong 10 phút. Giá và phòng trống phải được tra cứu trực tiếp, không suy đoán từ tài liệu này.
+Khách chọn ngày nhận phòng, ngày trả phòng và cơ cấu khách để hệ thống kiểm tra phòng trống trực tiếp. Đơn chờ thanh toán được giữ phòng tối đa 10 phút.
 
-## Thanh toán
+## Thanh toán cọc trực tuyến
 
-Rosaliza Hotel hỗ trợ các phương thức được hiển thị tại bước thanh toán, gồm thanh toán trực tuyến và tiền mặt khi phương thức đó khả dụng cho đơn. Thông tin thẻ, mật khẩu và mã xác thực không được cung cấp cho chatbot. Trạng thái và số tiền của một đơn phải được lấy từ dữ liệu đặt phòng của chính khách đang đăng nhập.
+Rosaliza Hotel chỉ nhận đặt cọc trực tuyến bằng 50% tổng tiền phòng qua các cổng VietQR, MoMo, ZaloPay hoặc VNPay trên website; không áp dụng giữ phòng trực tuyến bằng tiền mặt. Không bao giờ cung cấp mật khẩu, mã OTP hay số thẻ qua cuộc trò chuyện.
 
-## Hủy và hoàn tiền
+## Hủy phòng và hoàn tiền
 
-Khách có thể gửi yêu cầu hủy từ mục kỳ nghỉ của mình khi trạng thái đơn cho phép. Điều kiện hoàn tiền phụ thuộc trạng thái thanh toán, ngày nhận phòng và chính sách đang áp dụng trên đơn. Với đơn đã xác nhận hoặc đã thanh toán, khách nên mở chi tiết kỳ nghỉ hoặc liên hệ Rosaliza Hotel để được kiểm tra chính xác.
+Khách có thể hủy đơn đang chờ hoặc đã xác nhận tại mục Lịch sử đặt phòng. Đơn đã thanh toán cọc đủ điều kiện hoàn tiền khi hủy trước ít nhất 5 ngày (ngày thường) hoặc 3 ngày (cuối tuần, ngày lễ) so với ngày nhận phòng.
 
-## Quyền riêng tư và hỗ trợ
+## Quyền riêng tư và liên hệ
 
-Pico chỉ đọc kỳ nghỉ của tài khoản khách đang đăng nhập. Trợ lý không yêu cầu mật khẩu, mã OTP, dữ liệu thẻ hoặc khóa bí mật. Khi thiếu dữ kiện hoặc không chắc chắn, trợ lý phải nói rõ giới hạn và hướng dẫn khách đến trang phù hợp.
+Pico chỉ tra cứu thông tin công khai và đơn đặt phòng của chính khách đang đăng nhập hợp lệ. Mọi hỗ trợ trực tiếp vui lòng liên hệ lễ tân Rosaliza Hotel qua hotline 024 3828 9999 hoặc email contact@rosalizahotel.vn.

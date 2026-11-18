@@ -193,6 +193,18 @@ export function createLangGraphHttpServer(): http.Server {
         const config = body.config || {};
 
         if (assistantId === 'ingestion_graph') {
+          if (process.env.ALLOW_HTTP_INGESTION !== 'true') {
+            return sendJson(
+              res,
+              403,
+              {
+                error: 'INGESTION_DISABLED',
+                message: 'HTTP knowledge ingestion is disabled; use CLI sync-knowledge.',
+                correlation_id: correlationId,
+              },
+              correlationId,
+            );
+          }
           const result = await ingestionGraph.invoke(input, config);
           return sendJson(res, 200, result, correlationId);
         }

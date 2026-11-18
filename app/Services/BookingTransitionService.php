@@ -18,11 +18,11 @@ class BookingTransitionService
             if ($booking->check_in->toDateString() !== now('Asia/Ho_Chi_Minh')->toDateString()) {
                 throw new DomainException('Booking chưa đến ngày nhận phòng.');
             }
-            if (now('Asia/Ho_Chi_Minh')->hour < 12) {
-                throw new DomainException('Chưa đến giờ nhận phòng (12:00).');
+            if (now('Asia/Ho_Chi_Minh')->hour < 14) {
+                throw new DomainException('Chưa đến giờ nhận phòng (14:00).');
             }
-            if (now('Asia/Ho_Chi_Minh')->hour >= 16) {
-                throw new DomainException('Đã quá 16:00, booking chưa nhận phòng đã tự hủy.');
+            if (now('Asia/Ho_Chi_Minh')->hour >= 18) {
+                throw new DomainException('Đã quá 18:00, booking chưa nhận phòng đã tự hủy.');
             }
             if ($booking->payment_method !== 'cash' && !$booking->isPaid()) {
                 throw new DomainException('Booking trực tuyến chưa thanh toán tiền cọc.');

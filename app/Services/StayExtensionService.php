@@ -13,13 +13,13 @@ use Illuminate\Support\Str;
 
 class StayExtensionService
 {
-    public function extend(int $bookingId, string $mode, int $amount): array
+    public function extend(int $bookingId, string $mode, int $amount, bool $isStaff = false): array
     {
         if (! in_array($mode, ['hours', 'days'], true) || $amount < 1 || $amount > ($mode === 'hours' ? 12 : 30)) {
             throw new DomainException('Thời lượng gia hạn không hợp lệ.');
         }
 
-        return DB::transaction(function () use ($bookingId, $mode, $amount): array {
+        return DB::transaction(function () use ($bookingId, $mode, $amount, $isStaff): array {
             $booking = Booking::query()->lockForUpdate()->findOrFail($bookingId);
             if ($booking->status !== 'checked_in') {
                 throw new DomainException('Chỉ booking đã nhận phòng mới được gia hạn.');
@@ -40,7 +40,7 @@ class StayExtensionService
             $currentDue = $hourlyLogs->last()
                 ? Carbon::parse($hourlyLogs->last()->raw_response['due_at'], 'Asia/Ho_Chi_Minh')
                 : $checkoutNoon;
-            if (now('Asia/Ho_Chi_Minh')->gt($currentDue)) {
+            if (! $isStaff && now('Asia/Ho_Chi_Minh')->gt($currentDue)) {
                 throw new DomainException('Đã quá thời điểm trả phòng; vui lòng liên hệ lễ tân.');
             }
 

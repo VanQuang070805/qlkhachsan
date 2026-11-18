@@ -18,8 +18,9 @@ class FilterConsistencyTest extends TestCase
     public function test_contact_form_does_not_claim_unsent_inquiries_were_received(): void
     {
         $this->get(route('contact'))->assertOk()
-            ->assertSee('Biểu mẫu đang chưa được kết nối')
-            ->assertSee('<fieldset disabled', false)
+            ->assertSee('024 3828 9999')
+            ->assertSee('contact@rosalizahotel.vn')
+            ->assertDontSee('contact-inquiry-form', false)
             ->assertDontSee('đã tiếp nhận thông tin và sẽ liên hệ lại');
     }
 

@@ -1,6 +1,6 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
 import { AgentStateAnnotation } from './state.js';
-import { makeRetriever } from '../shared/retrieval.js';
+import { getMySQLPool, makeRetriever } from '../shared/retrieval.js';
 import { formatDocs } from './utils.js';
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { z } from 'zod';
@@ -23,10 +23,24 @@ const HOTEL_FACT_KEYWORDS = [
   'gia phong',
   'đặt phòng',
   'dat phong',
+  'đặt cọc',
+  'dat coc',
+  'tiền cọc',
+  'tien coc',
+  'thanh toán',
+  'thanh toan',
+  'vietqr',
+  'momo',
+  'zalopay',
+  'vnpay',
   'hạng phòng',
   'hang phong',
+  'loại phòng',
+  'loai phong',
   'phòng trống',
   'phong trong',
+  'còn phòng',
+  'con phong',
   'trả phòng',
   'tra phong',
   'nhận phòng',
@@ -34,7 +48,9 @@ const HOTEL_FACT_KEYWORDS = [
   'khách sạn',
   'khach san',
   'check-in',
+  'check in',
   'check-out',
+  'check out',
   'booking',
   'suite',
   'deluxe',
@@ -42,23 +58,58 @@ const HOTEL_FACT_KEYWORDS = [
   'triple',
   'vip',
   'rosaliza',
-  'phụ thu phòng',
-  'phu thu phong',
-  'gia hạn lưu trú',
-  'gia han luu tru',
-  'hoàn tiền đặt phòng',
-  'hoan tien dat phong',
+  'phụ thu',
+  'phu thu',
+  'gia hạn',
+  'gia han',
+  'hoàn tiền',
+  'hoan tien',
   'hủy phòng',
   'huy phong',
+  'hủy đơn',
+  'huy don',
   'đơn của tôi',
   'don cua toi',
+  'địa chỉ',
+  'dia chi',
+  'ở đâu',
+  'o dau',
+  'hotline',
+  'liên hệ',
+  'lien he',
+  'số điện thoại',
+  'so dien thoai',
+  'tiện nghi',
+  'tien nghi',
+  'dọn phòng',
+  'don phong',
+  'face id',
+  'faceid',
+  'lễ tân',
+  'le tan',
 ];
 
+const NON_HOTEL_FALSE_POSITIVES =
+  /\b(phòng khám|phong kham|văn phòng|van phong|phòng ban|phong ban|phòng thí nghiệm|giá vàng|gia vang|giá xăng|gia xang|giá cổ phiếu|chứng khoán)\b/i;
+
 function isHotelQuery(query: string): boolean {
+  if (NON_HOTEL_FALSE_POSITIVES.test(query)) return false;
   const lower = query.toLowerCase();
-  const normalized = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
-  if (/\b(gia|dat|hang|loai|con|huy|thue|phu thu|tra|nhan|tim)\s+phog\b/.test(normalized)) return true;
-  return HOTEL_FACT_KEYWORDS.some((kw) => lower.includes(kw));
+  const normalized = lower
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+  if (
+    /\b(gia|dat|hang|loai|con|huy|thue|phu thu|tra|nhan|tim|coc)\s+phog\b/.test(
+      normalized,
+    )
+  ) {
+    return true;
+  }
+  if (HOTEL_FACT_KEYWORDS.some((kw) => lower.includes(kw))) {
+    return true;
+  }
+  return /\b(phòng|phong|lưu trú|luu tru|kỳ nghỉ|ky nghi)\b/i.test(query);
 }
 
 function isPriceOrRoomTypeQuery(query: string): boolean {
@@ -88,6 +139,8 @@ function isPriceOrRoomTypeQuery(query: string): boolean {
     'nguoi',
     'khách',
     'khach',
+    'cọc',
+    'coc',
   ].some((kw) => lower.includes(kw));
 }
 
@@ -104,7 +157,69 @@ function isMyBookingQuery(query: string): boolean {
     'lich su dat',
     'tôi đã đặt',
     'toi da dat',
+    'mã đặt phòng của tôi',
+    'my booking',
   ].some((kw) => lower.includes(kw));
+}
+
+function hanoiDateParts(offsetDays = 0): { year: number; month: number; day: number; iso: string } {
+  const target = new Date(Date.now() + offsetDays * 86_400_000);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(target);
+  const year = Number(parts.find((p) => p.type === 'year')?.value || target.getUTCFullYear());
+  const month = Number(parts.find((p) => p.type === 'month')?.value || target.getUTCMonth() + 1);
+  const day = Number(parts.find((p) => p.type === 'day')?.value || target.getUTCDate());
+  const iso = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return { year, month, day, iso };
+}
+
+function parseFlexibleDates(text: string): string[] {
+  const found: string[] = [];
+  const today = hanoiDateParts(0);
+
+  for (const m of text.matchAll(/\b(20\d{2})-(\d{2})-(\d{2})\b/g)) {
+    found.push(`${m[1]}-${m[2]}-${m[3]}`);
+  }
+
+  for (const m of text.matchAll(/\b(\d{1,2})[/-](\d{1,2})(?:[/-](20\d{2}))?\b/g)) {
+    const day = Number(m[1]);
+    const month = Number(m[2]);
+    if (day < 1 || day > 31 || month < 1 || month > 12) continue;
+    let year = m[3] ? Number(m[3]) : today.year;
+    if (!m[3] && (month < today.month || (month === today.month && day < today.day))) {
+      year += 1;
+    }
+    found.push(
+      `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    );
+  }
+
+  if (found.length === 0) {
+    if (/\b(hôm nay|hom nay|tối nay|toi nay)\b/i.test(text)) {
+      found.push(hanoiDateParts(0).iso);
+    }
+    if (/\b(ngày mai|ngay mai|tối mai|toi mai)\b/i.test(text)) {
+      found.push(hanoiDateParts(1).iso);
+    }
+    if (/\b(ngày kia|ngay kia|ngày mốt|ngay mot)\b/i.test(text)) {
+      found.push(hanoiDateParts(2).iso);
+    }
+    const nightMatch = text.match(/(\d+)\s*(đêm|dem)/i);
+    if ((found.length as number) === 1 && nightMatch) {
+      const nights = Math.max(1, Math.min(30, Number(nightMatch[1])));
+      const baseMs = Date.parse(`${found[0]}T00:00:00Z`);
+      if (!Number.isNaN(baseMs)) {
+        const out = new Date(baseMs + nights * 86_400_000).toISOString().slice(0, 10);
+        found.push(out);
+      }
+    }
+  }
+
+  return found;
 }
 
 function extractSearchCriteria(
@@ -116,35 +231,100 @@ function extractSearchCriteria(
   guests?: number;
   rooms?: number;
 } {
-  const combinedText = [
-    ...history.slice(-4).map((m) => String(m.content || '')),
-    query,
-  ].join(' ');
+  // Inspect only HumanMessages so assistant replies like "còn 5 phòng" never corrupt criteria.
+  const humanHistory = history
+    .filter((m) => m instanceof HumanMessage)
+    .slice(-3)
+    .map((m) => String(m.content || ''));
+  const combinedText = [...humanHistory, query].join(' ');
 
-  const isoDates = Array.from(
-    combinedText.matchAll(/\b(20\d{2}-\d{2}-\d{2})\b/g),
-  ).map((m) => m[1]);
+  const dates = parseFlexibleDates(query);
+  const effectiveDates = dates.length >= 2 ? dates : parseFlexibleDates(combinedText);
 
   let checkIn: string | undefined;
   let checkOut: string | undefined;
-  if (isoDates.length >= 2) {
-    checkIn = isoDates[isoDates.length - 2];
-    checkOut = isoDates[isoDates.length - 1];
+  if (effectiveDates.length >= 2) {
+    checkIn = effectiveDates[effectiveDates.length - 2];
+    checkOut = effectiveDates[effectiveDates.length - 1];
   }
 
   let guests: number | undefined;
-  const guestMatch = combinedText.match(/(\d+)\s*(người|nguoi|khách|khach)/i);
-  if (guestMatch) {
-    guests = Number(guestMatch[1]);
+  const guestMatches = Array.from(
+    combinedText.matchAll(/(\d+)\s*(người|nguoi|khách|khach)/gi),
+  );
+  if (guestMatches.length > 0) {
+    guests = Number(guestMatches[guestMatches.length - 1][1]);
   }
 
   let rooms = 1;
-  const roomMatch = combinedText.match(/(\d+)\s*(phòng|phong)/i);
-  if (roomMatch) {
-    rooms = Math.max(1, Math.min(10, Number(roomMatch[1])));
+  const roomMatches = Array.from(
+    combinedText.matchAll(/(\d+)\s*(phòng|phong)/gi),
+  );
+  if (roomMatches.length > 0) {
+    rooms = Math.max(
+      1,
+      Math.min(10, Number(roomMatches[roomMatches.length - 1][1])),
+    );
   }
 
   return { check_in: checkIn, check_out: checkOut, guests, rooms };
+}
+
+const prefetchedToolsCache = new Map<string, { promise: Promise<string>; expires: number }>();
+
+function toolPrefetchKey(query: string, config?: RunnableConfig): string {
+  const corr = String(config?.configurable?.correlationId || '');
+  const fp = String(config?.configurable?.dedupeFingerprint || '');
+  return `${corr}|${fp}|${query}`;
+}
+
+let cachedDirectRoomTypes: { data: Record<string, unknown>; expires: number } | null =
+  null;
+
+async function fetchRoomTypesFast(
+  baseUrl: string,
+  headers: Record<string, string>,
+): Promise<Record<string, unknown> | null> {
+  if ((process.env.VECTOR_PROVIDER || 'mysql') === 'mysql') {
+    if (cachedDirectRoomTypes && cachedDirectRoomTypes.expires > Date.now()) {
+      return cachedDirectRoomTypes.data;
+    }
+    try {
+      const [rows] = await getMySQLPool().query<any[]>(
+        'SELECT id, type_name, price, max_adults, max_children, max_guests, description FROM room_types ORDER BY price ASC',
+      );
+      if (Array.isArray(rows) && rows.length > 0) {
+        const payload = {
+          room_types: rows.map((row) => ({
+            id: Number(row.id),
+            type_name: String(row.type_name || ''),
+            price_per_night: Math.round(Number(row.price || 0)),
+            base_price_vnd: Math.round(Number(row.price || 0)),
+            max_adults: Number(row.max_adults || 0),
+            max_children: Number(row.max_children || 0),
+            max_guests: Number(row.max_guests || 0),
+            description: String(row.description || ''),
+          })),
+          queried_at: new Date().toISOString(),
+        };
+        cachedDirectRoomTypes = { data: payload, expires: Date.now() + 15_000 };
+        return payload;
+      }
+    } catch {
+      // Fall back to internal Laravel HTTP endpoint below when direct MySQL read is unavailable.
+    }
+  }
+
+  const rtRes = await fetch(`${baseUrl}/chatbot/tools/room-types`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({}),
+    signal: AbortSignal.timeout(4500),
+  });
+  if (rtRes.ok) {
+    return (await rtRes.json()) as Record<string, unknown>;
+  }
+  return null;
 }
 
 async function callLaravelPublicTools(
@@ -186,59 +366,100 @@ async function callLaravelPublicTools(
     queried_at: new Date().toISOString(),
   };
 
-  try {
-    if (isPriceOrRoomTypeQuery(query)) {
-      const rtRes = await fetch(`${baseUrl}/chatbot/tools/room-types`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({}),
-        signal: AbortSignal.timeout(8000),
-      });
-      if (rtRes.ok) {
-        results.room_types = await rtRes.json();
-      }
-    }
-
-    const criteria = extractSearchCriteria(query, history);
-    if (criteria.check_in && criteria.check_out && criteria.guests) {
-      const searchRes = await fetch(`${baseUrl}/chatbot/tools/rooms/search`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          check_in: criteria.check_in,
-          check_out: criteria.check_out,
-          guests: criteria.guests,
-          rooms: criteria.rooms || 1,
-        }),
-        signal: AbortSignal.timeout(8000),
-      });
-      results.availability_search = await searchRes.json();
-    }
-
-    if (
-      isMyBookingQuery(query) &&
+  const criteria = extractSearchCriteria(query, history);
+  const viewingRoomInReality = Boolean(
+    agentConfig?.userReality &&
+      agentConfig.userReality.includes('Đang xem hạng phòng'),
+  );
+  const needRoomTypes =
+    isPriceOrRoomTypeQuery(query) ||
+    (viewingRoomInReality && /\b(phòng này|phong nay|hạng này|hang nay|đang xem|dang xem)\b/i.test(query));
+  const needSearch = Boolean(
+    criteria.check_in && criteria.check_out && criteria.guests,
+  );
+  const needMyBookings = Boolean(
+    isMyBookingQuery(query) &&
       capabilityToken &&
-      actorScope.startsWith('customer:')
-    ) {
-      const myBookingsRes = await fetch(
-        `${baseUrl}/chatbot/tools/my-bookings`,
-        {
+      actorScope.startsWith('customer:'),
+  );
+
+  if (!needRoomTypes && !needSearch && !needMyBookings) {
+    return `<live_hotel_tools>\n${JSON.stringify(results)}\n</live_hotel_tools>`;
+  }
+
+  try {
+    const tasks: Array<Promise<void>> = [];
+
+    if (needRoomTypes) {
+      tasks.push(
+        fetchRoomTypesFast(baseUrl, headers).then((payload) => {
+          if (payload) {
+            results.room_types = payload;
+          }
+        }),
+      );
+    }
+
+    if (needSearch) {
+      tasks.push(
+        fetch(`${baseUrl}/chatbot/tools/rooms/search`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            check_in: criteria.check_in,
+            check_out: criteria.check_out,
+            guests: criteria.guests,
+            rooms: criteria.rooms || 1,
+          }),
+          signal: AbortSignal.timeout(4500),
+        }).then(async (searchRes) => {
+          results.availability_search = await searchRes.json();
+        }),
+      );
+    }
+
+    if (needMyBookings) {
+      tasks.push(
+        fetch(`${baseUrl}/chatbot/tools/my-bookings`, {
           method: 'POST',
           headers,
           body: JSON.stringify({}),
-          signal: AbortSignal.timeout(8000),
-        },
+          signal: AbortSignal.timeout(4500),
+        }).then(async (myBookingsRes) => {
+          if (myBookingsRes.ok) {
+            results.my_bookings = await myBookingsRes.json();
+          }
+        }),
       );
-      if (myBookingsRes.ok) {
-        results.my_bookings = await myBookingsRes.json();
-      }
     }
+
+    await Promise.all(tasks);
   } catch {
     results.tool_warning =
       'Không thể kết nối tức thời tới công cụ phòng trực tiếp; không tự đoán giá hoặc phòng trống.';
   }
 
-  return `<live_hotel_tools>\n${JSON.stringify(results, null, 2)}\n</live_hotel_tools>`;
+  return `<live_hotel_tools>\n${JSON.stringify(results)}\n</live_hotel_tools>`;
+}
+
+function getOrStartToolPrefetch(
+  query: string,
+  history: BaseMessage[],
+  config?: RunnableConfig,
+): Promise<string> {
+  const key = toolPrefetchKey(query, config);
+  const existing = prefetchedToolsCache.get(key);
+  if (existing && existing.expires > Date.now()) {
+    return existing.promise;
+  }
+
+  const promise = callLaravelPublicTools(query, history, config);
+  if (prefetchedToolsCache.size >= 100) {
+    const oldest = prefetchedToolsCache.keys().next().value;
+    if (oldest) prefetchedToolsCache.delete(oldest);
+  }
+  prefetchedToolsCache.set(key, { promise, expires: Date.now() + 8000 });
+  return promise;
 }
 
 async function checkQueryType(
@@ -247,32 +468,56 @@ async function checkQueryType(
 ): Promise<{
   route: 'retrieve' | 'direct';
 }> {
-  if (answerClockQuestion(state.query || '')) {
+  const q = (state.query || '').trim();
+  if (answerClockQuestion(q)) {
     return { route: 'direct' };
   }
 
-  if (isWeatherQuestion(state.query || '')) {
+  if (isWeatherQuestion(q)) {
     return { route: 'direct' };
   }
 
-  if (isHotelQuery(state.query || '')) {
+  if (isHotelQuery(q)) {
     return { route: 'retrieve' };
   }
 
-  const lastUserQuestion = [...(state.messages || [])].reverse()
+  if (
+    /\b(phòng này|phong nay|hạng này|hang nay|đang xem|dang xem|đơn của tôi|don cua toi|booking của tôi|booking cua toi)\b/i.test(
+      q,
+    )
+  ) {
+    return { route: 'retrieve' };
+  }
+
+  const lastUserQuestion = [...(state.messages || [])]
+    .reverse()
     .find((message) => message instanceof HumanMessage);
-  const followup = /^(còn|con|thế|the|vậy|vay|nó|no|loại đó|loai do|bao nhiêu|bao nhieu|giá thì sao|gia thi sao)/i.test((state.query || '').trim());
-  if (followup && lastUserQuestion && isHotelQuery(String(lastUserQuestion.content || ''))) {
+  const followup =
+    /^(còn|con|thế|the|vậy|vay|nó|no|loại đó|loai do|bao nhiêu|bao nhieu|giá thì sao|gia thi sao|nếu|neu|quá giờ|qua gio|sớm hơn|som hon)/i.test(
+      q,
+    );
+  if (
+    followup &&
+    lastUserQuestion &&
+    isHotelQuery(String(lastUserQuestion.content || ''))
+  ) {
     return { route: 'retrieve' };
   }
 
-  if (/^(chào|xin chào|hello|hi\b|cảm ơn|cám ơn|kể (mình|tôi) (một )?chuyện cười|bạn (có )?khỏe không)/i.test((state.query || '').trim())) {
+  if (
+    /^(chào|xin chào|hello|hi\b|cảm ơn|cám ơn|kể (mình|tôi) (một )?chuyện cười|bạn (có )?khỏe không)/i.test(
+      q,
+    )
+  ) {
     return { route: 'direct' };
   }
 
-  // General questions go straight to Gemini. The extra model router was adding
-  // one full provider round trip before every ordinary answer.
-  if (!/phòng|phong|phog|khách sạn|khach san|đặt|dat|hủy|huy|hoàn tiền|hoan tien/i.test(state.query || '')) {
+  if (
+    NON_HOTEL_FALSE_POSITIVES.test(q) ||
+    !/phòng|phong|phog|khách sạn|khach san|đặt|dat|hủy|huy|hoàn tiền|hoan tien|cọc|coc/i.test(
+      q,
+    )
+  ) {
     return { route: 'direct' };
   }
 
@@ -296,7 +541,7 @@ async function checkQueryType(
 
     return { route: response.route || 'direct' };
   } catch {
-    return { route: 'direct' };
+    return { route: 'retrieve' };
   }
 }
 
@@ -317,21 +562,43 @@ async function answerQueryDirectly(
     try {
       const weather = await fetchWeather(place);
       if (!weather) {
-        return { messages: [userHumanMessage, new AIMessage(`Mình chưa xác định được địa điểm “${place}”. Bạn cho mình tên thành phố hoặc quốc gia cụ thể hơn nhé.`)] };
+        return {
+          messages: [
+            userHumanMessage,
+            new AIMessage(
+              `Mình chưa xác định được địa điểm "${place}". Bạn cho mình tên thành phố hoặc quốc gia cụ thể hơn nhé.`,
+            ),
+          ],
+        };
       }
       weatherContext = `\nDữ liệu thời tiết trực tiếp từ Open-Meteo, cập nhật lúc ${weather.observedAt} theo múi giờ ${weather.timezone}: ${JSON.stringify(weather)}. Chỉ dùng các số liệu này để trả lời thời tiết; không tự suy đoán. Nêu tên địa điểm và thời điểm của số liệu. Xác suất mưa cực đại trong ngày không đồng nghĩa chắc chắn mưa.`;
     } catch {
-      return { messages: [userHumanMessage, new AIMessage('Mình chưa lấy được dữ liệu thời tiết trực tiếp lúc này, nên không muốn đoán bừa. Bạn thử lại sau ít phút nhé.') ] };
+      return {
+        messages: [
+          userHumanMessage,
+          new AIMessage(
+            'Mình chưa lấy được dữ liệu thời tiết trực tiếp lúc này, nên không muốn đoán bừa. Bạn thử lại sau ít phút nhé.',
+          ),
+        ],
+      };
     }
   }
 
+  const realityBlock = configuration.userReality
+    ? `\nThực tại của người dùng trên hệ thống lúc này (dữ liệu xác thực từ máy chủ):\n<user_reality>\n${configuration.userReality}\n</user_reality>\nNếu người dùng hỏi họ là ai, tên gì, đang ở trang nào hoặc thực tại của họ lúc này, hãy trả lời tự nhiên dựa trên <user_reality>.`
+    : '';
+
   const response = await invokeChatModelWithFallback(
     [
-      new SystemMessage(`Bạn là Pico, trợ lý AI thân thiện của Rosaliza Hotel. Với chuyện đời thường, hãy trả lời tự nhiên bằng ngôn ngữ khách đang dùng. Trả lời đúng trọng tâm từng ý khách hỏi; nếu một từ viết tắt mơ hồ, suy từ ngữ cảnh hoặc hỏi lại ngắn. "NYC" có thể là New York City khi hỏi địa điểm/thời tiết, hoặc "người yêu cũ" khi nói chuyện tình cảm; không áp một nghĩa cho mọi câu. Đừng ép câu chuyện về khách sạn hoặc bịa dữ kiện riêng của khách sạn. ${PICO_STYLE}\nĐồng hồ hệ thống tại Hà Nội: ${hotelClock()}. Đây là thời gian thực, không phải kiến thức của mô hình.${weatherContext}`),
+      new SystemMessage(
+        `Bạn là Pico, trợ lý AI thân thiện của Rosaliza Hotel. Với chuyện đời thường, hãy trả lời tự nhiên bằng ngôn ngữ khách đang dùng, không dùng dấu gạch ngang dài (em dash). Trả lời đúng trọng tâm từng ý khách hỏi; nếu một từ viết tắt mơ hồ, suy từ ngữ cảnh hoặc hỏi lại ngắn. Đừng ép câu chuyện về khách sạn hoặc bịa dữ kiện riêng của khách sạn. ${PICO_STYLE}\nĐồng hồ hệ thống tại Hà Nội: ${hotelClock()}. Đây là thời gian thực, không phải kiến thức của mô hình.${realityBlock}${weatherContext}`,
+      ),
       ...state.messages.slice(-6),
       userHumanMessage,
     ],
     configuration.queryModel,
+    0.2,
+    config,
   );
 
   return { messages: [userHumanMessage, response] };
@@ -358,8 +625,17 @@ async function retrieveDocuments(
   state: typeof AgentStateAnnotation.State,
   config: RunnableConfig,
 ): Promise<typeof AgentStateAnnotation.Update> {
+  // Start live Laravel tool calls concurrently with vector retrieval!
+  const toolPrefetch = getOrStartToolPrefetch(
+    state.query,
+    state.messages || [],
+    config,
+  );
   const retriever = await makeRetriever(config);
-  const response = await retriever.invoke(retrievalQuestion(state.query, state.messages || []));
+  const [response] = await Promise.all([
+    retriever.invoke(retrievalQuestion(state.query, state.messages || [])),
+    toolPrefetch.catch(() => ''),
+  ]);
 
   return { documents: response };
 }
@@ -369,32 +645,40 @@ async function generateResponse(
   config: RunnableConfig,
 ): Promise<typeof AgentStateAnnotation.Update> {
   const configuration = ensureAgentConfiguration(config);
-  const liveToolsXml = await callLaravelPublicTools(
+  const liveToolsXml = await getOrStartToolPrefetch(
     state.query,
     state.messages || [],
     config,
   );
+  prefetchedToolsCache.delete(toolPrefetchKey(state.query, config));
   const docContext = formatDocs(state.documents);
 
-  const promptTemplate = RESPONSE_SYSTEM_PROMPT;
-
-  const formattedPrompt = await promptTemplate.invoke({
+  const formattedPrompt = await RESPONSE_SYSTEM_PROMPT.invoke({
     question: state.query,
     context: docContext,
     toolContext: liveToolsXml,
     currentTime: hotelClock(),
+    userReality:
+      configuration.userReality || 'Khách vãng lai trên hệ thống Rosaliza Hotel.',
   });
 
   const userHumanMessage = new HumanMessage(state.query);
   const promptMessages = formattedPrompt.toChatMessages();
-  const messageHistory = [promptMessages[0], ...state.messages.slice(-6), ...promptMessages.slice(1)];
+  const messageHistory = [
+    promptMessages[0],
+    ...state.messages.slice(-6),
+    ...promptMessages.slice(1),
+  ];
 
   const response = await invokeChatModelWithFallback(
     messageHistory,
     configuration.queryModel,
+    0.2,
+    config,
   );
   const cleanedText = String(response.content || '')
     .replace(/\*\*/g, '')
+    .replace(/\u2014/g, '-')
     .trim();
 
   return {

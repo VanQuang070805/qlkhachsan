@@ -93,9 +93,9 @@ class RoomSearchTest extends TestCase
         $this->travelBack();
     }
 
-    public function test_room_search_disallows_same_day_checkin_after_five_pm(): void
+    public function test_room_search_disallows_same_day_checkin_after_six_pm(): void
     {
-        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(16, 1));
+        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(18, 1));
         $today = now('Asia/Ho_Chi_Minh')->toDateString();
 
         $this->get(route('rooms.index', [

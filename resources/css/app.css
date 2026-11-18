@@ -29,15 +29,28 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
-/* Accessible focus treatment shared by every customer interaction. */
-.client-shell :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-    outline: 3px solid #6f5430 !important;
-    outline-offset: 3px !important;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.96) !important;
+/* Clean subtle focus treatment shared by every customer and auth interaction. */
+:is(.client-shell, .auth-shell) :is(a, button, input, select, textarea, summary, [tabindex]):is(:focus, :focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
 }
 
-.client-shell :is(input, select, textarea):focus-visible {
-    border-color: #6f5430 !important;
+:is(.client-shell, .auth-shell) :is(input, select, textarea, .form-control, .form-select):is(:focus, :focus-visible) {
+    border-color: #64748b !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Keep floating Pico launcher clear of sticky mobile/tablet bottom action docks. */
+@media (max-width: 991.98px) {
+    body.client-shell:has(.app-bottom-dock) .royal-chat {
+        bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    body.client-shell:has(.app-bottom-dock) .royal-chat__panel {
+        bottom: calc(156px + env(safe-area-inset-bottom, 0px)) !important;
+        max-height: calc(100svh - 174px) !important;
+    }
 }
 
 /* Long FAQ questions are content, not compact action labels. */

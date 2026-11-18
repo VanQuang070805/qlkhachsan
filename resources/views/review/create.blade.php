@@ -67,10 +67,10 @@
 }
 
 .review-hero h1 em {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-style: italic;
-    font-weight: 400;
-    color: #B89C72;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-style: normal;
+    font-weight: 600;
+    color: #84632b;
 }
 
 .review-hero p {
@@ -81,7 +81,7 @@
     line-height: 1.6;
 }
 
-/* macOS Window Card */
+/* Window Card */
 .review-window-card {
     background: #ffffff;
     border-radius: 24px;
@@ -95,26 +95,13 @@
     padding: 14px 20px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .review-window-controls {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-right: 16px;
+    display: none !important;
 }
-
-.review-window-controls .ctrl-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.review-window-controls .ctrl-red { background: #ff5f57; }
-.review-window-controls .ctrl-yellow { background: #febc2e; }
-.review-window-controls .ctrl-green { background: #28c840; }
 
 .review-window-title {
     color: #e2e8f0;
@@ -334,8 +321,8 @@
 .comment-box:focus {
     outline: none;
     background: #ffffff;
-    border-color: #B89C72;
-    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.2);
+    border-color: #64748b;
+    box-shadow: none;
 }
 
 .comment-box::placeholder {

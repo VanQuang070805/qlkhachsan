@@ -30,7 +30,7 @@ class PublicCatalogApiController extends ApiController
 
     public function showRoomType(RoomType $roomType)
     {
-        $roomType->loadMissing('amenities:id,name,icon');
+        $roomType->loadMissing('amenities:id,amenity_name,icon');
 
         return $this->ok([
             'id' => (int) $roomType->id,
@@ -42,7 +42,7 @@ class PublicCatalogApiController extends ApiController
             'description' => (string) ($roomType->description ?? ''),
             'amenities' => $roomType->amenities->map(fn (Amenity $a) => [
                 'id' => (int) $a->id,
-                'name' => (string) $a->name,
+                'name' => (string) $a->amenity_name,
                 'icon' => (string) ($a->icon ?? ''),
             ])->values()->all(),
         ]);
@@ -53,11 +53,11 @@ class PublicCatalogApiController extends ApiController
         $catalogVersion = $this->versions->catalogVersion();
         $data = Cache::remember("royal:catalog:amenities:v{$catalogVersion}", now()->addMinutes(5), function () {
             return Amenity::query()
-                ->orderBy('name')
-                ->get(['id', 'name', 'icon'])
+                ->orderBy('amenity_name')
+                ->get(['id', 'amenity_name', 'icon'])
                 ->map(fn (Amenity $a) => [
                     'id' => (int) $a->id,
-                    'name' => (string) $a->name,
+                    'name' => (string) $a->amenity_name,
                     'icon' => (string) ($a->icon ?? ''),
                 ])
                 ->values()
@@ -101,6 +101,9 @@ class PublicCatalogApiController extends ApiController
         }
 
         $data = $validator->validated();
+        if ($data['check_in'] === now('Asia/Ho_Chi_Minh')->toDateString() && now('Asia/Ho_Chi_Minh')->hour >= 18) {
+            return $this->fail('CHECKIN_WINDOW_CLOSED', 'Từ 18:00 không thể nhận phòng trong ngày hôm nay. Giờ nhận phòng từ 14:00 đến trước 18:00.', 422);
+        }
         try {
             StayDates::validate($data['check_in'], $data['check_out']);
         } catch (ValidationException $e) {

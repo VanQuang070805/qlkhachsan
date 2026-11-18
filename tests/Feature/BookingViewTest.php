@@ -94,12 +94,5 @@ class BookingViewTest extends TestCase
         $this->assertStringContainsString('Phòng 101', $singleContent);
         $this->assertStringContainsString('1 khách', $singleContent);
         $this->assertStringContainsString('1 lớn', $singleContent);
-
-        file_put_contents(
-            'C:\\Users\\thinh\\.gemini\\antigravity\\brain\\f7f04c79-eb8e-4629-a3ea-4f9b473252e5\\booking_step1_1room_rendered.html',
-            $singleContent
-        );
-
-        echo "TEST PASSED AND HTML SAVED SUCCESSFULLY!\n";
     }
 }

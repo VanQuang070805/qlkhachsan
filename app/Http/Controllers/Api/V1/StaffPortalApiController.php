@@ -4,13 +4,23 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Booking;
 use App\Models\PaymentLog;
+use App\Models\PriceSetting;
+use App\Models\RefundTransaction;
 use App\Models\Room;
 use App\Models\User;
+use App\Services\BookingTransitionService;
+use App\Services\CheckInTokenService;
+use App\Services\StayExtensionService;
+use App\Support\StayDates;
+use Carbon\Carbon;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class StaffPortalApiController extends ApiController
 {
@@ -71,13 +81,14 @@ class StaffPortalApiController extends ApiController
 
         $validator = Validator::make($request->all(), [
             'customer_name' => ['required', 'string', 'max:100'],
-            'customer_phone' => ['required', 'string', 'max:20'],
+            'customer_phone' => ['required', 'regex:/^0[0-9]{9,10}$/'],
             'customer_email' => ['nullable', 'email', 'max:190'],
-            'room_ids' => ['required', 'array', 'min:1'],
-            'room_ids.*' => ['integer', 'exists:rooms,id'],
-            'check_in' => ['required', 'date_format:Y-m-d'],
+            'room_ids' => ['required', 'array', 'min:1', 'max:25'],
+            'room_ids.*' => ['integer', 'distinct', 'exists:rooms,id'],
+            'check_in' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'check_out' => ['required', 'date_format:Y-m-d', 'after:check_in'],
-            'adult_count' => ['required', 'integer', 'min:1'],
+            'adult_count' => ['required', 'integer', 'min:1', 'max:100'],
+            'child_count' => ['sometimes', 'integer', 'min:0', 'max:100'],
         ]);
 
         if ($validator->fails()) {
@@ -85,40 +96,67 @@ class StaffPortalApiController extends ApiController
         }
 
         $data = $validator->validated();
-        $booking = DB::transaction(function () use ($data) {
+        if ($data['check_in'] === now('Asia/Ho_Chi_Minh')->toDateString() && now('Asia/Ho_Chi_Minh')->hour >= 18) {
+            return $this->fail('CHECKIN_WINDOW_CLOSED', 'Sau 18:00 không thể tạo đơn giữ phòng chờ nhận trong ngày.', 422);
+        }
+        try {
+            StayDates::validate($data['check_in'], $data['check_out']);
+        } catch (ValidationException $e) {
+            return $this->fail('VALIDATION_ERROR', 'Khoảng ngày lưu trú không hợp lệ.', 422, $e->errors());
+        }
+
+        $adults = (int) $data['adult_count'];
+        $children = (int) ($data['child_count'] ?? 0);
+
+        $result = DB::transaction(function () use ($data, $adults, $children) {
             $roomIds = array_map('intval', $data['room_ids']);
             $rooms = Room::with('roomType')->whereIn('id', $roomIds)->orderBy('id')->lockForUpdate()->get();
             $reserved = Booking::reservedRoomIds($data['check_in'], $data['check_out']);
 
-            if ($rooms->count() !== count($roomIds) || $reserved->intersect($roomIds)->isNotEmpty()) {
-                return null;
+            if ($rooms->count() !== count($roomIds)
+                || $rooms->contains(fn (Room $r) => $r->status !== Room::STATUS_AVAILABLE)
+                || $reserved->intersect($roomIds)->isNotEmpty()) {
+                return ['error' => 'UNAVAILABLE'];
             }
 
-            $total = (int) round($rooms->sum(fn (Room $r) => (float) ($r->roomType?->price ?? 0)));
+            if ($rooms->sum(fn (Room $r) => (int) ($r->roomType?->max_adults ?? 0)) < $adults
+                || $rooms->sum(fn (Room $r) => (int) ($r->roomType?->max_children ?? 0)) < $children
+                || $rooms->sum(fn (Room $r) => (int) ($r->roomType?->max_guests ?? 0)) < ($adults + $children)) {
+                return ['error' => 'CAPACITY'];
+            }
+
+            $total = (int) round($rooms->sum(fn (Room $r) => PriceSetting::calculateTotalPrice(
+                (float) ($r->roomType?->price ?? 0),
+                $data['check_in'],
+                $data['check_out'],
+            )));
             $record = Booking::create([
                 'customer_name' => $data['customer_name'],
                 'customer_phone' => $data['customer_phone'],
-                'customer_email' => $data['customer_email'] ?? 'walkin@rosaliza.local',
+                'customer_email' => $data['customer_email'] ?? '',
                 'check_in' => $data['check_in'],
                 'check_out' => $data['check_out'],
-                'adult_count' => (int) $data['adult_count'],
-                'child_count' => 0,
+                'adult_count' => $adults,
+                'child_count' => $children,
                 'total_price' => $total,
-                'deposit_amount' => (int) round($total / 2),
+                'deposit_amount' => 0,
                 'payment_method' => 'cash',
                 'payment_status' => 'pending',
                 'status' => 'confirmed',
             ]);
             $record->rooms()->attach($roomIds);
 
-            return $record->load('rooms.roomType');
+            return ['booking' => $record->load('rooms.roomType')];
         });
 
-        if (! $booking) {
-            return $this->fail('BOOKING_ROOM_UNAVAILABLE', 'Một hoặc nhiều phòng đã có lịch đặt trùng.', 409);
+        if (($result['error'] ?? null) === 'CAPACITY') {
+            return $this->fail('CAPACITY_EXCEEDED', 'Các phòng đã chọn không đủ sức chứa cho số khách.', 422);
+        }
+        if (! isset($result['booking'])) {
+            return $this->fail('BOOKING_ROOM_UNAVAILABLE', 'Một hoặc nhiều phòng đã có lịch đặt trùng hoặc chưa sẵn sàng.', 409);
         }
 
-        return $this->ok($this->formatStaffBooking($booking), 201);
+        return $this->ok($this->formatStaffBooking($result['booking']), 201);
     }
 
     public function confirmBooking(Request $request, int $booking)
@@ -127,17 +165,33 @@ class StaffPortalApiController extends ApiController
             return $resp;
         }
 
-        $record = Booking::find($booking);
-        if (! $record) {
+        $result = DB::transaction(function () use ($booking) {
+            $record = Booking::lockForUpdate()->find($booking);
+            if (! $record) {
+                return ['error' => 'NOT_FOUND'];
+            }
+            if ($record->status !== 'pending') {
+                return ['error' => 'CONFLICT'];
+            }
+            if ($record->payment_status === 'pending' && $record->paymentHoldExpired()) {
+                return ['error' => 'EXPIRED'];
+            }
+            $record->update(['status' => 'confirmed']);
+
+            return ['booking' => $record->fresh('rooms.roomType')];
+        });
+
+        if (($result['error'] ?? null) === 'NOT_FOUND') {
             return $this->fail('BOOKING_NOT_FOUND', 'Không tìm thấy đơn đặt phòng.', 404);
         }
-        if ($record->status !== 'pending') {
+        if (($result['error'] ?? null) === 'EXPIRED') {
+            return $this->fail('BOOKING_HOLD_EXPIRED', 'Thời hạn giữ phòng đã hết. Khách cần đặt lại phòng.', 409);
+        }
+        if (($result['error'] ?? null) === 'CONFLICT') {
             return $this->fail('BOOKING_STATE_CONFLICT', 'Chỉ có thể xác nhận đơn đang ở trạng thái chờ.', 409);
         }
 
-        $record->update(['status' => 'confirmed']);
-
-        return $this->ok($this->formatStaffBooking($record->fresh('rooms.roomType')));
+        return $this->ok($this->formatStaffBooking($result['booking']));
     }
 
     public function checkIn(Request $request, int $booking)
@@ -146,35 +200,17 @@ class StaffPortalApiController extends ApiController
             return $resp;
         }
 
-        $result = DB::transaction(function () use ($booking) {
-            $record = Booking::with('rooms')->lockForUpdate()->find($booking);
-            if (! $record) {
-                return ['error' => 'NOT_FOUND'];
-            }
-            if ($record->status !== 'confirmed') {
-                return ['error' => 'CONFLICT'];
-            }
-
-            $record->update([
-                'status' => 'checked_in',
-                'actual_check_in' => now(),
-            ]);
-
-            Room::whereIn('id', $record->rooms->pluck('id'))->update([
-                'status' => Room::STATUS_OCCUPIED,
-            ]);
-
-            return ['booking' => $record->fresh('rooms.roomType')];
-        });
-
-        if (($result['error'] ?? null) === 'NOT_FOUND') {
+        if (! Booking::whereKey($booking)->exists()) {
             return $this->fail('BOOKING_NOT_FOUND', 'Không tìm thấy đơn đặt phòng.', 404);
         }
-        if (($result['error'] ?? null) === 'CONFLICT') {
-            return $this->fail('BOOKING_STATE_CONFLICT', 'Chỉ có thể nhận phòng cho đơn đã xác nhận.', 409);
+
+        try {
+            $updated = app(BookingTransitionService::class)->checkIn($booking);
+        } catch (DomainException $e) {
+            return $this->fail('BOOKING_STATE_CONFLICT', $e->getMessage(), 409);
         }
 
-        return $this->ok($this->formatStaffBooking($result['booking']));
+        return $this->ok($this->formatStaffBooking($updated->load('rooms.roomType')));
     }
 
     public function checkOut(Request $request, int $booking)
@@ -182,14 +218,20 @@ class StaffPortalApiController extends ApiController
         if ($resp = $this->authorizeStaffPermission($request, 'bp_checkin_checkout')) {
             return $resp;
         }
+        if ($resp = $this->authorizeStaffPermission($request, 'tn_collect_payment')) {
+            return $resp;
+        }
 
         $result = DB::transaction(function () use ($booking) {
-            $record = Booking::with('rooms')->lockForUpdate()->find($booking);
+            $record = Booking::with('rooms.roomType')->lockForUpdate()->find($booking);
             if (! $record) {
                 return ['error' => 'NOT_FOUND'];
             }
             if ($record->status !== 'checked_in') {
                 return ['error' => 'CONFLICT'];
+            }
+            if ($record->outstandingAmount() > 0) {
+                return ['error' => 'UNPAID'];
             }
 
             $record->update([
@@ -198,17 +240,22 @@ class StaffPortalApiController extends ApiController
                 'payment_status' => 'paid',
             ]);
 
-            Room::whereIn('id', $record->rooms->pluck('id'))->update([
-                'status' => Room::STATUS_CLEANING,
-                'needs_cleaning' => true,
-                'cleaning_requested_at' => now(),
-            ]);
+            Room::whereIn('id', $record->rooms->pluck('id'))
+                ->whereIn('status', [Room::STATUS_OCCUPIED, Room::STATUS_OVERDUE])
+                ->update([
+                    'status' => Room::STATUS_CLEANING,
+                    'needs_cleaning' => true,
+                    'cleaning_requested_at' => now(),
+                ]);
 
             return ['booking' => $record->fresh('rooms.roomType')];
         });
 
         if (($result['error'] ?? null) === 'NOT_FOUND') {
             return $this->fail('BOOKING_NOT_FOUND', 'Không tìm thấy đơn đặt phòng.', 404);
+        }
+        if (($result['error'] ?? null) === 'UNPAID') {
+            return $this->fail('BOOKING_UNPAID_BALANCE', 'Đơn lưu trú còn số dư chưa thanh toán. Vui lòng sử dụng cổng thu tiền trả phòng.', 409);
         }
         if (($result['error'] ?? null) === 'CONFLICT') {
             return $this->fail('BOOKING_STATE_CONFLICT', 'Chỉ có thể trả phòng cho đơn đang lưu trú.', 409);
@@ -229,50 +276,114 @@ class StaffPortalApiController extends ApiController
         }
 
         $validator = Validator::make($request->all(), [
-            'new_check_out' => ['required', 'date_format:Y-m-d'],
+            'new_check_out' => ['sometimes', 'date_format:Y-m-d'],
+            'mode' => ['sometimes', 'in:hours,days'],
+            'amount' => ['sometimes', 'integer', 'min:1', 'max:30'],
         ]);
         if ($validator->fails()) {
-            return $this->fail('VALIDATION_ERROR', 'Ngày trả phòng mới không hợp lệ.', 422, $validator->errors()->toArray());
+            return $this->fail('VALIDATION_ERROR', 'Dữ liệu gia hạn không hợp lệ.', 422, $validator->errors()->toArray());
         }
 
-        $record->update(['check_out' => $request->input('new_check_out')]);
+        $mode = (string) $request->input('mode', 'days');
+        if ($request->filled('new_check_out')) {
+            $newCheckOut = (string) $request->input('new_check_out');
+            if ($newCheckOut <= $record->check_out->toDateString()) {
+                return $this->fail('INVALID_EXTENSION_DATE', 'Ngày trả phòng mới phải sau ngày trả phòng hiện tại.', 422);
+            }
+            $mode = 'days';
+            $amount = (int) $record->check_out->diffInDays(Carbon::parse($newCheckOut));
+        } else {
+            $amount = (int) $request->input('amount', 0);
+        }
 
-        return $this->ok($this->formatStaffBooking($record->fresh('rooms.roomType')));
+        try {
+            $result = app(StayExtensionService::class)->extend($record->id, $mode, $amount, true);
+        } catch (DomainException $e) {
+            return $this->fail('EXTENSION_DENIED', $e->getMessage(), 409);
+        }
+
+        return $this->ok($this->formatStaffBooking($result['booking']->load('rooms.roomType')));
     }
 
     public function checkoutPayment(Request $request, int $booking)
     {
+        if ($resp = $this->authorizeStaffPermission($request, 'bp_checkin_checkout')) {
+            return $resp;
+        }
         if ($resp = $this->authorizeStaffPermission($request, 'tn_collect_payment')) {
             return $resp;
         }
 
-        $record = Booking::with('rooms.roomType')->find($booking);
-        if (! $record) {
+        $validator = Validator::make($request->all(), [
+            'payment_method' => ['sometimes', 'in:cash,vietqr,momo,zalopay,vnpay'],
+            'waive_late_fee' => ['sometimes', 'boolean'],
+        ]);
+        if ($validator->fails()) {
+            return $this->fail('VALIDATION_ERROR', 'Phương thức thanh toán trả phòng không hợp lệ.', 422, $validator->errors()->toArray());
+        }
+
+        $staff = $this->requireStaff($request);
+        $method = (string) $request->input('payment_method', 'cash');
+        $waive = $request->boolean('waive_late_fee', false);
+
+        $result = DB::transaction(function () use ($booking, $method, $waive, $staff) {
+            $record = Booking::with('rooms.roomType')->lockForUpdate()->find($booking);
+            if (! $record) {
+                return ['error' => 'NOT_FOUND'];
+            }
+            if ($record->status !== 'checked_in') {
+                return ['error' => 'CONFLICT'];
+            }
+
+            $record->waive_late_fee = $waive;
+            $deadline = $record->scheduledCheckoutAt()->addHour();
+            $inHouseRooms = $record->rooms->whereIn('status', [Room::STATUS_OCCUPIED, Room::STATUS_OVERDUE]);
+            $billableRooms = $inHouseRooms->isNotEmpty() ? $inHouseRooms : $record->rooms;
+            $lateFee = ($waive || now('Asia/Ho_Chi_Minh')->lte($deadline))
+                ? 0.0
+                : round($billableRooms->sum(fn (Room $r) => (float) ($r->roomType?->price ?? 0)) * 0.5);
+            $record->late_checkout_fee = $lateFee;
+
+            $outstanding = (int) round($record->outstandingAmount());
+            if ($outstanding > 0) {
+                PaymentLog::create([
+                    'booking_id' => $record->id,
+                    'gateway' => $method,
+                    'transaction_id' => 'staff-co-'.$record->id.'-'.Str::uuid(),
+                    'amount' => $outstanding,
+                    'purpose' => 'checkout',
+                    'status' => 'success',
+                    'raw_response' => ['received_by' => $staff?->id],
+                ]);
+            }
+
+            $record->update([
+                'status' => 'completed',
+                'payment_status' => 'paid',
+                'payment_method' => $method,
+                'late_checkout_fee' => $lateFee,
+                'actual_check_out' => now(),
+            ]);
+
+            Room::whereIn('id', $record->rooms->pluck('id'))
+                ->whereIn('status', [Room::STATUS_OCCUPIED, Room::STATUS_OVERDUE])
+                ->update([
+                    'status' => Room::STATUS_CLEANING,
+                    'needs_cleaning' => true,
+                    'cleaning_requested_at' => now(),
+                ]);
+
+            return ['booking' => $record->fresh('rooms.roomType')];
+        });
+
+        if (($result['error'] ?? null) === 'NOT_FOUND') {
             return $this->fail('BOOKING_NOT_FOUND', 'Không tìm thấy đơn đặt phòng.', 404);
         }
-        if ($record->status !== 'checked_in') {
+        if (($result['error'] ?? null) === 'CONFLICT') {
             return $this->fail('BOOKING_STATE_CONFLICT', 'Chỉ có thể thu tiền trả phòng cho đơn đang lưu trú.', 409);
         }
 
-        $outstanding = (int) round($record->outstandingAmount());
-        if ($outstanding > 0) {
-            PaymentLog::create([
-                'booking_id' => $record->id,
-                'gateway' => (string) $request->input('payment_method', 'cash'),
-                'transaction_id' => 'staff-co-'.$record->id.'-'.Str::uuid(),
-                'amount' => $outstanding,
-                'purpose' => 'checkout',
-                'status' => 'success',
-            ]);
-        }
-
-        $record->update([
-            'status' => 'completed',
-            'payment_status' => 'paid',
-            'actual_check_out' => now(),
-        ]);
-
-        return $this->ok($this->formatStaffBooking($record->fresh('rooms.roomType')));
+        return $this->ok($this->formatStaffBooking($result['booking']));
     }
 
     public function refundBooking(Request $request, int $booking)
@@ -281,18 +392,43 @@ class StaffPortalApiController extends ApiController
             return $resp;
         }
 
-        $result = DB::transaction(function () use ($booking) {
+        $validator = Validator::make($request->all(), [
+            'provider_reference' => ['nullable', 'string', 'max:120', 'unique:refund_transactions,provider_reference'],
+        ]);
+        if ($validator->fails()) {
+            return $this->fail('VALIDATION_ERROR', 'Mã tham chiếu hoàn tiền không hợp lệ hoặc đã tồn tại.', 422, $validator->errors()->toArray());
+        }
+
+        $staff = $this->requireStaff($request);
+        $referenceInput = trim((string) $request->input('provider_reference', ''));
+
+        $result = DB::transaction(function () use ($booking, $staff, $referenceInput) {
             $record = Booking::lockForUpdate()->find($booking);
             if (! $record) {
                 return ['error' => 'NOT_FOUND'];
             }
-            if ($record->status !== 'cancelled' || $record->refund_status !== 'eligible') {
+            if ($record->status !== 'cancelled' || $record->refund_status !== 'eligible' || (float) $record->refund_amount <= 0) {
                 return ['error' => 'CONFLICT'];
             }
 
+            $reference = $referenceInput !== ''
+                ? $referenceInput
+                : 'API-REFUND-'.$record->id.'-'.now()->format('YmdHisv');
+
+            RefundTransaction::create([
+                'booking_id' => $record->id,
+                'processed_by' => $staff?->id,
+                'amount' => $record->refund_amount,
+                'provider' => $record->payment_method ?: 'manual',
+                'provider_reference' => $reference,
+                'status' => 'completed',
+                'processed_at' => now(),
+                'metadata' => ['source' => 'staff_api_v1'],
+            ]);
+
             $record->update([
                 'refund_status' => 'refunded',
-                'refunded_at' => now(),
+                'payment_status' => 'refunded',
             ]);
 
             return ['booking' => $record->fresh('rooms.roomType')];
@@ -351,23 +487,41 @@ class StaffPortalApiController extends ApiController
             return $resp;
         }
 
-        $room->update([
-            'status' => Room::STATUS_AVAILABLE,
-            'needs_cleaning' => false,
-            'cleaning_requested_at' => null,
-        ]);
+        $updated = DB::transaction(function () use ($room) {
+            $locked = Room::lockForUpdate()->findOrFail($room->id);
+            if ($locked->status === Room::STATUS_OCCUPIED && $locked->needs_cleaning) {
+                $locked->update([
+                    'needs_cleaning' => false,
+                    'cleaning_requested_at' => null,
+                ]);
+                return $locked;
+            }
+            if ($locked->status !== Room::STATUS_CLEANING) {
+                return null;
+            }
+            $locked->update([
+                'status' => Room::STATUS_AVAILABLE,
+                'needs_cleaning' => false,
+                'cleaning_requested_at' => null,
+            ]);
+            return $locked;
+        });
+
+        if (! $updated) {
+            return $this->fail('ROOM_STATE_CONFLICT', 'Phòng không ở trạng thái chờ dọn dẹp.', 409);
+        }
 
         return $this->ok([
-            'id' => (int) $room->id,
-            'room_number' => (string) $room->room_number,
-            'status' => (string) $room->status,
-            'needs_cleaning' => (bool) $room->needs_cleaning,
+            'id' => (int) $updated->id,
+            'room_number' => (string) $updated->room_number,
+            'status' => (string) $updated->status,
+            'needs_cleaning' => (bool) $updated->needs_cleaning,
         ]);
     }
 
     public function cleaningNotifications(Request $request)
     {
-        if ($resp = $this->authorizeStaffPermission($request, 'bp_view_schedule')) {
+        if ($resp = $this->authorizeStaffPermission($request, 'bp_clean_status')) {
             return $resp;
         }
 
@@ -390,7 +544,19 @@ class StaffPortalApiController extends ApiController
             return $resp;
         }
 
-        $bookingId = (int) $request->input('booking_id', 0);
+        $qrPayload = trim((string) $request->input('payload', $request->input('token', '')));
+        if ($qrPayload === '') {
+            return $this->fail('INVALID_CHECKIN_TOKEN', 'Vui lòng cung cấp mã QR nhận phòng hợp lệ.', 422);
+        }
+
+        try {
+            $tokens = app(CheckInTokenService::class);
+            $token = $tokens->tokenFromQrPayload($qrPayload);
+            $bookingId = $tokens->bookingId($token);
+        } catch (RuntimeException $e) {
+            return $this->fail('INVALID_CHECKIN_TOKEN', $e->getMessage(), 422);
+        }
+
         $booking = Booking::with('rooms.roomType')->find($bookingId);
         if (! $booking) {
             return $this->fail('BOOKING_NOT_FOUND', 'Không tìm thấy đơn đặt phòng từ mã quét.', 404);
@@ -408,7 +574,7 @@ class StaffPortalApiController extends ApiController
 
         $user = User::find($id);
 
-        return ($user && in_array($user->role, ['receptionist', 'admin'], true)) ? $user : null;
+        return ($user && in_array($user->role, ['receptionist', 'admin'], true) && $user->verified) ? $user : null;
     }
 
     private function authorizeStaffPermission(Request $request, string $permission)

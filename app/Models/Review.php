@@ -8,7 +8,7 @@ class Review extends Model
 
     protected $fillable = ['user_id', 'booking_id', 'room_type_id', 'rating', 'comment'];
 
-    public function user()     { return $this->belongsTo(User::class); }
+    public function user()     { return $this->belongsTo(User::class)->withTrashed(); }
     public function booking()  { return $this->belongsTo(Booking::class); }
     public function roomType() { return $this->belongsTo(RoomType::class); }
 }

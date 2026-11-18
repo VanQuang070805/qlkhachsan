@@ -252,7 +252,7 @@ class SecurityFlowsTest extends TestCase
             ->assertSee(route('payment.form', $onlineBooking->id), false);
     }
 
-    public function test_cash_selection_confirms_the_reservation_without_marking_the_room_or_payment_as_settled(): void
+    public function test_cash_selection_is_rejected_because_customer_bookings_require_online_deposit(): void
     {
         $customer = $this->customer('cash-reservation@example.com');
         $type = RoomType::create([
@@ -268,11 +268,11 @@ class SecurityFlowsTest extends TestCase
         $booking->rooms()->attach($room->id);
 
         $this->asCustomer($customer)->get(route('payment.show', $booking->id))
-            ->assertRedirect(route('booking.success', $booking->id));
+            ->assertRedirect(route('payment.form', $booking->id))
+            ->assertSessionHas('error');
 
-        $this->assertSame('confirmed', $booking->fresh()->status);
+        $this->assertSame('pending', $booking->fresh()->status);
         $this->assertSame('pending', $booking->fresh()->payment_status);
-        $this->assertSame('cash', $booking->fresh()->payment_method);
         $this->assertSame('available', $room->fresh()->status);
         $this->assertDatabaseMissing('payment_logs', ['booking_id' => $booking->id, 'status' => 'success']);
     }
@@ -464,6 +464,7 @@ class SecurityFlowsTest extends TestCase
 
     public function test_staff_walkin_checks_capacity_and_prevents_duplicate_holds(): void
     {
+        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(14, 0));
         $staff = $this->staff('walkin@example.com', 'receptionist');
         $type = \App\Models\RoomType::create(['type_name'=>'Test room', 'price'=>20000, 'max_adults'=>2, 'max_children'=>0, 'max_guests'=>2]);
         $room = \App\Models\Room::create(['room_number'=>'QA101', 'room_type_id'=>$type->id, 'floor'=>1, 'status'=>'available']);
@@ -998,9 +999,57 @@ class SecurityFlowsTest extends TestCase
         $this->get(route('auth.google'))->assertRedirect(route('login'))->assertSessionHas('error');
     }
 
-    public function test_google_callback_creates_and_persists_a_verified_customer_identity(): void
+    public function test_google_callback_requires_otp_verification_for_new_customer_then_logs_in_directly_when_verified(): void
     {
-        config(['services.google.client_id' => 'client-id', 'services.google.client_secret' => 'client-secret']);
+        config([
+            'mail.default' => 'array',
+            'services.google.client_id' => 'client-id',
+            'services.google.client_secret' => 'client-secret',
+        ]);
+        app('mailer')->getSymfonyTransport()->flush();
+
+        Socialite::fake('google', SocialiteUser::fake([
+            'id' => 'google-user-123',
+            'name' => 'Google Guest',
+            'email' => 'Google.Guest@example.com',
+            'avatar' => 'https://example.com/google-avatar.jpg',
+            'email_verified' => true,
+        ]));
+
+        // 1. First-time Google sign-in creates unverified account, emails 6-digit OTP, and redirects to /verify
+        $this->get(route('auth.google.callback'))
+            ->assertRedirect(route('verify'))
+            ->assertSessionHas('pending_verify_email', 'google.guest@example.com')
+            ->assertSessionMissing('customer_user_id');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'google.guest@example.com',
+            'google_id' => 'google-user-123',
+            'avatar_url' => 'https://example.com/google-avatar.jpg',
+            'role' => 'customer',
+            'verified' => 0,
+        ]);
+
+        $sentMessages = app('mailer')->getSymfonyTransport()->messages();
+        $this->assertNotEmpty($sentMessages);
+        $body = $sentMessages[0]->getOriginalMessage()->getTextBody();
+        preg_match('/\b(\d{6})\b/', (string) $body, $matches);
+        $this->assertNotEmpty($matches[1] ?? null);
+
+        // 2. Submitting the 6-digit OTP activates the account and logs the customer in
+        $this->withSession(['pending_verify_email' => 'google.guest@example.com'])
+            ->post(route('verify'), ['otp' => $matches[1]])
+            ->assertRedirect(route('home'))
+            ->assertSessionHas('customer_user_id');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'google.guest@example.com',
+            'verified' => 1,
+        ]);
+
+        // 3. Returning verified Google customer logs straight into home without repeating OTP
+        auth()->logout();
+        session()->flush();
         Socialite::fake('google', SocialiteUser::fake([
             'id' => 'google-user-123',
             'name' => 'Google Guest',
@@ -1012,14 +1061,6 @@ class SecurityFlowsTest extends TestCase
         $this->get(route('auth.google.callback'))
             ->assertRedirect(route('home'))
             ->assertSessionHas('customer_user_id');
-
-        $this->assertDatabaseHas('users', [
-            'email' => 'google.guest@example.com',
-            'google_id' => 'google-user-123',
-            'avatar_url' => 'https://example.com/google-avatar.jpg',
-            'role' => 'customer',
-            'verified' => 1,
-        ]);
     }
 
     public function test_completed_booking_owner_can_submit_one_review(): void

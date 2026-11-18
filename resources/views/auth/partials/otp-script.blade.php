@@ -32,7 +32,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!errorEl) return;
         if (msg) {
             mainInput?.setAttribute('aria-invalid', 'true');
-            errorEl.innerHTML = `<i class="bi bi-exclamation-circle" aria-hidden="true"></i> <span>${msg}</span>`;
+            errorEl.innerHTML = '<i class="bi bi-exclamation-circle" aria-hidden="true"></i> ';
+            const span = document.createElement('span');
+            span.textContent = msg;
+            errorEl.appendChild(span);
             errorEl.removeAttribute('data-empty');
             errorEl.style.removeProperty('display');
             errorEl.style.display = 'flex';
@@ -58,7 +61,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Toast feedback helper
     function showToast(msg, isSuccess = true) {
-        window.royalToast(msg, isSuccess ? 'success' : 'error');
+        if (typeof window.royalToast === 'function') {
+            window.royalToast(msg, isSuccess ? 'success' : 'error');
+        }
     }
 
     // Cell input handlers
@@ -175,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         : (data.message || 'Mã OTP không đúng. Vui lòng thử lại.');
                     setError(message);
                     // Retain typed values without clearing!
-                    cells[cells.length - 1].focus();
+                    (mainInput || cells[cells.length - 1])?.focus();
                     return;
                 }
 

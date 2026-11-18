@@ -26,9 +26,18 @@ class ChatbotController extends Controller
             'history' => ['sometimes', 'array', 'max:10'],
             'history.*.role' => ['required_with:history', 'in:user,assistant'],
             'history.*.content' => ['required_with:history', 'string', 'max:1000'],
+            'page_context' => ['sometimes', 'nullable', 'array'],
+            'page_context.path' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'page_context.title' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'page_context.room_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'page_context.room_price' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'page_context.check_in' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'page_context.check_out' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'page_context.guests' => ['sometimes', 'nullable', 'string', 'max:40'],
         ]);
         $message = trim($validated['message']);
         $history = $validated['history'] ?? [];
+        $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
 
         if (! $this->langGraph->configured()) {
             return response()->json([
@@ -37,7 +46,7 @@ class ChatbotController extends Controller
             ], 503);
         }
 
-        $answer = $this->langGraph->ask($request, $message, $history);
+        $answer = $this->langGraph->ask($request, $message, $history, $pageContext);
         if (! $answer) {
             return response()->json([
                 'source' => 'error',
@@ -52,6 +61,16 @@ class ChatbotController extends Controller
         ]);
     }
 
+    public function reset(Request $request)
+    {
+        $this->langGraph->resetThread($request);
+        if ($request->hasSession()) {
+            $request->session()->save();
+        }
+
+        return response()->json(['reset' => true]);
+    }
+
     public function stream(Request $request)
     {
         $validated = $request->validate([
@@ -59,9 +78,18 @@ class ChatbotController extends Controller
             'history' => ['sometimes', 'array', 'max:10'],
             'history.*.role' => ['required_with:history', 'in:user,assistant'],
             'history.*.content' => ['required_with:history', 'string', 'max:1000'],
+            'page_context' => ['sometimes', 'nullable', 'array'],
+            'page_context.path' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'page_context.title' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'page_context.room_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'page_context.room_price' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'page_context.check_in' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'page_context.check_out' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'page_context.guests' => ['sometimes', 'nullable', 'string', 'max:40'],
         ]);
         $message = trim($validated['message']);
         $history = $validated['history'] ?? [];
+        $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
 
         if (! $this->langGraph->configured()) {
             return response()->json([
@@ -70,45 +98,48 @@ class ChatbotController extends Controller
             ], 503);
         }
 
-        $threadId = $this->langGraph->ensureThreadId($request);
+        $threadId = $this->langGraph->hasCachedPublicReply($message, $history, $request, $pageContext)
+            ? null
+            : $this->langGraph->ensureThreadId($request);
+        if ($request->hasSession()) {
+            $request->session()->save();
+        }
 
-        return response()->stream(function () use ($request, $message, $threadId, $history) {
-            echo ": connected\n\n";
-            if (ob_get_level() > 0) {
-                ob_flush();
+        return response()->stream(function () use ($request, $message, $threadId, $history, $pageContext) {
+            if (! app()->runningUnitTests()) {
+                @ini_set('zlib.output_compression', '0');
+                @ini_set('implicit_flush', '1');
+                while (ob_get_level() > 0) {
+                    @ob_end_flush();
+                }
+                ob_implicit_flush(true);
             }
-            flush();
-            if (! $threadId) {
-                echo 'data: '.json_encode([
-                    'error' => 'Pico đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
-                ], JSON_UNESCAPED_UNICODE)."\n\n";
+            $flushSse = static function (): void {
+                if (! app()->runningUnitTests() && PHP_SAPI === 'cli-server') {
+                    echo ': '.str_repeat(' ', 4096)."\n\n";
+                }
                 if (ob_get_level() > 0) {
-                    ob_flush();
+                    @ob_flush();
                 }
                 flush();
+            };
 
-                return;
-            }
+            echo ": connected\n\n";
+            $flushSse();
 
             $emitted = false;
             $sources = [];
-            $ok = $this->langGraph->stream($request, $message, function (string $delta) use (&$emitted) {
+            $ok = $this->langGraph->stream($request, $message, function (string $delta) use (&$emitted, $flushSse) {
                 $emitted = true;
                 echo 'data: '.json_encode(['delta' => $delta], JSON_UNESCAPED_UNICODE)."\n\n";
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
-                flush();
-            }, $sources, $threadId, $history);
+                $flushSse();
+            }, $sources, $threadId, $history, $pageContext);
 
             if (! $ok || ! $emitted) {
                 echo 'data: '.json_encode([
                     'error' => 'Pico đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
                 ], JSON_UNESCAPED_UNICODE)."\n\n";
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
-                flush();
+                $flushSse();
 
                 return;
             }
@@ -122,10 +153,7 @@ class ChatbotController extends Controller
                 'source' => 'gemini-langgraph',
                 'sources' => $sources,
             ], JSON_UNESCAPED_UNICODE)."\n\n";
-            if (ob_get_level() > 0) {
-                ob_flush();
-            }
-            flush();
+            $flushSse();
         }, 200, [
             'Content-Type' => 'text/event-stream; charset=UTF-8',
             'Cache-Control' => 'no-cache, no-transform',
@@ -148,6 +176,9 @@ class ChatbotController extends Controller
         }
 
         $threadId = $this->langGraph->ensureThreadId($request);
+        if ($request->hasSession()) {
+            $request->session()->save();
+        }
         if (! $threadId) {
             return response()->json([
                 'error' => [
@@ -171,6 +202,7 @@ class ChatbotController extends Controller
 
     public function deleteThread(Request $request, string $thread)
     {
+        abort_unless((bool) preg_match('/^[A-Za-z0-9_-]{1,120}$/', $thread), 422);
         $this->langGraph->resetThread($request);
 
         return response()->noContent();
@@ -179,6 +211,16 @@ class ChatbotController extends Controller
     public function postThreadMessage(Request $request, string $thread)
     {
         $corrId = (string) ($request->attributes->get('correlation_id') ?? Str::ulid());
+        if (! preg_match('/^[A-Za-z0-9_-]{1,120}$/', $thread)) {
+            return response()->json([
+                'error' => [
+                    'code' => 'INVALID_THREAD_ID',
+                    'message' => 'Mã phiên hội thoại không hợp lệ.',
+                    'fields' => (object) [],
+                    'correlation_id' => $corrId,
+                ],
+            ], 422);
+        }
         $validated = $request->validate([
             'message' => ['required', 'string', 'max:1000'],
             'history' => ['sometimes', 'array', 'max:10'],
@@ -277,6 +319,9 @@ class ChatbotController extends Controller
         }
 
         $threadId = $this->langGraph->ensureThreadId($request) ?: (string) $record['thread_id'];
+        if ($request->hasSession()) {
+            $request->session()->save();
+        }
 
         return response()->stream(function () use ($request, $run, $record, $threadId) {
             $emitted = false;

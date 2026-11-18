@@ -50,12 +50,10 @@ class DeviceApiController extends ApiController
 
     private function authorizeDevice(Request $request)
     {
-        $configuredKey = trim((string) config('services.devices.api_key', ''));
-        if ($configuredKey !== '') {
-            $provided = (string) ($request->bearerToken() ?: $request->header('X-Device-Api-Key', ''));
-            if ($provided === '' || ! hash_equals($configuredKey, $provided)) {
-                return $this->fail('DEVICE_UNAUTHORIZED', 'Thiết bị chưa được xác thực.', 401);
-            }
+        $configuredKey = trim((string) (config('services.devices.api_key') ?: config('iot.device_api_key', '')));
+        $provided = (string) ($request->bearerToken() ?: $request->header('X-Device-Api-Key', '') ?: $request->header('X-API-Key', ''));
+        if ($configuredKey === '' || $provided === '' || ! hash_equals($configuredKey, $provided)) {
+            return $this->fail('DEVICE_UNAUTHORIZED', 'Thiết bị chưa được xác thực.', 401);
         }
 
         return null;

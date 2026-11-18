@@ -1,8 +1,8 @@
 <header class="site-header" data-site-header data-home-header data-homepage-header aria-label="Thanh điều hướng Rosaliza Hotel">
     {{-- Main Site Notch Header (Floating Dynamic Island Header active on ALL pages) --}}
     <div class="site-header__inner">
-        <a href="{{ route('home') }}" class="site-header__brand-spacer" aria-label="Rosa Hotel">
-            <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosa Hotel" class="site-header__logo-img">
+        <a href="{{ route('home') }}" class="site-header__brand-spacer" aria-label="Rosaliza Hotel">
+            <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosaliza Hotel" class="site-header__logo-img">
         </a>
         <nav class="primary-nav" id="primary-navigation" aria-label="Điều hướng chính" data-primary-nav>
             <a class="{{ request()->routeIs('home') ? 'is-active' : '' }}" href="{{ route('home') }}">Trang chủ</a>

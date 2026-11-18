@@ -8,7 +8,13 @@
     <script>
     document.addEventListener('submit', event => {
         if (!event.target.matches('form[action$="/login"], form[action$="/verify"]')) return;
-        const portal = location.port === '18081' ? 'staff' : location.port === '18082' ? 'admin' : 'customer';
+        const action = event.target.getAttribute('action') || '';
+        const port = location.port;
+        const portal = (port === '18082' || port === '10802' || action.includes('/admin/'))
+            ? 'admin'
+            : ((port === '18081' || port === '10801' || action.includes('/staff/') || action.includes('/internalauth/'))
+                ? 'staff'
+                : 'customer');
         try { sessionStorage.setItem(`rosaliza:${portal}:tab-session`, 'active'); } catch (_) {}
     }, true);
     document.addEventListener('click', event => {
@@ -30,9 +36,15 @@
     @stack('styles')
 </head>
 <body class="auth-shell">
+@php
+    $isInternalAuth = !empty($portal) || request()->is('staff*', 'admin*', 'internalauth*');
+    $internalPortalType = ($portal ?? '') === 'admin' || request()->is('admin*') ? 'admin' : 'staff';
+@endphp
 
-    {{-- Top Notch Header (Synchronized with Homepage Notch, FAQ removed) --}}
-    @include('client.partials.header')
+    @if(!$isInternalAuth)
+        {{-- Top Notch Header for Customer Auth Only --}}
+        @include('client.partials.header')
+    @endif
 
     {{-- Split 2-Column Main Layout --}}
     <main class="sana-auth-main">
@@ -44,14 +56,12 @@
         {{-- Right Column: Dark Luxury Laptop Showcase (Adapted for Rosaliza Hotel) --}}
         <div class="sana-showcase-col" aria-hidden="true">
             <div class="sana-laptop">
-                {{-- macOS Traffic Lights Header --}}
                 <div class="macos-card-bar">
-                    <div class="window-controls">
-                        <span class="ctrl-dot ctrl-red"></span>
-                        <span class="ctrl-dot ctrl-yellow"></span>
-                        <span class="ctrl-dot ctrl-green"></span>
-                    </div>
-                    <span class="macos-card-title">Rosaliza Hotel &mdash; Cổng trải nghiệm dịch vụ</span>
+                    <span class="macos-card-title">
+                        {{ $isInternalAuth
+                            ? ($internalPortalType === 'admin' ? 'Rosaliza Hotel · Hệ thống Quản trị' : 'Rosaliza Hotel · Hệ thống Vận hành Lễ tân')
+                            : 'Rosaliza Hotel · Không gian lưu trú Hoàn Kiếm' }}
+                    </span>
                     <div class="macos-card-spacer" aria-hidden="true"></div>
                 </div>
 
@@ -60,8 +70,7 @@
                     {{-- Sidebar --}}
                     <div class="sana-laptop__sidebar">
                         <div class="sana-laptop__workspace">
-                            <span class="sana-laptop__workspace-dot"></span>
-                            <span>Rosaliza Suites</span>
+                            <span>Rosaliza Hotel</span>
                         </div>
                         <ul class="sana-laptop__nav-list">
                             <li class="sana-laptop__nav-item is-active">
@@ -70,19 +79,19 @@
                             </li>
                             <li class="sana-laptop__nav-item">
                                 <i class="bi bi-door-open"></i>
-                                <span>Hạng phòng</span>
+                                <span>5 hạng phòng</span>
                             </li>
                             <li class="sana-laptop__nav-item">
-                                <i class="bi bi-cup-hot"></i>
-                                <span>Ẩm thực 24/7</span>
+                                <i class="bi bi-qr-code-scan"></i>
+                                <span>Đặt cọc trực tuyến</span>
                             </li>
                             <li class="sana-laptop__nav-item">
-                                <i class="bi bi-water"></i>
-                                <span>Spa &amp; Hồ bơi</span>
+                                <i class="bi bi-clock-history"></i>
+                                <span>Nhận phòng 14:00</span>
                             </li>
                             <li class="sana-laptop__nav-item">
                                 <i class="bi bi-chat-dots"></i>
-                                <span>Trợ lý ảo AI</span>
+                                <span>Trợ lý Pico AI</span>
                             </li>
                         </ul>
                     </div>
@@ -91,30 +100,30 @@
                     <div class="sana-laptop__content">
                         <div>
                             <div class="sana-laptop__greeting">
-                                <h3>Welcome to Rosaliza Hotel</h3>
-                                <p>Khám phá không gian và thông tin lưu trú</p>
+                                <h3>Rosaliza Hotel Hà Nội</h3>
+                                <p>5B Trần Quốc Toản, Phường Hàng Bài, Quận Hoàn Kiếm</p>
                             </div>
 
                             <div class="sana-laptop__cards">
-                                {{-- Card 1: Presidential Suite --}}
+                                {{-- Card 1 --}}
                                 <div class="sana-laptop__card">
-                                    <img src="{{ asset('images/rooms/6.jpg') }}" alt="Presidential Suite" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
-                                    <p class="sana-laptop__card-title">Presidential Suite</p>
-                                    <p class="sana-laptop__card-sub">Skyline view &amp; Private pool</p>
+                                    <img src="{{ asset('images/rooms/6.jpg') }}" alt="Phòng VIP" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
+                                    <p class="sana-laptop__card-title">Phòng VIP</p>
+                                    <p class="sana-laptop__card-sub">Không gian lưu trú cao cấp</p>
                                 </div>
 
-                                {{-- Card 2: Rosaliza Executive --}}
+                                {{-- Card 2 --}}
                                 <div class="sana-laptop__card">
-                                    <img src="{{ asset('images/rooms/1.jpg') }}" alt="Rosaliza Executive" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
-                                    <p class="sana-laptop__card-title">Executive Suite</p>
-                                    <p class="sana-laptop__card-sub">24/7 Butler &amp; Jacuzzi</p>
+                                    <img src="{{ asset('images/rooms/1.jpg') }}" alt="Phòng Gia Đình" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
+                                    <p class="sana-laptop__card-title">Phòng Gia Đình</p>
+                                    <p class="sana-laptop__card-sub">Sức chứa tối đa 6 khách</p>
                                 </div>
 
-                                {{-- Card 3: Wellness Spa --}}
+                                {{-- Card 3 --}}
                                 <div class="sana-laptop__card">
-                                    <img src="{{ asset('images/rooms/2.jpg') }}" alt="Wellness Spa" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
-                                    <p class="sana-laptop__card-title">Spa &amp; Dining</p>
-                                    <p class="sana-laptop__card-sub">Fine Dining &amp; Massage</p>
+                                    <img src="{{ asset('images/rooms/2.jpg') }}" alt="Phòng Đôi Tiêu Chuẩn" class="sana-laptop__card-img" onerror="this.src='{{ asset('images/rooms/default.jpg') }}'">
+                                    <p class="sana-laptop__card-title">Phòng Đôi</p>
+                                    <p class="sana-laptop__card-sub">Đặt cọc online 50% giữ phòng</p>
                                 </div>
                             </div>
                         </div>
@@ -122,7 +131,7 @@
                         {{-- Bottom Prompt Bar --}}
                         <div class="sana-laptop__prompt-bar">
                             <i class="bi bi-stars" style="color: #60a5fa;"></i>
-                            <span>Hỏi Rosaliza Hotel về phòng nghỉ, đưa đón hoặc dịch vụ...</span>
+                            <span>Hỏi Pico về phòng trống, bảng giá hoặc quy định nhận phòng 14:00...</span>
                         </div>
                     </div>
                 </div>
@@ -214,12 +223,17 @@
             const setFieldError = (field, message) => {
                 const errorEl = form.querySelector(`[data-error-for="${field.name}"]`);
                 if (errorEl) {
-                    errorEl.innerHTML = message ? `<i class="bi bi-exclamation-circle" aria-hidden="true"></i> ${message}` : '';
+                    if (message) {
+                        errorEl.innerHTML = '<i class="bi bi-exclamation-circle" aria-hidden="true"></i> ';
+                        const textNode = document.createTextNode(message);
+                        errorEl.appendChild(textNode);
+                    } else {
+                        errorEl.innerHTML = '';
+                    }
                 }
                 field.classList.toggle('is-invalid', Boolean(message));
                 field.classList.toggle('is-valid', !message && field.value.length > 0);
                 field.setAttribute('aria-invalid', String(Boolean(message)));
-                // NOTE: DO NOT CLEAR FIELD VALUE! Retain user inputs at all times.
                 return !message;
             };
 

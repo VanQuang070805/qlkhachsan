@@ -75,7 +75,7 @@ class User extends Authenticatable
 
     public function hasInternalPermission(string $permissionKey): bool
     {
-        if (! array_key_exists($permissionKey, self::INTERNAL_PERMISSION_CATALOG)) {
+        if (! array_key_exists($permissionKey, self::INTERNAL_PERMISSION_CATALOG) || $this->isCustomer()) {
             return false;
         }
 
@@ -92,19 +92,33 @@ class User extends Authenticatable
             return $assigned->contains($permissionKey);
         }
 
+        $roleId = $this->role_id;
+        if (! $roleId && Schema::hasTable('roles')) {
+            $roleId = DB::table('roles')->where('slug', $this->role)->value('id');
+        }
+
         $roleAllows = false;
-        if ($this->role_id && Schema::hasTable('role_permissions')) {
+        if ($roleId && Schema::hasTable('role_permissions')) {
             $roleAllows = DB::table('role_permissions')
-                ->where('role_id', $this->role_id)
+                ->where('role_id', $roleId)
                 ->where('permission_key', $permissionKey)
                 ->exists();
-        } elseif (! $this->role_id || ! Schema::hasTable('role_permissions')) {
-            // Preserve the legacy fallback on installations without the RBAC tables.
-            $roleAllows = true;
+        } elseif (! Schema::hasTable('role_permissions')) {
+            // Minimal schema fallback for isolated tests without RBAC tables.
+            $roleAllows = $this->isReceptionist()
+                && in_array($permissionKey, Role::DEFAULT_RECEPTIONIST_PERMISSIONS, true);
         }
 
         // Legacy direct grants without the marker are additive to the role profile.
         return $roleAllows || $assigned->contains($permissionKey);
+    }
+
+    public function effectiveInternalPermissions(): array
+    {
+        return array_values(array_filter(
+            array_keys(self::INTERNAL_PERMISSION_CATALOG),
+            fn (string $key) => $this->hasInternalPermission($key),
+        ));
     }
 
     public function countCustomers(): int

@@ -148,9 +148,14 @@ class AuthController extends Controller
         ]);
 
         $email = mb_strtolower(trim($request->email));
-        $existing = User::whereRaw('LOWER(email) = ?', [$email])->first();
+        $deliverabilityError = app(\App\Services\EmailDeliverabilityService::class)->validateRealEmail($email);
+        if ($deliverabilityError !== null) {
+            throw ValidationException::withMessages(['email' => $deliverabilityError]);
+        }
+
+        $existing = User::withTrashed()->whereRaw('LOWER(email) = ?', [$email])->first();
         if ($existing) {
-            if ($existing->role === 'customer' && ! $existing->verified && $existing->otp_code) {
+            if (!$existing->trashed() && $existing->role === 'customer' && ! $existing->verified && $existing->otp_code) {
                 session(['pending_verify_email' => $existing->email]);
                 session()->flash('success', 'Tài khoản đang chờ xác thực. Vui lòng nhập OTP hoặc yêu cầu gửi lại mã.');
 
@@ -185,7 +190,8 @@ class AuthController extends Controller
 
             throw $exception;
         }
-        session(['pending_verify_email' => $user->email]);
+        session(['pending_verify_email' => $user->email, 'last_otp_sent' => time()]);
+        session()->forget('verify_otp_attempts');
 
         $this->scheduleOtpEmail($user, $otp, 'Xác thực tài khoản Rosaliza Hotel');
         session()->flash('success', 'Đăng ký thành công! Mã OTP sẽ được gửi đến ' . $user->email . '.');
@@ -210,6 +216,13 @@ class AuthController extends Controller
 
         if (!$email) {
             return redirect()->route('login');
+        }
+
+        if (! app()->runningUnitTests()) {
+            $mailError = \Illuminate\Support\Facades\Cache::pull('rosaliza:otp_mail_error:'.mb_strtolower($email));
+            if (is_string($mailError) && $mailError !== '') {
+                session()->now('error', $mailError);
+            }
         }
 
         return view('auth.verify_account', compact('email'));
@@ -248,6 +261,12 @@ class AuthController extends Controller
         }
 
         if (!$user->otp_code || !Hash::check($request->otp, $user->otp_code)) {
+            $attempts = (int) session('verify_otp_attempts', 0) + 1;
+            session(['verify_otp_attempts' => $attempts]);
+            if ($attempts >= 5) {
+                $user->update(['otp_code' => null, 'otp_expires_at' => null]);
+                session()->forget('verify_otp_attempts');
+            }
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => 'Mã OTP không đúng. Vui lòng thử lại.',
@@ -303,7 +322,7 @@ class AuthController extends Controller
             'email' => 'required|email',
         ]);
 
-        session()->forget(['reset_email', 'reset_verified', 'reset_verified_at']);
+        session()->forget(['reset_email', 'reset_verified', 'reset_verified_at', 'reset_otp_attempts']);
         session(['reset_email' => $request->email]);
         $user = User::where('role', 'customer')->where('email', $request->email)->first();
 
@@ -339,6 +358,13 @@ class AuthController extends Controller
             return redirect()->route('password.forgot');
         }
 
+        if (! app()->runningUnitTests()) {
+            $mailError = \Illuminate\Support\Facades\Cache::pull('rosaliza:otp_mail_error:'.mb_strtolower($email));
+            if (is_string($mailError) && $mailError !== '') {
+                session()->now('error', $mailError);
+            }
+        }
+
         return view('auth.verify_reset_otp', compact('email'));
     }
 
@@ -352,6 +378,12 @@ class AuthController extends Controller
         $user  = User::where('role', 'customer')->where('email', $email)->first();
 
         if (!$user || !$user->otp_code || !Hash::check($request->otp, $user->otp_code)) {
+            $attempts = (int) session('reset_otp_attempts', 0) + 1;
+            session(['reset_otp_attempts' => $attempts]);
+            if ($user && $attempts >= 5) {
+                $user->update(['otp_code' => null, 'otp_expires_at' => null]);
+                session()->forget('reset_otp_attempts');
+            }
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => 'Mã OTP không đúng.',
@@ -434,8 +466,13 @@ class AuthController extends Controller
             'otp_expires_at' => null,
         ]);
         app(\App\Services\SessionRevocationService::class)->revoke($user);
+        \Illuminate\Support\Facades\Auth::guard('customer')->logout();
+        \Illuminate\Support\Facades\Auth::guard('web')->forgetUser();
+        session()->forget(['customer_user_id', 'customer_user', 'user_id', 'auth_user_id', 'user']);
+        $request->session()->regenerate();
+        $request->session()->regenerateToken();
 
-        session()->forget(['reset_email', 'reset_verified', 'reset_verified_at']);
+        session()->forget(['reset_email', 'reset_verified', 'reset_verified_at', 'reset_otp_attempts']);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -454,6 +491,12 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        try {
+            app(\App\Services\Chatbot\LangGraphChatbotService::class)->resetThread($request);
+        } catch (\Throwable) {
+            // Keep logout resilient even if chatbot reset fails.
+        }
+
         $preservedStaffId = session('staff_user_id');
         $preservedStaffData = session('staff_user');
         $preservedAdminId = session('admin_user_id');
@@ -561,35 +604,65 @@ class AuthController extends Controller
      * Gửi email chứa mã OTP.
      * Dùng Mail::raw để không cần tạo Mailable riêng.
      */
-    private function sendOtpEmail(string $toEmail, string $otp, string $subject): bool
+    private function sendOtpEmail(string $toEmail, string $otp, string $subject, ?string $recipientName = null): bool
     {
         try {
             Mail::raw(
                 "Mã OTP của bạn là: {$otp}\n\nMã có hiệu lực trong 10 phút.\n\nNếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.\n\nTrân trọng,\nRosaliza Hotel",
-                function ($message) use ($toEmail, $subject) {
+                function ($message) use ($toEmail, $subject, $otp, $recipientName) {
                     $message->to($toEmail)->subject($subject);
+                    if (method_exists($message, 'getSymfonyMessage')) {
+                        $message->getSymfonyMessage()->html(view('emails.otp', [
+                            'otp' => $otp,
+                            'subject' => $subject,
+                            'recipientName' => $recipientName,
+                        ])->render());
+                    }
                 }
             );
+            \Illuminate\Support\Facades\Cache::forget('rosaliza:otp_mail_error:'.mb_strtolower($toEmail));
+
             return true;
         } catch (\Throwable $e) {
-            logger()->error('OTP delivery failed', ['exception' => get_class($e)]);
+            logger()->error('OTP delivery failed', [
+                'exception' => get_class($e),
+                'code' => str_contains($e->getMessage(), '535') ? 'SMTP_535_BAD_CREDENTIALS' : 'SMTP_DELIVERY_ERROR',
+            ]);
+            if (! app()->runningUnitTests()) {
+                $hint = str_contains($e->getMessage(), '535')
+                    ? 'Chưa gửi được mã OTP do mật khẩu ứng dụng Gmail (MAIL_PASSWORD) trên máy chủ đã hết hạn hoặc bị từ chối (lỗi SMTP 535). Vui lòng tạo mới Mật khẩu ứng dụng Gmail 16 ký tự trong .env rồi bấm Gửi lại mã.'
+                    : 'Máy chủ email tạm thời chưa thể gửi mã OTP. Bạn vui lòng bấm "Gửi lại mã" sau ít giây.';
+                \Illuminate\Support\Facades\Cache::put('rosaliza:otp_mail_error:'.mb_strtolower($toEmail), $hint, 180);
+            }
+
             return false;
         }
     }
 
-    private function scheduleOtpEmail(User $user, string $otp, string $subject): void
+    public function issueAccountVerificationOtp(User $user): string
     {
-        $sent = false;
-        app()->terminating(function () use ($user, $otp, $subject, &$sent): void {
-            if ($sent) {
-                return;
-            }
-            $sent = true;
+        [$otp, $expiresAt] = $this->generateOtp();
+        $user->forceFill([
+            'otp_code'       => Hash::make($otp),
+            'otp_expires_at' => $expiresAt,
+        ])->save();
 
-            if (! $this->sendOtpEmail($user->email, $otp, $subject)) {
-                Log::warning('OTP email delivery failed.', ['user_id' => $user->id, 'subject' => $subject]);
-            }
-        });
+        session(['pending_verify_email' => $user->email, 'last_otp_sent' => time()]);
+        session()->forget('verify_otp_attempts');
+
+        $this->scheduleOtpEmail($user, $otp, 'Xác thực tài khoản Rosaliza Hotel');
+
+        return $otp;
+    }
+
+    private function scheduleOtpEmail(User $user, string $otp, string $subject): bool
+    {
+        $delivered = $this->sendOtpEmail($user->email, $otp, $subject, $user->fullname);
+        if (! $delivered) {
+            Log::warning('OTP email delivery failed.', ['user_id' => $user->id, 'subject' => $subject]);
+        }
+
+        return $delivered;
     }
 
     /**
@@ -636,7 +709,17 @@ class AuthController extends Controller
             'otp_expires_at' => $expiresAt,
         ]);
 
-        $this->scheduleOtpEmail($user, $otp, 'Xác thực tài khoản Rosaliza Hotel');
+        $delivered = $this->scheduleOtpEmail($user, $otp, 'Xác thực tài khoản Rosaliza Hotel');
+        if (! $delivered && ! app()->runningUnitTests()) {
+            $err = \Illuminate\Support\Facades\Cache::pull('rosaliza:otp_mail_error:'.mb_strtolower($user->email))
+                ?: 'Không thể gửi email OTP lúc này. Vui lòng kiểm tra cấu hình SMTP máy chủ.';
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $err], 503);
+            }
+
+            return redirect()->route('verify')->with('error', $err);
+        }
+
         session(['last_otp_sent' => time()]);
 
         if ($request->expectsJson()) {

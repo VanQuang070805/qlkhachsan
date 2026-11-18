@@ -3,7 +3,7 @@
 @section('content')
 @php
     $pageTitle = 'Chi Tiết - ' . htmlspecialchars($room->type_name ?? 'Phòng');
-    $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 16 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
+    $earliestCheckIn = now('Asia/Ho_Chi_Minh')->hour >= 18 ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString() : now('Asia/Ho_Chi_Minh')->toDateString();
     $adults = (int)($adults ?? 1);
     $children = (int)($children ?? 0);
     $initialNights = max(1, \Carbon\Carbon::parse($checkIn)->diffInDays($checkOut));
@@ -124,12 +124,12 @@
 
             <div class="aeth-top-badges">
                 <div class="aeth-badge-urgency">
-                    <span class="aeth-pulse-dot"></span>
+                    <i class="bi bi-door-open" aria-hidden="true"></i>
                     <span>{{ $availableRoomsCount }} phòng còn khả dụng</span>
                 </div>
                 <div class="aeth-badge-rating">
-                    <i class="bi bi-star-fill"></i>
-                    <span>{{ $avgRating ? number_format($avgRating, 1) : 'Chưa có' }} • {{ $room->reviews->count() }} đánh giá</span>
+                    <i class="bi bi-star-fill" aria-hidden="true"></i>
+                    <span>{{ $avgRating ? number_format($avgRating, 1) : 'Chưa có' }} · {{ $room->reviews->count() }} đánh giá</span>
                 </div>
             </div>
         </div>
@@ -270,7 +270,7 @@
                             <div class="aeth-date-cell">
                                 <label class="aeth-date-label" for="bkCheckIn">NHẬN PHÒNG</label>
                                 <div class="aeth-date-val" id="textCheckInVal">{{ $checkIn ? date('d/m/Y', strtotime($checkIn)) : date('d/m/Y', strtotime($earliestCheckIn)) }}</div>
-                                <div class="aeth-date-sub">Từ 14:00</div>
+                                <div class="aeth-date-sub">14:00 - trước 18:00</div>
                                 <input type="date" id="bkCheckIn" min="{{ $earliestCheckIn }}" value="{{ $checkIn ?: $earliestCheckIn }}" class="aeth-date-native-input" onchange="handleDateChange()" oninput="handleDateChange()">
                             </div>
                             <div class="aeth-date-cell">
@@ -365,7 +365,7 @@
                     <div class="aeth-breakdown pt-3" style="border-top: none !important;">
                         <div class="aeth-breakdown-row">
                             <span id="breakdownNightsLabel">{{ $initialNights }} đêm × 1 phòng</span>
-                            <strong id="breakdownBase">{{ number_format($initialEstimate, 0, ',', '.') }}đ</strong>
+                            <span id="breakdownBase" style="font-weight: 500; font-variant-numeric: tabular-nums; color: #0f172a;">{{ number_format($initialEstimate, 0, ',', '.') }}đ</span>
                         </div>
                         <div class="aeth-total-box" style="border: none !important; box-shadow: none !important; outline: none !important;">
                             <span>Tổng thanh toán</span>
@@ -373,39 +373,24 @@
                         </div>
                     </div>
 
-                    {{-- Nút Đặt Phòng Chính (Primary Apple Blue Button) --}}
+                    {{-- Nút Đặt Phòng Chính (Duy nhất trên cả Mobile, Tablet & Desktop) --}}
                     <button type="button" class="aeth-btn-primary" id="btnBook" onclick="submitBooking()" {{ $isInsufficient ? 'disabled aria-disabled=true' : '' }} aria-describedby="capacityErrorMsg">
                         <span>Đặt phòng ngay</span>
-                        <i class="bi bi-arrow-right"></i>
+                        <i class="bi bi-arrow-right" aria-hidden="true"></i>
                     </button>
 
                     <p class="text-danger small text-center m-0 d-none" id="capacityErrorMsg" aria-live="polite"></p>
 
                     {{-- Huy hiệu bảo chứng --}}
                     <div class="aeth-trust-note">
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>Giá cuối cùng được xác nhận trước khi thanh toán</span>
+                        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                        <span>Giá cuối cùng được xác nhận trước khi thanh toán cọc 50%</span>
                     </div>
 
                 </div>
             </div>
-
-
-
-    {{-- Native App Sticky Bottom Action Dock (Mobile <= 768px) --}}
-    <div class="app-bottom-dock d-md-none" aria-label="Thao tác đặt phòng">
-        <div class="app-bottom-dock__content">
-            <div class="app-bottom-dock__price">
-                <span class="app-bottom-dock__amount" id="mobileDockRate">{{ number_format($room->price, 0, ',', '.') }}đ</span>
-                <span class="app-bottom-dock__unit">/ đêm trung bình</span>
-            </div>
-            <button type="button" class="app-bottom-dock__btn" onclick="scrollToBookingModule()" id="btnMobileDockBook">
-                <span>Đặt phòng</span>
-                <i class="bi bi-arrow-right" aria-hidden="true"></i>
-            </button>
         </div>
     </div>
-</div>
 </div>
 
 {{-- ── Hidden Form Submit (Giữ nguyên contract với controller) ── --}}
@@ -501,7 +486,10 @@ function recalcTotals() {
     const nights = Math.max(1, Math.round((outDate - inDate) / (1000 * 60 * 60 * 24)));
     const roomCount = Math.max(1, selectedRooms.size);
 
-    const baseAmount = roomCount * nights * BASE_NIGHTLY_PRICE;
+    const perRoomTotal = (typeof window.STAY_TOTAL_PER_ROOM === 'number' && window.STAY_TOTAL_PER_ROOM > 0 && window.STAY_TOTAL_NIGHTS === nights)
+        ? window.STAY_TOTAL_PER_ROOM
+        : Math.round(nights * BASE_NIGHTLY_PRICE);
+    const baseAmount = roomCount * perRoomTotal;
     const grandTotal = baseAmount;
 
     document.getElementById('breakdownNightsLabel').textContent = `${nights} đêm × ${roomCount} phòng`;
@@ -556,6 +544,13 @@ async function refreshAvailability() {
         if (Number.isFinite(nightlyPrice) && nightlyPrice >= 0) {
             BASE_NIGHTLY_PRICE = nightlyPrice;
             document.getElementById('displayRate').textContent = new Intl.NumberFormat('vi-VN').format(nightlyPrice) + 'đ';
+        }
+        const stayTotalPerRoom = Number(data.stay_total_per_room);
+        if (Number.isFinite(stayTotalPerRoom) && stayTotalPerRoom >= 0) {
+            window.STAY_TOTAL_PER_ROOM = stayTotalPerRoom;
+            const dIn = new Date(inEl.value);
+            const dOut = new Date(outEl.value);
+            window.STAY_TOTAL_NIGHTS = Math.max(1, Math.round((dOut - dIn) / (1000 * 60 * 60 * 24)));
         }
         const states = new Map((data.rooms || []).map(room => [String(room.id), room]));
         const freeByFloor = new Map();

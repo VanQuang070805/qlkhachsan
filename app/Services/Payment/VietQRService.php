@@ -52,8 +52,8 @@ class VietQRService
         
         $amount = $amount ?? (int) $booking->deposit_amount;
         if ($existing) {
-            $existing->touch();
-            $referenceCode = $existing->reference_code;
+            $existing->forceFill(['amount' => $amount, 'updated_at' => now()])->save();
+            if ((int) round((float) $existing->amount) !== $amount) { $existing->update(['amount' => $amount]); } $referenceCode = $existing->reference_code;
         } else {
             $referenceCode = 'KS' . $booking->id . strtoupper(Str::random(4));
             \App\Models\PaymentLog::create([
@@ -95,7 +95,7 @@ class VietQRService
             ->first();
 
         if ($existing) {
-            $referenceCode = $existing->reference_code;
+            if ((int) round((float) $existing->amount) !== $amount) { $existing->update(['amount' => $amount]); } $referenceCode = $existing->reference_code;
         } else {
             $referenceCode = 'CO' . $booking->id . strtoupper(Str::random(4));
             \App\Models\PaymentLog::create([
@@ -151,7 +151,7 @@ class VietQRService
             if (empty($transactions)) return null;
 
             $tx = collect($transactions)->first(function ($t) use ($log) {
-                return str_contains($t['transaction_content'] ?? '', $log->reference_code);
+                return str_contains($t['transaction_content'] ?? '', $log->reference_code) && ($this->accountNo === '' || empty($t['account_number']) || (string) $t['account_number'] === $this->accountNo);
             });
 
             if (!$tx) return null;
@@ -196,7 +196,7 @@ class VietQRService
 
             // Tìm giao dịch có chứa reference_code trong nội dung
             $tx = collect($transactions)->first(function ($t) use ($log) {
-                return str_contains($t['transaction_content'] ?? '', $log->reference_code);
+                return str_contains($t['transaction_content'] ?? '', $log->reference_code) && ($this->accountNo === '' || empty($t['account_number']) || (string) $t['account_number'] === $this->accountNo);
             });
 
             if (!$tx) return null;

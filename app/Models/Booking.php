@@ -27,6 +27,7 @@ class Booking extends Model
             }
 
             if ($booking->wasChanged('status') && $booking->status === 'completed') {
+                \Illuminate\Support\Facades\DB::afterCommit(function () use ($booking) {
                 try {
                     $booking->loadMissing('rooms.roomType');
                     $roomTypes = $booking->rooms->map(fn($r) => $r->roomType)->unique('id');
@@ -40,6 +41,7 @@ class Booking extends Model
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::warning('Review request delivery failed', ['booking_id' => $booking->id, 'exception' => get_class($e)]);
                 }
+                });
             }
         });
     }
@@ -189,7 +191,7 @@ class Booking extends Model
     // ── Relations ──────────────────────────────────────────
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     public function rooms()

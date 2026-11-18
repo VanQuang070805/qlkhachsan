@@ -12,6 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $trustedProxies = array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('TRUSTED_PROXIES', '127.0.0.1,::1,172.16.0.0/12,10.0.0.0/8')),
+        )));
+        if ($trustedProxies !== []) {
+            $middleware->trustProxies(at: $trustedProxies);
+        }
         $middleware->prepend(\App\Http\Middleware\ConfigurePortalSession::class);
         $middleware->web(append: [
             \App\Http\Middleware\CorrelationIdMiddleware::class,

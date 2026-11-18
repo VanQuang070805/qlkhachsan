@@ -681,7 +681,7 @@
         <div class="melia-container">
             <div class="melia-section-header">
                 <div>
-                    <h2 class="melia-title-section">FAQ for Rosaliza Hotel HaNoi</h2>
+                    <h2 class="melia-title-section">Câu hỏi thường gặp tại Rosaliza Hotel</h2>
                 </div>
                 <p class="melia-subtitle">Thông tin cần biết trước khi đặt phòng và bắt đầu kỳ nghỉ.</p>
             </div>
@@ -694,7 +694,7 @@
                         <i class="bi bi-plus-lg melia-faq-icon"></i>
                     </button>
                     <div class="melia-faq-answer">
-                        Hệ thống cho phép nhận phòng từ 12:00 đến trước 16:00 và trả phòng trước 12:00. Vui lòng liên hệ lễ tân nếu cần hỗ trợ thêm.
+                        Hệ thống áp dụng khung giờ nhận phòng từ 14:00 đến trước 18:00 và trả phòng trước 12:00. Nếu quá 18:00 quý khách chưa làm thủ tục nhận phòng, hệ thống sẽ tự động hủy đơn. Khách sạn chỉ nhận đặt cọc trực tuyến 50% để giữ phòng.
                     </div>
                 </div>
 

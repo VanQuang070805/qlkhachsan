@@ -626,8 +626,9 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
 
 /* Auth & Form Polish */
 .auth-card .form-control:focus {
-    border-color: #779bc1 !important;
-    box-shadow: 0 0 0 3px rgba(119, 155, 193, 0.22) !important;
+    border-color: #64748b !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 .auth-card .form-control.is-invalid {
     animation: royal-input-shake .36s ease-in-out !important;
@@ -681,33 +682,24 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
     transform: scale(0.94);
 }
 
-/* Status Pulsing Dot */
+/* Status text without decorative pulsing dot */
 .room-card__availability {
     display: inline-flex !important;
     align-items: center !important;
     gap: 6px !important;
 }
 .room-card__availability::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: #2597d0;
-    box-shadow: 0 0 8px #2597d0;
-    animation: royal-pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-@keyframes royal-pulse-glow {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.45; transform: scale(1.25); }
+    display: none !important;
+    content: none !important;
 }
 
 /* Availability search bar capsule polish */
 .availability-card {
-    transition: transform .28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .28s ease !important;
+    transition: transform .28s cubic-bezier(0.16, 1, 0.3, 1), border-color .2s ease, box-shadow .28s ease !important;
 }
 .availability-card:focus-within {
-    box-shadow: 0 24px 64px -10px rgba(16, 55, 132, 0.16), 0 0 0 2px rgba(119, 155, 193, 0.4) !important;
+    border-color: #94a3b8 !important;
+    box-shadow: 0 24px 64px -10px rgba(16, 55, 132, 0.14) !important;
 }
 
 /* Room detail button & room selector physics */
@@ -1174,8 +1166,8 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
 
 .royal-chat__composer:focus-within {
     background: #ffffff !important;
-    border-color: #8c734b !important;
-    box-shadow: 0 0 0 3px rgba(140, 115, 75, 0.18) !important;
+    border-color: #64748b !important;
+    box-shadow: none !important;
 }
 
 /* Eliminates harsh black outline around chatbot panel, composer, and textarea */
@@ -1583,27 +1575,28 @@ body.client-shell:has(.room-detail-heading){background:linear-gradient(180deg,#7
    QUIET LUXURY FINISH: ANTI-BLACK-BORDER & BORDERLESS ICON HYGIENE
    ========================================================================== */
 
-/* 1. Eliminate harsh black outlines and borders on focus/click everywhere on customer pages */
+/* 1. Eliminate harsh outlines and colored rings on focus/click everywhere on customer pages */
 .client-shell input:focus,
+.client-shell select:focus,
+.client-shell textarea:focus,
 .client-shell select:focus-visible,
 .client-shell textarea:focus-visible,
 .client-shell input:focus-visible {
     outline: none !important;
-    border-color: #8c734b !important;
-    box-shadow: 0 0 0 3px rgba(140, 115, 75, 0.18) !important;
+    border-color: #64748b !important;
+    box-shadow: none !important;
 }
 
 .client-shell button:focus-visible,
 .client-shell a:focus-visible,
 .client-shell [tabindex]:focus-visible,
 .melia-faq-btn:focus-visible {
-    outline: 2px solid #151515 !important;
-    outline-offset: 3px !important;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.72) !important;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .melia-faq-item.is-open {
-    border-color: #8c734b !important;
+    border-color: #64748b !important;
 }
 
 .rooms-select-trigger,
@@ -2091,7 +2084,8 @@ body.client-shell * {
 .figma-room-card__price {
     font-family: 'Be Vietnam Pro', 'Manrope', sans-serif !important;
     font-style: normal !important;
-    font-weight: 800 !important;
+    font-weight: 500 !important;
+    font-variant-numeric: tabular-nums !important;
     font-size: 18px !important;
     line-height: 24px !important;
     color: #C49C74 !important;

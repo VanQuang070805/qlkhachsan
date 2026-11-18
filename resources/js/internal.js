@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     enhanceDatePickers();
 
-    document.querySelectorAll('.search-field, .operations-search, .refund-search, .command-dialog > label').forEach((field) => {
+    document.querySelectorAll('.search-field, .operations-search, .refund-search').forEach((field) => {
         const input = field.querySelector('input[type="search"], input[name="search"]');
         if (!input || field.querySelector('.search-clear')) return;
         input.type = 'search';
@@ -189,8 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(updateClock, 1000);
     }
 
-    // Auto-dismiss alerts after 5s
-    document.querySelectorAll('.alert-success, .alert-danger, .alert-info, .alert-warning').forEach(el => {
+    // Auto-dismiss alerts after 5s (respecting permanent notices)
+    document.querySelectorAll('.alert-success:not(.alert-permanent):not(.no-auto-dismiss), .alert-danger:not(.alert-permanent):not(.no-auto-dismiss), .alert-info:not(.alert-permanent):not(.no-auto-dismiss), .alert-warning:not(.alert-permanent):not(.no-auto-dismiss)').forEach(el => {
         setTimeout(() => {
             if (el && el.parentElement) {
                 el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';

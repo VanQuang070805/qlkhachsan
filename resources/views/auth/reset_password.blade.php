@@ -2,9 +2,9 @@
 
 @section('content')
 <div class="sana-auth-card">
-    <header class="sana-heading">
-        <h1 class="sana-heading__title">Create new password</h1>
-        <p class="sana-heading__sub">Ensure your account stays secure</p>
+    <header class="sana-heading auth-intro">
+        <h1 class="sana-heading__title">Tạo mật khẩu mới</h1>
+        <p class="sana-heading__sub">Thiết lập mật khẩu an toàn cho tài khoản của bạn</p>
     </header>
 
     @include('auth.partials.form-status')
@@ -12,6 +12,7 @@
     <form action="{{ route('password.reset') }}" method="POST" autocomplete="on" novalidate data-inline-validation>
         @csrf
         <div class="sana-form-group">
+            <label class="sana-field-label" for="password">Mật khẩu mới <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <div class="sana-password-wrap">
                 <input
                     type="password"
@@ -30,13 +31,14 @@
                     aria-describedby="password-error"
                 >
                 <button type="button" class="sana-password-toggle" aria-label="Hiện mật khẩu">
-                    <i class="bi bi-eye"></i>
+                    <i class="bi bi-eye" aria-hidden="true"></i>
                 </button>
             </div>
             <p class="field-error" id="password-error" data-error-for="password">@error('password')<i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $message }}@enderror</p>
         </div>
         
         <div class="sana-form-group">
+            <label class="sana-field-label" for="password_confirmation">Xác nhận mật khẩu mới <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <div class="sana-password-wrap">
                 <input
                     type="password"

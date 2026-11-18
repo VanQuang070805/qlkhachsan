@@ -270,7 +270,7 @@
             <div class="detail-row">
                 <span class="label">Thời gian lưu trú:</span>
                 <span class="value">
-                    {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} (14:00) đến {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }} (12:00) ({{ $nights }} đêm)
+                    {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }} (14:00 - trước 18:00) đến {{ \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') }} (trước 12:00) ({{ $nights }} đêm)
                 </span>
             </div>
             <div class="detail-row">
@@ -278,8 +278,12 @@
                 <span class="value">{{ $booking->customer_name }}</span>
             </div>
             <div class="detail-row">
-                <span class="label" style="font-weight: 700; color: #0f172a;">Tổng tiền đặt phòng:</span>
-                <span class="value" style="color: #0071e3; font-weight: 800; font-size: 15px;">
+                <span class="label">Phòng đã đặt:</span>
+                <span class="value" style="font-weight: 600;">{{ $booking->rooms->map(fn($r) => 'Phòng '.$r->room_number)->join(', ') ?: 'Theo xác nhận' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label" style="font-weight: 600; color: #0f172a;">Tổng tiền đặt phòng:</span>
+                <span class="value" style="color: #0f172a; font-weight: 500; font-size: 15px; font-variant-numeric: tabular-nums;">
                     {{ number_format($booking->total_price, 0, ',', '.') }}đ
                 </span>
             </div>
@@ -312,22 +316,22 @@
 
         {{-- Top QR Icon (Không viền tròn bao quanh) --}}
         <div style="display: flex; justify-content: center; margin-bottom: 10px;">
-            <i class="bi bi-qr-code-scan" style="font-size: 32px; color: #0071e3;"></i>
+            <i class="bi bi-qr-code-scan" style="font-size: 32px; color: #181715;"></i>
         </div>
 
         {{-- Tag --}}
-        <div style="font-size: 12px; font-weight: 700; color: #059669; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px;">
-            THẺ CHECK-IN ĐIỆN TỬ
+        <div style="font-size: 12px; font-weight: 600; color: #059669; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px;">
+            THẺ CHECK-IN ĐIỆN TỬ · ROSALIZA HOTEL
         </div>
 
         {{-- Room Title --}}
-        <h3 style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 4px; line-height: 1.3;">
+        <h3 style="font-size: 19px; font-weight: 600; color: #0f172a; margin-bottom: 4px; line-height: 1.3;">
             {{ $room_name }}
         </h3>
 
-        {{-- ID Code --}}
-        <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">
-            Mã định danh: <strong style="color: #0071e3;">#{{ $booking->id }}</strong>
+        {{-- ID Code & Rooms --}}
+        <p style="font-size: 13px; color: #475569; margin-bottom: 16px;">
+            Mã đơn: <strong style="color: #0f172a;">#{{ $booking->id }}</strong> · {{ $booking->rooms->map(fn($r) => 'Phòng '.$r->room_number)->join(', ') ?: 'Đã xác nhận' }}
         </p>
 
         {{-- QR Card Wrapper --}}

@@ -26,35 +26,35 @@
             </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge rounded-pill bg-emerald-50 text-emerald-700 px-3 py-1.5 border border-emerald-200" style="font-size: 12px; font-weight: 600;">
-                    <span class="aeth-pulse-dot me-1" style="width: 6px; height: 6px;"></span> Chuyển khoản Napas 247
+                    <i class="bi bi-shield-check me-1" aria-hidden="true"></i> Chuyển khoản Napas 247
                 </span>
             </div>
         </div>
 
         {{-- Main 2-Column Grid --}}
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; align-items: start;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px; align-items: start;">
 
             {{-- ══ CỘT TRÁI: QR CODE CARD (CĂN GIỮA HOÀN TOÀN) ══ --}}
             <div style="background: #ffffff; border: 1px solid #E5E1D8; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(24, 23, 21, 0.05); text-align: center;">
                 {{-- Header --}}
                 <div style="background: linear-gradient(135deg, #181715 0%, #292524 100%); border-bottom: 2px solid #B89C72; padding: 18px 20px; color: #ffffff;">
-                    <div style="font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <i class="bi bi-qr-code-scan"></i> VietQR - Chuyển khoản tự động
+                    <div style="font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="bi bi-qr-code-scan" aria-hidden="true"></i> VietQR - Chuyển khoản tự động
                     </div>
                     <div style="font-size: 13px; opacity: 0.9; margin-top: 4px;">Hỗ trợ 40+ ngân hàng Việt Nam &amp; Napas 24/7</div>
                 </div>
 
                 {{-- Body (Căn giữa mã QR) --}}
-                <div style="padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     @if(!empty($qrData['qr_url']))
                         <div style="background: #ffffff; padding: 12px; border-radius: 18px; border: 2px solid #E5E1D8; box-shadow: 0 8px 24px rgba(24, 23, 21, 0.08); display: flex; align-items: center; justify-content: center; margin: 0 auto;">
                             <img id="vietQrImage" src="{{ $qrData['qr_url'] }}"
                                  alt="VietQR Code"
-                                 style="width: 250px; height: 250px; max-width: 100%; border-radius: 10px; display: block; margin: 0 auto; object-fit: contain;">
+                                 style="width: min(250px, 68vw); height: auto; aspect-ratio: 1 / 1; max-width: 100%; border-radius: 10px; display: block; margin: 0 auto; object-fit: contain;">
                         </div>
                     @else
-                        <div style="width: 250px; height: 250px; background: #FAF9F6; border-radius: 18px; border: 2px dashed #E5E1D8; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; gap: 10px;">
-                            <i class="bi bi-bank text-primary" style="font-size: 48px;"></i>
+                        <div style="width: min(250px, 68vw); aspect-ratio: 1 / 1; background: #FAF9F6; border-radius: 18px; border: 2px dashed #E5E1D8; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; gap: 10px;">
+                            <i class="bi bi-bank text-primary" style="font-size: 44px;" aria-hidden="true"></i>
                             <span style="font-size: 13px; color: #64748b; font-weight: 500;">Chưa tạo được QR tự động</span>
                         </div>
                     @endif
@@ -62,43 +62,43 @@
                     {{-- Hộp sao chép thông tin ngân hàng & số tiền (Tối ưu chuyển khoản Mobile App) --}}
                     <div style="width: 100%; margin-top: 18px; display: flex; flex-direction: column; gap: 8px;">
                         {{-- 1. Số tài khoản --}}
-                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; text-align: left;">
-                            <div>
-                                <div style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">Số tài khoản &amp; Người nhận</div>
-                                <div style="font-size: 15px; font-weight: 800; color: #0f172a;">{{ $qrData['account_no'] ?? '' }}</div>
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
+                            <div style="min-width: 0;">
+                                <div style="font-size: 10.5px; font-weight: 600; color: #64748b; text-transform: uppercase;">Số tài khoản &amp; Người nhận</div>
+                                <div style="font-size: 15px; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums;">{{ $qrData['account_no'] ?? '' }}</div>
                                 <div style="font-size: 11px; color: #64748b;">{{ $qrData['account_name'] ?? 'ROSALIZA HOTEL' }}</div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-light border" onclick="copyText('{{ $qrData['account_no'] ?? '' }}', this)" style="border-radius: 8px; font-size: 12px; font-weight: 600; padding: 6px 12px; min-height: 38px;">
-                                <i class="bi bi-clipboard me-1"></i> <span>Sao chép</span>
+                            <button type="button" class="btn btn-sm btn-light border flex-shrink-0" onclick="copyText('{{ $qrData['account_no'] ?? '' }}', this)" style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 8px 14px; min-height: 40px;">
+                                <i class="bi bi-clipboard me-1" aria-hidden="true"></i> <span>Sao chép</span>
                             </button>
                         </div>
 
                         {{-- 2. Số tiền chuyển khoản --}}
-                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; text-align: left;">
-                            <div>
-                                <div style="font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase;">Số tiền cọc chính xác</div>
-                                <div style="font-size: 15.5px; font-weight: 800; color: #0f172a;">{{ number_format($booking->deposit_amount, 0, ',', '.') }} đ</div>
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
+                            <div style="min-width: 0;">
+                                <div style="font-size: 10.5px; font-weight: 600; color: #64748b; text-transform: uppercase;">Số tiền cọc chính xác</div>
+                                <div style="font-size: 15.5px; font-weight: 500; color: #0f172a; font-variant-numeric: tabular-nums;">{{ number_format($booking->deposit_amount, 0, ',', '.') }} đ</div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-light border" onclick="copyText('{{ (int)$booking->deposit_amount }}', this)" style="border-radius: 8px; font-size: 12px; font-weight: 600; padding: 6px 12px; min-height: 38px;">
-                                <i class="bi bi-clipboard me-1"></i> <span>Sao chép</span>
+                            <button type="button" class="btn btn-sm btn-light border flex-shrink-0" onclick="copyText('{{ (int)$booking->deposit_amount }}', this)" style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 8px 14px; min-height: 40px;">
+                                <i class="bi bi-clipboard me-1" aria-hidden="true"></i> <span>Sao chép</span>
                             </button>
                         </div>
 
                         {{-- 3. Nội dung chuyển khoản --}}
-                        <div style="background: #F3EFE9; border: 1px solid #E5E1D8; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; text-align: left;">
-                            <div>
-                                <div style="font-size: 10.5px; font-weight: 700; color: #5C5852; text-transform: uppercase; letter-spacing: 0.04em;">Nội dung chuyển khoản (bắt buộc)</div>
-                                <code id="refCodeText" style="font-size: 15.5px; font-weight: 800; color: #181715; letter-spacing: 0.02em;">{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}</code>
+                        <div style="background: #F3EFE9; border: 1px solid #E5E1D8; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
+                            <div style="min-width: 0;">
+                                <div style="font-size: 10.5px; font-weight: 600; color: #5C5852; text-transform: uppercase; letter-spacing: 0.04em;">Nội dung chuyển khoản (bắt buộc)</div>
+                                <code id="refCodeText" style="font-size: 15px; font-weight: 600; color: #181715; letter-spacing: 0.02em;">{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}</code>
                             </div>
-                            <button type="button" class="btn btn-sm btn-dark" onclick="copyText('{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}', this)" style="border-radius: 8px; font-size: 12px; font-weight: 600; padding: 6px 12px; min-height: 38px; background: #181715; border: none; color: #fff;">
-                                <i class="bi bi-clipboard me-1"></i> <span>Sao chép</span>
+                            <button type="button" class="btn btn-sm btn-dark flex-shrink-0" onclick="copyText('{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}', this)" style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 8px 14px; min-height: 40px; background: #181715; border: none; color: #fff;">
+                                <i class="bi bi-clipboard me-1" aria-hidden="true"></i> <span>Sao chép</span>
                             </button>
                         </div>
                     </div>
 
                     {{-- Countdown Timer: 10 phút --}}
                     <div style="width: 100%; background: #fefce8; border: 1px solid #fef08a; padding: 11px 16px; border-radius: 12px; margin-top: 14px; font-size: 13.5px; color: #854d0e; text-align: center; font-weight: 500;">
-                        <i class="bi bi-arrow-repeat me-1.5 text-amber-600"></i> Làm mới mã QR sau <strong id="countdown" class="font-monospace" style="font-weight: 800; font-size: 15px; color: #713f12;">10:00</strong>
+                        <i class="bi bi-arrow-repeat me-1.5 text-amber-600" aria-hidden="true"></i> Làm mới mã QR sau <strong id="countdown" class="font-monospace" style="font-weight: 600; font-size: 15px; color: #713f12;">10:00</strong>
                     </div>
 
                     {{-- Polling Status --}}
@@ -114,13 +114,13 @@
 
                 {{-- Card Số tiền cọc --}}
                 <div style="background: #ffffff; border: 1px solid #E5E1D8; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px rgba(24, 23, 21, 0.04); text-align: center;">
-                    <div style="color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">
+                    <div style="color: #64748b; font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">
                         Số tiền đặt cọc (50%)
                     </div>
-                    <div style="font-size: 34px; font-weight: 800; color: #181715; margin: 8px 0; letter-spacing: -0.03em;">
+                    <div style="font-size: 32px; font-weight: 500; font-variant-numeric: tabular-nums; color: #181715; margin: 8px 0; letter-spacing: -0.03em;">
                         {{ number_format($booking->deposit_amount, 0, ',', '.') }} đ
                     </div>
-                    <div style="font-size: 12.5px; color: #64748b; margin-bottom: 8px;">
+                    <div style="font-size: 12.5px; color: #64748b; margin-bottom: 8px; font-variant-numeric: tabular-nums;">
                         Tổng giá trị: {{ number_format($booking->total_price, 0, ',', '.') }} đ. Phần còn lại thanh toán khi nhận phòng
                     </div>
                     <span class="badge bg-stone-100 text-stone-800 border border-stone-200 rounded-pill px-3 py-1.5" style="font-size: 12px; font-weight: 600;">
@@ -130,39 +130,39 @@
 
                 {{-- Card Thông tin đặt phòng --}}
                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
-                    <div style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
-                        <i class="bi bi-info-circle text-primary me-1"></i> Thông tin đặt phòng
+                    <div style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <i class="bi bi-info-circle text-primary me-1" aria-hidden="true"></i> Thông tin đặt phòng
                     </div>
                     @foreach([
                         'Khách hàng' => $booking->customer_name,
                         'Phòng lưu trú' => $rooms->map(fn($r) => 'P.'.$r->room_number)->join(', '),
-                        'Nhận phòng' => \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') . ' (14:00)',
-                        'Trả phòng'  => \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') . ' (12:00)',
+                        'Nhận phòng' => \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') . ' (14:00 - trước 18:00)',
+                        'Trả phòng'  => \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') . ' (trước 12:00)',
                     ] as $label => $val)
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #f1f5f9; font-size: 13.5px;">
-                            <span style="color: #64748b;">{{ $label }}</span>
-                            <span style="font-weight: 700; color: #0f172a;">{{ $val }}</span>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 9px 0; border-bottom: 1px solid #f1f5f9; font-size: 13.5px;">
+                            <span style="color: #64748b; flex-shrink: 0;">{{ $label }}</span>
+                            <span style="font-weight: 600; color: #0f172a; text-align: right;">{{ $val }}</span>
                         </div>
                     @endforeach
                 </div>
 
                 {{-- Card Hướng dẫn 4 bước --}}
                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
-                    <div style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
-                        <i class="bi bi-lightning-charge text-amber-500 me-1"></i> Hướng dẫn thanh toán nhanh
+                    <div style="font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <i class="bi bi-lightning-charge text-amber-500 me-1" aria-hidden="true"></i> Hướng dẫn thanh toán nhanh
                     </div>
                     @foreach([
-                        ['🏦', 'Mở ứng dụng ngân hàng', 'Chọn Quét mã QR hoặc Chuyển khoản nhanh Napas 247'],
-                        ['📷', 'Quét mã QR',           'Hướng camera điện thoại vào mã QR ở khung bên trái'],
-                        ['✅', 'Kiểm tra & Xác nhận',  'Số tiền và nội dung chuyển khoản được tự động điền sẵn'],
-                        ['⚡', 'Xác nhận giao dịch', 'Hệ thống kiểm tra giao dịch và cập nhật trạng thái đặt phòng'],
+                        ['bi-bank', 'Mở ứng dụng ngân hàng', 'Chọn Quét mã QR hoặc Chuyển khoản nhanh Napas 247'],
+                        ['bi-qr-code-scan', 'Quét mã QR', 'Hướng camera điện thoại vào mã QR ở khung bên trái'],
+                        ['bi-check2-circle', 'Kiểm tra & Xác nhận', 'Số tiền và nội dung chuyển khoản được tự động điền sẵn'],
+                        ['bi-shield-check', 'Xác nhận giao dịch', 'Hệ thống kiểm tra giao dịch và cập nhật trạng thái đặt phòng'],
                     ] as [$icon, $title, $desc])
                         <div style="display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start;">
-                            <div style="width: 34px; height: 34px; background: #eff6ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
-                                {{ $icon }}
+                            <div style="width: 36px; height: 36px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #0f172a; flex-shrink: 0;">
+                                <i class="bi {{ $icon }}" aria-hidden="true"></i>
                             </div>
                             <div>
-                                <div style="font-weight: 700; font-size: 13.5px; color: #0f172a;">{{ $title }}</div>
+                                <div style="font-weight: 600; font-size: 13.5px; color: #0f172a;">{{ $title }}</div>
                                 <div style="color: #64748b; font-size: 12px; margin-top: 1px;">{{ $desc }}</div>
                             </div>
                         </div>

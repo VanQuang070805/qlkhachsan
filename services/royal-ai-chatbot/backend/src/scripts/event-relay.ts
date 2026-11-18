@@ -27,6 +27,7 @@ async function createDbPool(): Promise<mysql.Pool> {
       process.env.MYSQL_DATABASE || process.env.DB_DATABASE || 'qlkhachsan',
     waitForConnections: true,
     connectionLimit: 4,
+    timezone: '+07:00',
   });
 }
 
@@ -37,7 +38,7 @@ async function relayBatch(pool: mysql.Pool): Promise<number> {
     const [rows] = await conn.query<mysql.RowDataPacket[]>(
       `SELECT id, event_id, topic, event_key, payload, attempts
        FROM integration_outbox
-       WHERE published_at IS NULL AND available_at <= NOW()
+       WHERE published_at IS NULL AND attempts < 10 AND available_at <= NOW()
        ORDER BY id ASC
        LIMIT 25
        FOR UPDATE`,

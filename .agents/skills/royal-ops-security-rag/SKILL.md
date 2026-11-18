@@ -21,7 +21,8 @@ description: >-
 
 ## 2. Booking, Pricing & Front-Desk Rules
 
-- **Check-in Window**: `12:00` until before `16:00` (`Asia/Ho_Chi_Minh`). Same-day check-in is rejected at or after `16:00`.
+- **Check-in Window**: `14:00` until before `18:00` (`Asia/Ho_Chi_Minh`). Same-day check-in is rejected at or after `18:00`, and confirmed bookings without check-in are auto-cancelled at `18:00` (`bookings:expire-no-shows`).
+- **Online Deposit Only**: Customer bookings require a 50% online deposit (`vietqr`, `momo`, `zalopay`, `vnpay`) on both Web and API v1. Cash settlement is permitted only for staff counter walk-in and checkout operations.
 - **Capacity Validation**: Total `max_guests` of selected rooms must be `>= adult_count + child_count`. Over-capacity is allowed; under-capacity is rejected.
 - **10-Minute Hold (`Booking::reservedRoomIds`)**: Unpaid `pending` bookings hold rooms for `10` minutes from creation, then the backend cancels them and releases their rooms. Confirmed, checked-in, or paid bookings hold rooms across `[check_in, check_out)`.
 - **Checkout & Late Fee**:

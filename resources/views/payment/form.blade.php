@@ -11,6 +11,9 @@
     $roomImage = $firstRoom?->roomType?->image_url ?? asset('images/rooms/default.jpg');
     $roomNumbers = $booking->rooms->map(fn($r) => 'Phòng '.$r->room_number)->join(', ');
     $initials = collect(explode(' ', $booking->customer_name))->map(fn($part) => mb_substr($part, 0, 1))->take(2)->join('');
+    $holdRemainingSeconds = !empty($isPreview)
+        ? 600
+        : max(0, (int) now()->diffInSeconds($booking->paymentHoldTimestamp()->copy()->addMinutes(10), false));
 @endphp
 
 <div class="aeth-canvas">
@@ -69,7 +72,7 @@
 
                     {{-- Phương thức 1: VietQR 24/7 --}}
                     <label class="aeth-payment-choice is-selected" for="method_vietqr">
-                        <input type="radio" name="payment_method" id="method_vietqr" value="vietqr" checked style="display:none;">
+                        <input type="radio" name="payment_method" id="method_vietqr" value="vietqr" checked class="visually-hidden">
                         <span class="aeth-radio-indicator"></span>
                         <div class="aeth-payment-info">
                             <div class="aeth-payment-title-row">
@@ -85,7 +88,7 @@
 
                     {{-- Phương thức 2: VNPay & Thẻ quốc tế --}}
                     <label class="aeth-payment-choice" for="method_vnpay">
-                        <input type="radio" name="payment_method" id="method_vnpay" value="vnpay" style="display:none;">
+                        <input type="radio" name="payment_method" id="method_vnpay" value="vnpay" class="visually-hidden">
                         <span class="aeth-radio-indicator"></span>
                         <div class="aeth-payment-info">
                             <div class="aeth-payment-title-row">
@@ -100,7 +103,7 @@
 
                     {{-- Phương thức 3: Ví MoMo --}}
                     <label class="aeth-payment-choice" for="method_momo">
-                        <input type="radio" name="payment_method" id="method_momo" value="momo" style="display:none;">
+                        <input type="radio" name="payment_method" id="method_momo" value="momo" class="visually-hidden">
                         <span class="aeth-radio-indicator"></span>
                         <div class="aeth-payment-info">
                             <div class="aeth-payment-title-row">
@@ -115,28 +118,19 @@
                     </label>
 
                     {{-- Phương thức 4: Ví ZaloPay --}}
-                    <label class="aeth-payment-choice" for="method_zalopay">
-                        <input type="radio" name="payment_method" id="method_zalopay" value="zalopay" style="display:none;">
+                    <label class="aeth-payment-choice mb-4" for="method_zalopay">
+                        <input type="radio" name="payment_method" id="method_zalopay" value="zalopay" class="visually-hidden">
                         <span class="aeth-radio-indicator"></span>
                         <div class="aeth-payment-info">
                             <div class="aeth-payment-title-row">
                                 <span class="aeth-payment-title">Ví ZaloPay</span>
                             </div>
-                            <div class="aeth-payment-desc">Thanh toán liền mạch với ứng dụng Zalo &amp; ZaloPay</div>
+                            <div class="aeth-payment-desc">Thanh toán trực tuyến qua ứng dụng Zalo &amp; ZaloPay</div>
                         </div>
                         <div class="aeth-payment-logo-box">
                             <img src="{{ asset('images/payment-methods/zalopay.png') }}" alt="ZaloPay" onerror="this.src='{{ asset('images/payment-methods/zalopay.svg') }}'">
                         </div>
                     </label>
-
-                    {{-- Lưu an toàn vào Apple Keychain --}}
-                    <div class="d-flex align-items-center gap-2 mt-3 mb-4 ps-1">
-                        <input type="checkbox" id="saveKeychain" class="form-check-input mt-0" checked style="cursor:pointer; width:16px; height:16px;">
-                        <label for="saveKeychain" class="text-slate-600 mb-0 d-flex align-items-center gap-1.5" style="font-size: 12.5px; cursor:pointer;">
-                            <i class="bi bi-key-fill text-amber-500"></i>
-                            <span>Lưu an toàn vào Apple Keychain để thanh toán nhanh lần sau</span>
-                        </label>
-                    </div>
 
                     {{-- Nút thanh toán chính --}}
                     <button type="submit" class="aeth-btn-primary" id="payBtn" style="height: 52px; font-size: 16px;">
@@ -193,7 +187,7 @@
                                 <strong style="font-size: 15px; color: #0f172a; display:block; margin-top: 2px;">
                                     {{ \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') }}
                                 </strong>
-                                <span class="text-slate-500" style="font-size: 12px;">14:00</span>
+                                <span class="text-slate-600" style="font-size: 12px;">14:00 - trước 18:00</span>
                             </div>
                             <div>
                                 <small class="text-muted text-uppercase fw-bold" style="font-size: 11px; letter-spacing: 0.05em; display:block;">TRẢ PHÒNG</small>
@@ -221,32 +215,32 @@
                             </a>
                         </div>
 
-                        {{-- Bảng giá & Voucher SUMMER2026 --}}
+                        {{-- Bảng giá --}}
                         <div class="aeth-breakdown">
                             <div class="aeth-breakdown-row">
                                 <span style="font-size: 14.5px;">Giá phòng ({{ $nights }} đêm)</span>
-                                <strong style="font-size: 15.5px;">{{ number_format($booking->total_price, 0, ',', '.') }}đ</strong>
+                                <span style="font-size: 15.5px; font-weight: 500; font-variant-numeric: tabular-nums; color: #0f172a;">{{ number_format($booking->total_price, 0, ',', '.') }}đ</span>
                             </div>
 
                             <div class="pt-2" style="border-top: none !important;">
-                                <div class="d-flex align-items-baseline justify-content-between">
-                                    <span style="font-size: 15px; font-weight: 700; color: #334155;">Tiền cọc thanh toán lần này</span>
+                                <div class="d-flex align-items-baseline justify-content-between gap-2">
+                                    <span style="font-size: 14.5px; font-weight: 600; color: #334155;">Tiền cọc thanh toán lần này</span>
                                     <div class="text-end">
-                                        <div style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.03em;">
+                                        <div style="font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; color: #0f172a; letter-spacing: -0.02em;">
                                             {{ number_format($booking->deposit_amount, 0, ',', '.') }}đ
                                         </div>
                                     </div>
                                 </div>
-                                <small class="text-slate-400 d-block mt-1" style="font-size: 12px;">Tổng giá lưu trú được hiển thị ở trên; phần còn lại thanh toán theo quy trình trả phòng.</small>
+                                <small class="text-slate-400 d-block mt-1" style="font-size: 12px;">Khoản 50% còn lại thanh toán tại khách sạn khi làm thủ tục.</small>
                             </div>
                         </div>
 
                         {{-- Điều kiện hoàn tiền theo đơn --}}
                         <div style="background:#ecfdf5; border:1px solid rgba(167,243,208,0.8); border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:10px;">
-                            <i class="bi bi-shield-fill-check text-emerald-600" style="font-size: 20px; flex-shrink: 0;"></i>
+                            <i class="bi bi-shield-fill-check text-emerald-600" style="font-size: 20px; flex-shrink: 0;" aria-hidden="true"></i>
                             <div>
                                 <strong style="display:block; font-size: 12px; color: #065f46;">Điều kiện hoàn tiền</strong>
-                                <small style="font-size: 10.5px; color: #047857;">Thời hạn xét hoàn: trước ngày nhận phòng {{ $booking->refundDeadlineDays() }} ngày. Số tiền phụ thuộc khoản đã thu và điều kiện của đơn; nhân viên xác nhận hoàn tiền.</small>
+                                <small style="font-size: 11px; color: #047857;">Thời hạn xét hoàn: trước ngày nhận phòng {{ $booking->refundDeadlineDays() }} ngày.</small>
                             </div>
                         </div>
 
@@ -254,30 +248,15 @@
                         <div class="d-flex align-items-center justify-content-between pt-1 text-slate-500" style="font-size: 11.5px;">
                             <span>Cần hỗ trợ thanh toán?</span>
                             <a href="{{ route('contact') }}" class="text-decoration-none fw-semibold text-primary d-inline-flex align-items-center gap-1">
-                                <i class="bi bi-chat-dots"></i> Thông tin liên hệ
+                                <i class="bi bi-chat-dots" aria-hidden="true"></i> Thông tin liên hệ
                             </a>
                         </div>
 
                     </div>
                 </div>
             </div>
-
-
-
-    {{-- Native App Sticky Bottom Action Dock (Mobile <= 991px) --}}
-    <div class="app-bottom-dock d-lg-none" aria-label="Thao tác thanh toán">
-        <div class="app-bottom-dock__content">
-            <div class="app-bottom-dock__price">
-                <span class="app-bottom-dock__amount">{{ number_format($booking->deposit_amount, 0, ',', '.') }}đ</span>
-                <span class="app-bottom-dock__unit">Cọc thanh toán (50%)</span>
-            </div>
-            <button type="button" class="app-bottom-dock__btn" onclick="document.getElementById('payBtn')?.click()">
-                <i class="bi bi-lock-fill" aria-hidden="true"></i>
-                <span>Thanh toán</span>
-            </button>
         </div>
     </div>
-</div>
 </div>
 
 @push('scripts')
@@ -288,34 +267,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const error = document.getElementById('methodError');
     const choices = [...document.querySelectorAll('.aeth-payment-choice')];
 
+    const syncSelectedChoice = () => {
+        choices.forEach(c => {
+            const radio = c.querySelector('input[type="radio"]');
+            c.classList.toggle('is-selected', Boolean(radio?.checked));
+        });
+        button.innerHTML = '<i class="bi bi-lock-fill"></i> <span>Xác nhận &amp; Thanh toán</span>';
+        if (error) error.hidden = true;
+    };
+
     choices.forEach(choice => {
+        const radio = choice.querySelector('input[type="radio"]');
+        radio?.addEventListener('change', syncSelectedChoice);
         choice.addEventListener('click', () => {
-            choices.forEach(c => c.classList.remove('is-selected'));
-            choice.classList.add('is-selected');
-            const radio = choice.querySelector('input[type="radio"]');
             if (radio) {
                 radio.checked = true;
-                const method = radio.value;
-                const text = 'Xác nhận & Thanh toán';
-                button.innerHTML = `<i class="bi bi-lock-fill"></i> <span>${text}</span>`;
+                syncSelectedChoice();
             }
-            if (error) error.hidden = true;
         });
     });
 
-    // Countdown Timer (10:00 down to 00:00)
-    let timeLeft = 10 * 60;
+    // Server-synchronized Countdown Timer
+    let timeLeft = {{ (int) $holdRemainingSeconds }};
     const timerEl = document.getElementById('countdownTimer');
+    const renderTimer = () => {
+        const safe = Math.max(0, timeLeft);
+        const m = Math.floor(safe / 60).toString().padStart(2, '0');
+        const s = (safe % 60).toString().padStart(2, '0');
+        if (timerEl) timerEl.textContent = `${m}:${s}`;
+    };
+    renderTimer();
     const interval = setInterval(() => {
         if (timeLeft <= 0) {
             clearInterval(interval);
-            if (timerEl) timerEl.textContent = '00:00';
+            renderTimer();
             return;
         }
         timeLeft--;
-        const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-        const s = (timeLeft % 60).toString().padStart(2, '0');
-        if (timerEl) timerEl.textContent = `${m}:${s}`;
+        renderTimer();
     }, 1000);
 
     form.addEventListener('submit', event => {
@@ -326,7 +315,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (form.dataset.preview === 'true') {
             event.preventDefault();
-            alert('Đây là chế độ xem trước giao diện. Giao dịch thật không được thực hiện.');
+            if (typeof window.royalToast === 'function') {
+                window.royalToast('Đây là chế độ xem trước giao diện. Giao dịch thật không được thực hiện.', 'info');
+            }
         }
     });
 });

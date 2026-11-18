@@ -82,7 +82,7 @@
                             <div class="input-group">
                                 <input type="password" name="password" id="password"
                                        class="form-control @error('password') is-invalid @enderror"
-                                       placeholder="Tối thiểu {{ $user->role === 'customer' ? 10 : 6 }} ký tự" minlength="{{ $user->role === 'customer' ? 10 : 6 }}">
+                                       placeholder="Tối thiểu 6 ký tự" minlength="6">
                                 <button class="btn btn-outline-secondary" type="button" id="togglePwd">
                                     <i class="bi bi-eye"></i>
                                 </button>
@@ -99,8 +99,7 @@
                                    class="form-control" placeholder="Nhập lại mật khẩu mới">
                         </div>
 
-                        {{-- Vai trò — chỉ hiện nếu KHÔNG phải customer --}}
-                        @if ($user->role !== 'customer')
+                        {{-- Vai trò nhân sự nội bộ --}}
                         <div class="mb-4">
                             <label class="form-label fw-semibold">
                                 Vai trò <span class="text-danger">*</span>
@@ -115,10 +114,6 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        @else
-                        {{-- Ẩn role customer, giữ nguyên giá trị khi submit --}}
-                        <input type="hidden" name="role" value="customer">
-                        @endif
 
                         {{-- Submit --}}
                         <div class="d-flex justify-content-between align-items-center">

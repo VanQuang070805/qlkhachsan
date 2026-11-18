@@ -13,7 +13,7 @@ class HomeController extends Controller
     public function index()
     {
         $checkIn = now('Asia/Ho_Chi_Minh');
-        if ($checkIn->hour >= 16) {
+        if ($checkIn->hour >= 18) {
             $checkIn->addDay();
         }
         $checkIn = $checkIn->toDateString();

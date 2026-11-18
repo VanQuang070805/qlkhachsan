@@ -23,8 +23,9 @@
     --melia-border-subtle: #ECE8E0;
     --melia-text: #181715;
     --melia-text-muted: #5C5852;
-    --melia-text-soft: #8C877E;
+    --melia-text-soft: #66615A;
     --melia-gold: #B89C72;
+    --melia-gold-ink: #785D32;
     --melia-gold-hover: #A08359;
     --melia-dark: #141413;
     --melia-dark-surface: #1E1D1B;
@@ -121,7 +122,7 @@ h1, h2, h3, h4, h5 {
     border-radius: 9999px !important;
     box-shadow: 0 4px 16px rgba(20, 20, 19, 0.16) !important;
     font-weight: 600 !important;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 .btn-primary:hover,
@@ -179,8 +180,8 @@ button[onclick*="showQrModal"]:hover,
 .client-shell textarea.form-control:focus,
 .booking-extension-field input:focus,
 .review-textarea:focus {
-    border-color: var(--melia-gold) !important;
-    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.2) !important;
+    border-color: #64748b !important;
+    box-shadow: none !important;
     outline: none !important;
 }
 
@@ -267,8 +268,13 @@ button[onclick*="showQrModal"]:hover,
 }
 
 .aeth-pulse-dot,
-.aeth-pulse-dot::before {
-    background-color: #0F766E !important;
+.aeth-pulse-dot::before,
+.ctrl-dot,
+.presence-dot,
+.editorial-eyebrow::before,
+.status-pill::before {
+    display: none !important;
+    content: none !important;
 }
 
 /* Replace generic tech blue icons with refined charcoal/gold */
@@ -362,8 +368,8 @@ div[style*="linear-gradient(135deg, #0071e3"] {
 /* ── 13. DATE PICKER & GUEST SELECTOR POPUPS ── */
 .aeth-date-cell:hover,
 .aeth-date-cell:focus-within {
-    border-color: var(--melia-gold) !important;
-    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.18) !important;
+    border-color: #94a3b8 !important;
+    box-shadow: none !important;
 }
 
 .aeth-segment-btn.is-active {

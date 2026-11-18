@@ -22,17 +22,28 @@ class Holiday extends Model
      */
     public static function isHoliday(Carbon $date): bool
     {
+        $dateString = $date->toDateString();
         $monthDay = $date->format('m-d');
         $monthDayExpression = DB::getDriverName() === 'sqlite'
             ? "strftime('%m-%d', date)"
             : "DATE_FORMAT(date, '%m-%d')";
 
-        return self::where(function ($q) use ($date, $monthDay, $monthDayExpression) {
+        $inHolidayTable = self::where(function ($q) use ($monthDay, $monthDayExpression) {
             $q->where('recurring', true)
               ->whereRaw("{$monthDayExpression} = ?", [$monthDay]);
-        })->orWhere(function ($q) use ($date) {
-        $q->where('recurring', false)
-          ->whereDate('date', $date->toDateString());
-    })->exists();
+        })->orWhere(function ($q) use ($dateString) {
+            $q->where('recurring', false)
+              ->whereDate('date', $dateString);
+        })->exists();
+
+        if ($inHolidayTable) {
+            return true;
+        }
+
+        return PriceSetting::query()
+            ->where('status', 1)
+            ->whereDate('start_date', '<=', $dateString)
+            ->whereDate('end_date', '>=', $dateString)
+            ->exists();
     }
 }

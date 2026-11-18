@@ -231,8 +231,8 @@
                         <i class="bi bi-shield-check text-success fs-6"></i>
                         <span>Hệ thống quản trị Rosaliza Hotel</span>
                     </div>
-                    <div class="text-slate-400">
-                        Cập nhật gần nhất: <span class="fw-semibold text-slate-600" id="liveTimestamp">{{ $user->updated_at ? \Carbon\Carbon::parse($user->updated_at)->format('d/m/Y H:i') : '05/06/2026 18:27' }}</span>
+                    <div class="text-slate-500">
+                        Cập nhật gần nhất: <span class="fw-semibold text-slate-700" id="liveTimestamp">{{ $user->updated_at ? \Carbon\Carbon::parse($user->updated_at)->format('d/m/Y H:i') : ($user->created_at ? \Carbon\Carbon::parse($user->created_at)->format('d/m/Y H:i') : 'Đang hoạt động') }}</span>
                     </div>
                 </div>
 
@@ -1001,8 +1001,9 @@
 }
 .modal-field-input:focus {
     background: #ffffff;
-    border-color: #0071e3;
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
+    border-color: #64748b;
+    box-shadow: none;
+    outline: none;
 }
 .modal-field-input.input-readonly {
     background: #f8fafc;
@@ -1163,6 +1164,12 @@ function closeModal(modalId) {
     if (el) {
         el.style.display = 'none';
         document.body.style.overflow = '';
+    }
+    if (modalId === 'editProfileModal') {
+        const initialFullname = @json($user->fullname ?? $user->name);
+        const nameInput = document.getElementById('inputPopupFullname');
+        if (nameInput) nameInput.value = initialFullname;
+        syncLiveName(initialFullname);
     }
 }
 

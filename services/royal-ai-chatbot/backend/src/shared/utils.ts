@@ -1,6 +1,7 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { BaseLanguageModelInput } from '@langchain/core/language_models/base';
 import { AIMessage, BaseMessage } from '@langchain/core/messages';
+import { RunnableConfig } from '@langchain/core/runnables';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { initChatModel } from 'langchain/chat_models/universal';
 
@@ -23,6 +24,14 @@ const SUPPORTED_PROVIDERS = [
   'xai',
 ] as const;
 
+// Disable blocking LangSmith network handshakes unless explicitly requested via ENABLE_LANGSMITH_TRACING=true.
+if (process.env.ENABLE_LANGSMITH_TRACING !== 'true') {
+  process.env.LANGCHAIN_TRACING_V2 = 'false';
+  process.env.LANGSMITH_TRACING = 'false';
+}
+
+const modelInstanceCache = new Map<string, BaseChatModel>();
+
 export function getGoogleApiKey(): string {
   const key = (
     process.env.GOOGLE_API_KEY ||
@@ -39,16 +48,16 @@ export function getGoogleApiKey(): string {
 
 export function getDefaultChatModelName(): string {
   const configured = (
-    process.env.GEMINI_CHAT_MODEL || 'gemini-flash-lite-latest'
+    process.env.GEMINI_CHAT_MODEL || 'gemini-3.1-flash-lite'
   ).trim();
   return configured.includes('/') ? configured : `google-genai/${configured}`;
 }
 
 export function getGeminiRequestTimeoutMs(): number {
-  const configured = Number(process.env.GEMINI_REQUEST_TIMEOUT_MS || 20000);
+  const configured = Number(process.env.GEMINI_REQUEST_TIMEOUT_MS || 15000);
   return Number.isFinite(configured)
-    ? Math.min(60000, Math.max(5000, configured))
-    : 20000;
+    ? Math.min(60000, Math.max(4000, configured))
+    : 15000;
 }
 
 export function isRetryableAIProviderError(error: unknown): boolean {
@@ -111,16 +120,30 @@ export async function loadChatModel(
 
   if (provider === 'google-genai') {
     const apiKey = getGoogleApiKey();
-    return new ChatGoogleGenerativeAI({
+    const cacheKey = `${provider}:${model}:${temperature}:${apiKey.slice(-6)}`;
+    const cached = modelInstanceCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const created = new ChatGoogleGenerativeAI({
       apiKey,
       model,
       temperature,
-      maxOutputTokens: 1024,
+      streaming: true,
+      maxOutputTokens: 900,
       maxRetries: Math.min(
-        3,
+        2,
         Math.max(0, Number(process.env.GEMINI_MAX_RETRIES || 0)),
       ),
-    });
+    } as any);
+
+    if (modelInstanceCache.size >= 16) {
+      const firstKey = modelInstanceCache.keys().next().value;
+      if (firstKey) modelInstanceCache.delete(firstKey);
+    }
+    modelInstanceCache.set(cacheKey, created);
+    return created;
   }
 
   if (
@@ -141,6 +164,7 @@ export async function invokeChatModelWithFallback(
   input: BaseLanguageModelInput,
   fullySpecifiedName?: string,
   temperature = 0.2,
+  config?: RunnableConfig,
 ): Promise<BaseMessage> {
   const primaryName = (
     fullySpecifiedName && !fullySpecifiedName.startsWith('openai/')
@@ -150,17 +174,19 @@ export async function invokeChatModelWithFallback(
   const primary = await loadChatModel(primaryName, temperature);
 
   let emittedText = false;
-  const collect = (model: BaseChatModel) => withAIRequestTimeout(async (signal) => {
-    let content = '';
-    for await (const chunk of await model.stream(input, { signal })) {
-      const text = typeof chunk.content === 'string' ? chunk.content : '';
-      if (text) {
-        emittedText = true;
-        content += text;
+  const collect = (model: BaseChatModel) =>
+    withAIRequestTimeout(async (signal) => {
+      let content = '';
+      const runOptions = config ? { ...config, signal } : { signal };
+      for await (const chunk of await model.stream(input, runOptions)) {
+        const text = typeof chunk.content === 'string' ? chunk.content : '';
+        if (text) {
+          emittedText = true;
+          content += text;
+        }
       }
-    }
-    return new AIMessage(content);
-  });
+      return new AIMessage(content);
+    });
 
   try {
     return await collect(primary);
@@ -174,7 +200,7 @@ export async function invokeChatModelWithFallback(
     }
 
     const configuredFallback = (
-      process.env.GEMINI_FALLBACK_CHAT_MODEL || 'gemini-3.5-flash-lite'
+      process.env.GEMINI_FALLBACK_CHAT_MODEL || 'gemini-flash-lite-latest'
     ).trim();
     const fallbackName = configuredFallback.includes('/')
       ? configuredFallback

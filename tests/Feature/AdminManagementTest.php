@@ -311,6 +311,7 @@ class AdminManagementTest extends TestCase
             ->assertDontSee('id="btn-action-occupied"', false)
             ->assertDontSee('id="btn-action-available"', false);
 
+        $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(14, 0));
         $this->asInternal($staff)->postJson(route('staff.reception.walkin'), [
             'room_ids' => [$room->id],
             'customer_name' => 'Booking Permission Guest',

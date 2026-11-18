@@ -10,35 +10,28 @@
     </header>
 
     <div style="max-width: 660px; margin: 0 auto;">
-        {{-- macOS Card Container --}}
-        <div style="background: #ffffff; border-radius: 28px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 20px 60px -10px rgba(15,23,42,0.08); overflow: hidden;" data-reveal>
+        <div style="background: #ffffff; border-radius: 24px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 20px 60px -10px rgba(15,23,42,0.08); overflow: hidden;" data-reveal>
             
-            {{-- macOS Traffic Lights Header --}}
-            <div class="macos-card-bar" style="padding: 14px 20px; background: #f8fafc; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; gap: 7px; align-items: center;">
-                    <span class="ctrl-dot ctrl-red"></span>
-                    <span class="ctrl-dot ctrl-yellow"></span>
-                    <span class="ctrl-dot ctrl-green"></span>
-                </div>
-                <span class="macos-card-title" style="font-size: 12px; font-weight: 600; color: #475569;">Chi tiết đặt phòng &amp; Hủy phòng</span>
-                <span class="badge rounded-pill bg-slate-100 text-slate-600 border border-slate-200" style="font-size: 10.5px; font-weight: 600;">Royal Luxury</span>
+            <div class="macos-card-bar" style="padding: 14px 22px; background: #f8fafc; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between;">
+                <span class="macos-card-title" style="font-size: 13px; font-weight: 600; color: #334155;">Chi tiết đặt phòng #{{ $booking->id }} &amp; Hủy phòng</span>
+                <i class="bi bi-calendar-x" style="color: #64748b; font-size: 15px;" aria-hidden="true"></i>
             </div>
 
-            <div style="padding: 28px 28px 32px;">
+            <div class="booking-cancel-card__body" style="padding: 24px;">
                 {{-- Thông tin phòng đặt tóm tắt --}}
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; padding: 20px; margin-bottom: 24px;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 18px 20px; margin-bottom: 22px;">
                     <div class="row g-3">
-                        <div class="col-6">
-                            <span class="text-slate-400 d-block" style="font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Phòng đã chọn</span>
-                            <strong class="text-slate-900 mt-1 d-block" style="font-size: 14.5px;">
+                        <div class="col-12 col-sm-6">
+                            <span class="text-slate-400 d-block" style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;">Phòng đã chọn</span>
+                            <strong class="text-slate-900 mt-1 d-block" style="font-size: 14.5px; font-weight: 600;">
                                 {{ $booking->rooms->map(fn($r) => 'Phòng '.$r->room_number)->join(', ') ?: 'Chưa gán số phòng' }}
                             </strong>
                         </div>
-                        <div class="col-6">
-                            <span class="text-slate-400 d-block" style="font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Tổng chi phí</span>
-                            <strong class="text-primary mt-1 d-block" style="font-size: 16px; font-weight: 800;">
+                        <div class="col-12 col-sm-6">
+                            <span class="text-slate-400 d-block" style="font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;">Tổng chi phí</span>
+                            <span class="text-primary mt-1 d-block" style="font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums;">
                                 {{ number_format($booking->total_price, 0, ',', '.') }} đ
-                            </strong>
+                            </span>
                         </div>
                         <div class="col-6">
                             <span class="text-slate-400 d-block" style="font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">Ngày nhận phòng</span>

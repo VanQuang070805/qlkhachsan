@@ -46,30 +46,13 @@
     animation: aethFadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Pulsing Status Dot */
-.aeth-pulse-dot {
-    position: relative;
-    display: inline-flex;
-    width: 8px;
-    height: 8px;
-    border-radius: 9999px;
-    background-color: var(--apple-emerald);
-}
-
-.aeth-pulse-dot::before {
-    content: '';
-    position: absolute;
-    inset: -3px;
-    border-radius: 9999px;
-    background-color: var(--apple-emerald);
-    opacity: 0.75;
-    animation: aethPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes aethPulse {
-    0% { transform: scale(0.9); opacity: 0.8; }
-    50% { transform: scale(1.8); opacity: 0; }
-    100% { transform: scale(0.9); opacity: 0; }
+/* Decorative pulsing & leading dots removed per Quiet Luxury system */
+.aeth-pulse-dot,
+.aeth-pulse-dot::before,
+.ctrl-dot,
+.macos-traffic-lights {
+    display: none !important;
+    content: none !important;
 }
 
 /* Reset legacy-main constraints when displaying luxury canvas */
@@ -669,7 +652,8 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 
 .aeth-rate-price {
     font-size: 26px;
-    font-weight: 800;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
     color: #0f172a;
     letter-spacing: -0.03em;
 }
@@ -778,8 +762,8 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 
 .aeth-date-cell:hover,
 .aeth-date-cell:focus-within {
-    border-color: var(--apple-gold);
-    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.18);
+    border-color: #94a3b8;
+    box-shadow: none;
 }
 
 .aeth-date-native-input {
@@ -940,7 +924,8 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 
 .aeth-total-box strong {
     font-size: 20px !important;
-    font-weight: 800 !important;
+    font-weight: 600 !important;
+    font-variant-numeric: tabular-nums !important;
     color: #0f172a !important;
 }
 
@@ -1137,9 +1122,9 @@ body.client-shell:has(.aeth-canvas) .legacy-main {
 
 .aeth-input:focus {
     outline: none;
-    border-color: var(--apple-gold);
+    border-color: #64748b;
     background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(184, 156, 114, 0.2);
+    box-shadow: none;
 }
 
 /* Phone input with Vietnam Flag */

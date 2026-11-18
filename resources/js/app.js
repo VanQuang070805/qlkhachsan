@@ -1,5 +1,3 @@
-import { initHoloRooms } from './holo-rooms';
-import '../css/holo-rooms.css';
 import './animated-toast';
 import './bootstrap';
 import '../css/flying-button.css';
@@ -23,12 +21,18 @@ window.gsap = gsap;
 
 document.addEventListener('DOMContentLoaded', () => {
     initCountUp();
-    initHoloRooms();
     initFlyingButton();
     const pageLoader = document.querySelector('[data-page-loader]');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const chatRoot = document.querySelector('[data-royal-chat]');
-    if (chatRoot) createApp(RoyalChat, { endpoint: chatRoot.dataset.endpoint }).mount(chatRoot);
+    if (chatRoot) {
+        createApp(RoyalChat, {
+            endpoint: chatRoot.dataset.endpoint,
+            resetEndpoint: chatRoot.dataset.resetEndpoint || '/chatbot/reset',
+            userId: chatRoot.dataset.userId || '',
+            userName: chatRoot.dataset.userName || '',
+        }).mount(chatRoot);
+    }
 
     document.querySelectorAll('.modal-content').forEach((content) => {
         if (content.querySelector('.window-controls')) return;
@@ -169,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (formCol) {
             const formElements = formCol.querySelectorAll(
-                '.sana-heading, .sana-social-btn, .sana-divider, .sana-form-group, .sana-submit-btn, .sana-terms, .sana-switch-link'
+                '.sana-heading, .sana-social-btn, .sana-divider, .sana-form-group, .sana-terms, .sana-switch-link'
             );
             if (formElements.length) {
                 gsap.from(formElements, {
@@ -456,8 +460,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const rawReveals = [...new Set(document.querySelectorAll(
-            '[data-reveal], .legacy-main .search-card, .legacy-main .filter-card, .legacy-main .room-card, .legacy-main .review-card, .commerce-heading, .account-profile__layout, .booking-list-card, .payment-layout, .room-detail, .rooms-page__heading, .booking-checkout-grid > *, .booking-summary-card, .booking-form-card, .booking-header-bar, .payment-summary, .payment-method-panel, .account-profile__identity, .account-profile__form, .room-detail-heading, .room-demo-gallery, .room-detail-content > *, .room-story, .room-amenities, .room-reviews'
-        ))].filter((el) => !el.closest('.section'));
+            '[data-reveal], .legacy-main .search-card, .legacy-main .filter-card, .legacy-main .room-card, .legacy-main .review-card, .commerce-heading, .account-profile__layout, .booking-list-card, .rooms-page__heading, .booking-form-card, .booking-header-bar, .payment-method-panel, .account-profile__identity, .account-profile__form, .room-detail-heading, .room-demo-gallery, .room-story, .room-amenities, .room-reviews'
+        ))].filter((el) => !el.closest('.section') && getComputedStyle(el).position !== 'sticky');
 
         const customerReveals = rawReveals.filter(el => {
             let p = el.parentElement;

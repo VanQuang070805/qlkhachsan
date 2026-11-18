@@ -2037,9 +2037,10 @@
 }
 
 .account-field input:focus {
-    border-color: #0066ff !important;
+    border-color: #64748b !important;
     background: #ffffff !important;
-    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12) !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 .account-profile__form button.button {

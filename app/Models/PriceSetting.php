@@ -72,10 +72,10 @@ class PriceSetting extends Model
                     break; // Chỉ áp dụng 1 mức điều chỉnh
                 }
             }
-            $totalPrice += $nightPrice;
+            $totalPrice += round($nightPrice);
             $currentDate->modify('+1 day');
         }
         
-        return $totalPrice;
+        return round($totalPrice);
     }
 }

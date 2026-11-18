@@ -430,8 +430,8 @@ class LogicRemediationTest extends TestCase
         $qrPayload = \App\Services\CheckInTokenService::QR_PREFIX.$token;
 
         $this->actingAs($staff)->withSession($session)
-            ->getJson(route('staff.reception.booking-by-scan', ['booking_id' => $booking->id]))
-            ->assertBadRequest();
+            ->getJson(route('staff.reception.booking-by-scan', ['booking_id' => '#'.$booking->id]))
+            ->assertOk()->assertJsonPath('booking.id', $booking->id);
         $this->actingAs($staff)->withSession($session)
             ->getJson(route('staff.reception.booking-by-scan', ['payload' => $token]))
             ->assertBadRequest();
@@ -479,10 +479,11 @@ class LogicRemediationTest extends TestCase
 
         $payload = $tokens->qrPayload($booking);
         $this->assertMatchesRegularExpression(
-            '/^ROYAL-CHECKIN:v1:'.$booking->id.':[A-Za-z0-9]{32}$/',
+            '/^ROYAL-CHECKIN:v1:'.$booking->id.':[A-Za-z0-9]{32}\|HOTEL:Rosaliza Hotel\|BOOKING:#'.$booking->id.'\|ROOMS:/',
             $payload
         );
         $token = $tokens->tokenFromQrPayload($payload);
+        $this->assertMatchesRegularExpression('/^v1:'.$booking->id.':[A-Za-z0-9]{32}$/', $token);
         $this->assertSame($booking->id, $tokens->bookingId($token));
 
         $tamperedToken = preg_replace('/^v1:\d+:/', 'v1:'.($booking->id + 1).':', $token);
@@ -509,7 +510,7 @@ class LogicRemediationTest extends TestCase
         $this->assertSame($booking->id, $tokens->bookingId($parsed));
     }
 
-    public function test_staff_qr_scanner_has_anti_glare_and_image_fallback_without_raw_booking_id_lookup(): void
+    public function test_staff_qr_scanner_has_anti_glare_and_image_fallback_with_manual_booking_id_instead_of_signed_token_input(): void
     {
         $staff = $this->internalUser('qr-scanner-ui@example.com', 'receptionist');
         $session = [
@@ -523,7 +524,9 @@ class LogicRemediationTest extends TestCase
             ->assertSee('Giảm chói')
             ->assertSee('Dùng ảnh QR')
             ->assertSee('id="qr-image-input"', false)
-            ->assertDontSee('id="manual-booking-id"', false);
+            ->assertSee('id="manual-booking-id"', false)
+            ->assertDontSee('id="qr-token-input"', false)
+            ->assertDontSee('Quét mã token ký số', false);
     }
 
     public function test_paid_booking_success_page_renders_a_token_qr_not_a_booking_id_qr(): void

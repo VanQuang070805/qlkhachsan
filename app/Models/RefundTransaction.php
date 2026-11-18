@@ -18,5 +18,5 @@ class RefundTransaction extends Model
     ];
 
     public function booking() { return $this->belongsTo(Booking::class); }
-    public function processor() { return $this->belongsTo(User::class, 'processed_by'); }
+    public function processor() { return $this->belongsTo(User::class, 'processed_by')->withTrashed(); }
 }

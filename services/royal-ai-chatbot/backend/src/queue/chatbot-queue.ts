@@ -94,8 +94,8 @@ export async function executeRetrievalRunAndBroadcast(
       emitter.emit('item', item);
     }
     if (redis) {
-      try {
-        await redis.xadd(
+      void redis
+        .xadd(
           sKey,
           'MAXLEN',
           '~',
@@ -105,10 +105,10 @@ export async function executeRetrievalRunAndBroadcast(
           item.event,
           'data',
           JSON.stringify(item.data),
-        );
-      } catch {
-        // Ignore Redis stream write error
-      }
+        )
+        .catch(() => {
+          // Ignore Redis stream write error
+        });
     }
   };
 
@@ -176,8 +176,12 @@ export async function executeRetrievalRunAndBroadcast(
         }
       }
 
-      // The clock answer is produced locally, so it has no model token stream.
-      if (ev.event === 'on_chain_end' && ev.name === 'directAnswer' && !accumulatedAi) {
+      // Fallback when a node finishes without emitting token stream chunks (e.g. clock answer).
+      if (
+        ev.event === 'on_chain_end' &&
+        (ev.name === 'directAnswer' || ev.name === 'generateResponse') &&
+        !accumulatedAi
+      ) {
         const messages = ev.data?.output?.messages;
         const answer = Array.isArray(messages) ? String(messages[messages.length - 1]?.content || '') : '';
         if (answer) {
@@ -297,46 +301,54 @@ export async function subscribeOrRunDeduplicated(
 
   if (queue && redis) {
     try {
-      await queue.add('chat-query', payload, {
-        deduplication: {
-          id: fp,
-          ttl: 15000,
-        },
-      });
+      const workersCount = await queue.getWorkersCount().catch(() => 0);
+      if (workersCount > 0) {
+        await queue.add('chat-query', payload, {
+          deduplication: {
+            id: fp,
+            ttl: 15000,
+          },
+        });
 
-      const sKey = streamKey(fp);
-      let lastId = '0-0';
-      const deadline =
-        Date.now() + Number(process.env.LANGGRAPH_TIMEOUT || 60) * 1000;
+        const sKey = streamKey(fp);
+        let lastId = '0-0';
+        const deadline =
+          Date.now() + Number(process.env.LANGGRAPH_TIMEOUT || 45) * 1000;
+        const subRedis = (redis as any).duplicate();
 
-      while (Date.now() < deadline) {
-        const res = await (redis as any).xread(
-          'COUNT',
-          20,
-          'BLOCK',
-          1000,
-          'STREAMS',
-          sKey,
-          lastId,
-        );
-        if (!res) continue;
+        try {
+          while (Date.now() < deadline) {
+            const res = await subRedis.xread(
+              'COUNT',
+              40,
+              'BLOCK',
+              250,
+              'STREAMS',
+              sKey,
+              lastId,
+            );
+            if (!res) continue;
 
-        for (const [, entries] of res) {
-          for (const [id, fields] of entries) {
-            lastId = id;
-            const eventIdx = fields.indexOf('event');
-            const dataIdx = fields.indexOf('data');
-            const evName = eventIdx >= 0 ? fields[eventIdx + 1] : 'updates';
-            const rawData = dataIdx >= 0 ? fields[dataIdx + 1] : '{}';
-            const parsed = JSON.parse(rawData);
-            onItem({ event: evName, data: parsed });
-            if (evName === 'end' || evName === 'error') {
-              return;
+            for (const [, entries] of res) {
+              for (const [id, fields] of entries) {
+                lastId = id;
+                const eventIdx = fields.indexOf('event');
+                const dataIdx = fields.indexOf('data');
+                const evName = eventIdx >= 0 ? fields[eventIdx + 1] : 'updates';
+                const rawData = dataIdx >= 0 ? fields[dataIdx + 1] : '{}';
+                const parsed = JSON.parse(rawData);
+                onItem({ event: evName, data: parsed });
+                if (evName === 'end' || evName === 'error') {
+                  return;
+                }
+              }
             }
           }
+        } finally {
+          subRedis.disconnect();
         }
+        return;
       }
-      return;
     } catch {
       // Fallback to in-process deduplicated execution if BullMQ/Redis is unreachable
     }

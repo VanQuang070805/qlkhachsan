@@ -101,11 +101,17 @@
                     </td>
                     <td class="pe-4 py-3 text-end">
                         <div class="d-inline-flex align-items-center gap-1">
-                            <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-light d-inline-flex align-items-center justify-content-center p-0" title="Chỉnh sửa" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); background: #ffffff; color: #475569;">
-                                <i class="bi bi-pencil" style="font-size: 0.8rem;"></i>
-                            </a>
+                            @if(!$user->isCustomer())
+                                <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-light d-inline-flex align-items-center justify-content-center p-0" title="Chỉnh sửa" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); background: #ffffff; color: #475569;">
+                                    <i class="bi bi-pencil" style="font-size: 0.8rem;"></i>
+                                </a>
+                            @elseif($user->id !== auth()->id())
+                                <button type="button" class="btn btn-sm btn-light btn-toggle-lock d-inline-flex align-items-center justify-content-center p-0" data-id="{{ $user->id }}" title="{{ $user->verified ? 'Khóa tài khoản khách hàng' : 'Mở khóa tài khoản khách hàng' }}" aria-label="{{ $user->verified ? 'Khóa tài khoản khách hàng' : 'Mở khóa tài khoản khách hàng' }}" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); background: #ffffff; color: {{ $user->verified ? '#b45309' : '#059669' }};">
+                                    <i class="bi {{ $user->verified ? 'bi-lock' : 'bi-unlock' }}" style="font-size: 0.82rem;"></i>
+                                </button>
+                            @endif
                             @if($user->id !== auth()->id())
-                                <button type="button" class="btn btn-sm btn-light btn-delete d-inline-flex align-items-center justify-content-center p-0" data-id="{{ $user->id }}" data-name="{{ $user->fullname }}" title="Xóa" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); background: #ffffff; color: #ef4444;">
+                                <button type="button" class="btn btn-sm btn-light btn-delete d-inline-flex align-items-center justify-content-center p-0" data-id="{{ $user->id }}" data-name="{{ $user->fullname }}" title="{{ $user->isCustomer() ? 'Ngừng hoạt động tài khoản' : 'Xóa' }}" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); background: #ffffff; color: #ef4444;">
                                     <i class="bi bi-trash3" style="font-size: 0.8rem;"></i>
                                 </button>
                                 <form id="delete-form-{{ $user->id }}" action="{{ route('admin.users.destroy', $user) }}" method="POST" hidden>
@@ -160,11 +166,17 @@
                     @endif
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-light d-inline-flex align-items-center justify-content-center" title="Chỉnh sửa" style="min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff;">
-                        <i class="bi bi-pencil" style="font-size: 0.9rem;"></i>
-                    </a>
+                    @if(!$user->isCustomer())
+                        <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-light d-inline-flex align-items-center justify-content-center" title="Chỉnh sửa" style="min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff;">
+                            <i class="bi bi-pencil" style="font-size: 0.9rem;"></i>
+                        </a>
+                    @elseif($user->id !== auth()->id())
+                        <button type="button" class="btn btn-light btn-toggle-lock d-inline-flex align-items-center justify-content-center" data-id="{{ $user->id }}" title="{{ $user->verified ? 'Khóa tài khoản khách hàng' : 'Mở khóa tài khoản khách hàng' }}" style="min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff; color: {{ $user->verified ? '#b45309' : '#059669' }};">
+                            <i class="bi {{ $user->verified ? 'bi-lock' : 'bi-unlock' }}" style="font-size: 0.9rem;"></i>
+                        </button>
+                    @endif
                     @if($user->id !== auth()->id())
-                        <button type="button" class="btn btn-light btn-delete d-inline-flex align-items-center justify-content-center text-danger" data-id="{{ $user->id }}" data-name="{{ $user->fullname }}" title="Xóa" style="min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff;">
+                        <button type="button" class="btn btn-light btn-delete d-inline-flex align-items-center justify-content-center text-danger" data-id="{{ $user->id }}" data-name="{{ $user->fullname }}" title="{{ $user->isCustomer() ? 'Ngừng hoạt động tài khoản' : 'Xóa' }}" style="min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: #ffffff;">
                             <i class="bi bi-trash3" style="font-size: 0.9rem;"></i>
                         </button>
                     @endif
@@ -306,7 +318,7 @@
                                 Phân quyền vai trò <span class="text-danger">*</span>
                             </label>
                             <select name="role" class="form-select @error('role') is-invalid @enderror" style="border-radius: 10px; font-size: 0.86rem; border: 1px solid rgba(0,0,0,0.12); height: 42px; background: #ffffff; color: #0f172a;">
-                                @foreach($roles as $role)
+                                @foreach($roles->where('slug', '<>', 'customer') as $role)
                                     <option value="{{ $role->slug }}" @selected(old('role', 'receptionist') === $role->slug)>{{ $role->name }}</option>
                                 @endforeach
                             </select>
@@ -369,7 +381,38 @@
 @push('scripts')
 <script>
 let deleteTargetId=null;const deleteModal=new bootstrap.Modal(document.getElementById('deleteModal'));document.querySelectorAll('.btn-delete').forEach(btn=>btn.addEventListener('click',()=>{deleteTargetId=btn.dataset.id;document.getElementById('delete-name').textContent=btn.dataset.name;deleteModal.show()}));document.getElementById('confirm-delete').addEventListener('click',()=>deleteTargetId&&document.getElementById('delete-form-'+deleteTargetId).submit());
-document.querySelectorAll('.btn-toggle-status').forEach(btn=>btn.addEventListener('click',async function(){if(this.disabled)return;this.disabled=true;try{const res=await fetch('/admin/users/'+this.dataset.id+'/toggle-verified',{method:'PATCH',headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}});const json=await res.json();if(!res.ok||!json.success)throw new Error(json.message||'Không thể cập nhật');this.className='status-pill '+(json.verified?'status-confirmed':'status-cancelled')+' btn-toggle-status';this.textContent=json.verified?'Đang hoạt động':'Đã khóa';window.royalToast(json.message,'success')}catch(error){window.royalToast(error.message,'error')}finally{this.disabled=false}}));
+async function toggleUserVerified(userId, triggerBtn) {
+    if (triggerBtn.disabled) return;
+    triggerBtn.disabled = true;
+    try {
+        const res = await fetch('/admin/users/' + userId + '/toggle-verified', {
+            method: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message || 'Không thể cập nhật');
+        document.querySelectorAll('.btn-toggle-status[data-id="' + userId + '"]').forEach(pill => {
+            pill.className = 'status-pill ' + (json.verified ? 'status-confirmed' : 'status-cancelled') + ' btn-toggle-status border-0';
+            pill.textContent = json.verified ? 'Đang hoạt động' : 'Đã khóa';
+        });
+        document.querySelectorAll('.btn-toggle-lock[data-id="' + userId + '"]').forEach(lockBtn => {
+            const icon = lockBtn.querySelector('i');
+            if (icon) icon.className = 'bi ' + (json.verified ? 'bi-lock' : 'bi-unlock');
+            lockBtn.style.color = json.verified ? '#b45309' : '#059669';
+            const label = json.verified ? 'Khóa tài khoản khách hàng' : 'Mở khóa tài khoản khách hàng';
+            lockBtn.title = label;
+            lockBtn.setAttribute('aria-label', label);
+        });
+        window.royalToast(json.message, 'success');
+    } catch (error) {
+        window.royalToast(error.message, 'error');
+    } finally {
+        triggerBtn.disabled = false;
+    }
+}
+document.querySelectorAll('.btn-toggle-status, .btn-toggle-lock').forEach(btn => btn.addEventListener('click', function () {
+    toggleUserVerified(this.dataset.id, this);
+}));
 function toggleModalPwd(id, btn) {
     const input = document.getElementById(id);
     const icon = btn.querySelector('i');

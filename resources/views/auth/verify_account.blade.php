@@ -92,7 +92,8 @@
 
     {{-- Switch / Back Link (Centered under OTP boxes) --}}
     <div class="sana-switch-link otp-switch-link">
-        <span>Sử dụng tài khoản khác?</span>
+        <a href="{{ route('register') }}">Đổi email đăng ký</a>
+        <span>·</span>
         <a href="{{ route('login') }}">Đăng nhập</a>
     </div>
 </div>

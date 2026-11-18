@@ -1,7 +1,7 @@
 /* ==========================================================================
-   MELIÁ QUIET LUXURY DESIGN SYSTEM — SECONDARY PAGES
-   (Contact & About Page, Rooms Search & Booking Page)
-   Rosaliza Hotel HaNoi • 5B Trần Quốc Toản, Hoàn Kiếm, Hà Nội
+   ROSALIZA HOTEL — QUIET LUXURY SECONDARY PAGES
+   (Contact & About Page, Rooms Catalogue & Search Page)
+   Rosaliza Hotel Hà Nội · 5B Trần Quốc Toản, Hoàn Kiếm, Hà Nội
    ========================================================================== */
 
 :root {
@@ -13,8 +13,9 @@
     --melia-border-subtle: #ECE8E0;
     --melia-text: #181715;
     --melia-text-muted: #5C5852;
-    --melia-text-soft: #8C877E;
+    --melia-text-soft: #66615A;
     --melia-gold: #B89C72;
+    --melia-gold-ink: #785D32;
     --melia-gold-hover: #A08359;
     --melia-dark: #141413;
     --melia-dark-surface: #1E1D1B;
@@ -45,37 +46,18 @@
     margin: 0 auto;
     padding: 0 24px;
     box-sizing: border-box;
+    width: 100%;
 }
 
 @media (max-width: 639px) {
     .melia-page-container {
-        width: 100%;
-        max-width: 100%;
         padding-inline: 16px;
     }
-    .melia-contact-split,
-    .melia-contact-split > *,
-    .melia-channels-list,
-    .melia-channel-card,
-    .melia-form-card {
-        width: 100%;
-        min-width: 0;
-        max-width: 100%;
-        box-sizing: border-box;
-    }
-    .melia-contact-section { padding: 56px 0; }
-    .melia-channel-card { padding: 16px; }
-    .melia-channel-icon { width: 40px; height: 40px; margin-right: 12px; }
-    .melia-channel-info { min-width: 0; }
-    .melia-channel-val,
-    .melia-channel-hint { overflow-wrap: anywhere; }
-    .melia-channel-arrow { flex: 0 0 auto; margin-left: 8px; }
-    .melia-form-card { padding: 24px 18px; border-radius: 18px; }
 }
 
 @media (min-width: 1440px) {
     .melia-page-container {
-        max-width: 1400px;
+        max-width: 1360px;
         padding: 0 40px;
     }
 }
@@ -85,18 +67,24 @@
     position: relative;
     background: linear-gradient(180deg, var(--melia-surface-stone) 0%, var(--melia-bg) 100%);
     border-bottom: 1px solid var(--melia-border);
-    padding: 96px 24px 56px;
+    padding: 96px 20px 52px;
     text-align: center;
+}
+
+@media (min-width: 768px) {
+    .melia-page-hero {
+        padding: 104px 32px 64px;
+    }
 }
 
 @media (min-width: 1024px) {
     .melia-page-hero {
-        padding: 110px 40px 72px;
+        padding: 116px 40px 72px;
     }
 }
 
 .melia-page-hero__inner {
-    max-width: 860px;
+    max-width: 820px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -105,46 +93,37 @@
 
 .melia-page-hero__tag {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     color: var(--melia-text-soft);
     display: inline-flex;
     align-items: center;
-    gap: 8px;
     margin-bottom: 14px;
 }
 
 .melia-page-hero__tag::before {
-    content: "";
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--melia-gold);
+    display: none !important;
+    content: none !important;
 }
 
 .melia-page-hero__title {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: clamp(2.4rem, 4.2vw, 3.8rem);
-    font-weight: 400;
-    line-height: 1.15;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: clamp(1.85rem, 3.8vw, 3.25rem);
+    font-weight: 600;
+    line-height: 1.14;
     color: var(--melia-text);
     margin: 0 0 16px 0;
-    letter-spacing: -0.02em;
-}
-
-.melia-page-hero__title em {
-    font-style: italic;
-    color: var(--melia-gold);
+    letter-spacing: -0.035em;
+    text-wrap: balance;
 }
 
 .melia-page-hero__desc {
-    font-size: 15.5px;
-    line-height: 1.7;
+    font-size: clamp(14.5px, 1.5vw, 16px);
+    line-height: 1.65;
     color: var(--melia-text-muted);
-    max-width: 660px;
-    margin: 0 0 24px 0;
+    max-width: 650px;
+    margin: 0 0 22px 0;
 }
 
 .melia-page-hero__actions {
@@ -153,12 +132,30 @@
     justify-content: center;
     gap: 12px;
     flex-wrap: wrap;
-    margin-top: 8px;
+    margin-top: 6px;
+}
+
+@media (max-width: 520px) {
+    .melia-page-hero__actions {
+        width: 100%;
+        flex-direction: column;
+    }
+    .melia-page-hero__actions a {
+        width: 100%;
+        justify-content: center;
+        min-height: 46px;
+    }
 }
 
 /* 3. Section Headers */
 .melia-sec-header {
-    margin-bottom: 40px;
+    margin-bottom: 32px;
+}
+
+@media (min-width: 768px) {
+    .melia-sec-header {
+        margin-bottom: 40px;
+    }
 }
 
 .melia-sec-header--center {
@@ -170,7 +167,7 @@
 
 .melia-sec-tag {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     color: var(--melia-text-soft);
@@ -179,19 +176,14 @@
 }
 
 .melia-sec-title {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: clamp(2rem, 3.2vw, 2.8rem);
-    font-weight: 400;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: clamp(1.55rem, 2.8vw, 2.35rem);
+    font-weight: 600;
     line-height: 1.2;
+    letter-spacing: -0.03em;
     color: var(--melia-text);
     margin: 0 0 12px 0;
-}
-
-.melia-values-section .melia-sec-title,
-.melia-faqs .melia-sec-title {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-weight: 600;
-    letter-spacing: -0.03em;
+    text-wrap: balance;
 }
 
 .melia-sec-subtitle {
@@ -205,160 +197,197 @@
    CONTACT & ABOUT PAGE SPECIFIC
    ========================================================================== */
 
-/* Story Section */
 .melia-contact-story {
-    padding: 72px 0;
+    padding: 56px 0;
+}
+
+@media (min-width: 1024px) {
+    .melia-contact-story {
+        padding: 76px 0;
+    }
 }
 
 .melia-story-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 40px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
     align-items: center;
 }
 
 @media (min-width: 1024px) {
     .melia-story-grid {
-        grid-template-columns: 1.1fr 0.9fr;
-        gap: 60px;
+        grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+        gap: 56px;
     }
 }
 
 .melia-story-content p {
-    font-size: 15.5px;
-    line-height: 1.8;
+    font-size: 15px;
+    line-height: 1.75;
     color: var(--melia-text-muted);
-    margin-bottom: 24px;
+    margin-bottom: 18px;
 }
 
 .melia-story-facts {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    padding-top: 24px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding-top: 22px;
+    margin-top: 8px;
     border-top: 1px solid var(--melia-border);
 }
 
 @media (min-width: 640px) {
     .melia-story-facts {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
     }
 }
 
 .melia-fact-item {
+    background: var(--melia-surface);
+    border: 1px solid var(--melia-border);
+    border-radius: 16px;
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    justify-content: space-between;
+    gap: 6px;
+    height: 100%;
 }
 
 .melia-fact-num {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 2.2rem;
-    line-height: 1;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
     color: var(--melia-text);
 }
 
 .melia-fact-label {
-    font-size: 11.5px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--melia-text-soft);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--melia-text-muted);
 }
 
 .melia-story-visual {
     position: relative;
-    border-radius: 24px;
+    border-radius: 22px;
     overflow: hidden;
+    border: 1px solid var(--melia-border);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+    aspect-ratio: 4 / 3;
 }
 
 .melia-story-visual img {
     width: 100%;
     height: 100%;
-    max-height: 520px;
     object-fit: cover;
     display: block;
 }
 
-/* Core Values 3-Bento */
+/* Core Values 3-Column Equal Height */
 .melia-values-section {
-    padding: 72px 0;
+    padding: 56px 0;
     background: var(--melia-surface);
     border-top: 1px solid var(--melia-border);
     border-bottom: 1px solid var(--melia-border);
 }
 
+.melia-values-section--boxed {
+    padding: clamp(36px, 5vw, 60px) clamp(18px, 4vw, 40px);
+    border: 1px solid var(--melia-border);
+    border-radius: 24px;
+    margin-bottom: 56px;
+}
+
 .melia-values-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 24px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    align-items: stretch;
 }
 
 @media (min-width: 768px) {
     .melia-values-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 22px;
     }
 }
 
 .melia-value-card {
     background: var(--melia-bg);
     border: 1px solid var(--melia-border);
-    border-radius: 20px;
-    padding: 32px 28px;
-    position: relative;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 18px;
+    padding: 26px 24px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .melia-value-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-3px);
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.05);
 }
 
 .melia-value-index {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 1.8rem;
-    color: var(--melia-gold);
-    display: block;
-    margin-bottom: 14px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--melia-gold-ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--melia-surface-stone);
+    margin-bottom: 16px;
 }
 
 .melia-value-title {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 17.5px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
     color: var(--melia-text);
     margin: 0 0 10px 0;
 }
 
 .melia-value-desc {
     font-size: 14px;
-    line-height: 1.7;
+    line-height: 1.65;
     color: var(--melia-text-muted);
     margin: 0;
 }
 
-/* Contact Details & Inquiry Form Split */
+/* Contact Split */
 .melia-contact-section {
-    padding: 80px 0;
+    padding: 40px 0 64px;
 }
 
 .melia-contact-split {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 48px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    align-items: stretch;
 }
 
 @media (min-width: 1024px) {
     .melia-contact-split {
-        grid-template-columns: 0.9fr 1.1fr;
-        gap: 64px;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+        gap: 48px;
     }
 }
 
 .melia-channels-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     margin-top: 24px;
 }
 
@@ -366,42 +395,50 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    width: 100%;
+    text-align: left;
     background: var(--melia-surface);
     border: 1px solid var(--melia-border);
-    border-radius: 16px;
-    padding: 20px 24px;
+    border-radius: 18px;
+    padding: 18px 20px;
     text-decoration: none !important;
     color: inherit !important;
-    transition: all 0.25s ease;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.melia-channel-card--btn {
+    font-family: inherit;
 }
 
 .melia-channel-card:hover {
     border-color: var(--melia-text);
-    transform: translateX(4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
 }
 
 .melia-channel-icon {
     width: 44px;
     height: 44px;
-    border-radius: 50%;
+    border-radius: 12px;
     background: var(--melia-surface-stone);
-    color: var(--melia-gold);
+    color: var(--melia-text);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 18px;
     flex-shrink: 0;
-    margin-right: 18px;
+    margin-right: 16px;
 }
 
 .melia-channel-info {
     flex: 1 1 auto;
+    min-width: 0;
 }
 
 .melia-channel-label {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--melia-text-soft);
@@ -411,98 +448,157 @@
 
 .melia-channel-val {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--melia-text);
     display: block;
+    overflow-wrap: anywhere;
 }
 
 .melia-channel-hint {
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--melia-text-muted);
+    display: block;
+    margin-top: 2px;
 }
 
 .melia-channel-arrow {
     color: var(--melia-text-soft);
-    font-size: 18px;
-    transition: transform 0.2s ease;
+    font-size: 17px;
+    flex-shrink: 0;
+    margin-left: 10px;
 }
 
-.melia-channel-card:hover .melia-channel-arrow {
-    transform: translate(2px, -2px);
-    color: var(--melia-text);
-}
-
-/* Contact Form Card */
+/* Stay Guide Card (Replaces dead disabled form) */
 .melia-form-card {
     background: var(--melia-surface);
     border: 1px solid var(--melia-border);
-    border-radius: 24px;
-    padding: 36px 32px;
+    border-radius: 22px;
+    padding: clamp(22px, 4vw, 34px);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.04);
-}
-
-.melia-form-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 18px;
-}
-
-@media (min-width: 640px) {
-    .melia-form-grid--2col {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-.melia-form-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    justify-content: space-between;
+    gap: 20px;
 }
 
-.melia-form-group label {
+.rosaliza-stay-guide__title {
+    font-size: clamp(1.2rem, 2.2vw, 1.45rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--melia-text);
+    margin: 0 0 6px 0;
+}
+
+.rosaliza-stay-guide__desc {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--melia-text-muted);
+    margin: 0;
+}
+
+.rosaliza-policy-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.rosaliza-policy-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: var(--melia-bg);
+    border: 1px solid var(--melia-border-subtle);
+}
+
+.rosaliza-policy-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--melia-surface);
+    border: 1px solid var(--melia-border);
+    color: var(--melia-text);
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.rosaliza-policy-row strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--melia-text);
+    margin-bottom: 3px;
+}
+
+.rosaliza-policy-row p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--melia-text-muted);
+}
+
+.rosaliza-landmarks {
+    border-top: 1px solid var(--melia-border);
+    padding-top: 16px;
+}
+
+.rosaliza-landmarks__head {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--melia-text-soft);
+    margin-bottom: 10px;
 }
 
-.melia-form-control {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid var(--melia-border);
+.rosaliza-landmarks__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 440px) {
+    .rosaliza-landmarks__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.rosaliza-landmarks__grid > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 12px;
     border-radius: 12px;
-    background: #FDFBF8;
+    background: var(--melia-surface-stone);
+    font-size: 12.5px;
+}
+
+.rosaliza-landmarks__grid span {
+    color: var(--melia-text-muted);
+}
+
+.rosaliza-landmarks__grid strong {
+    font-weight: 600;
     color: var(--melia-text);
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.melia-form-control:focus {
-    border-color: var(--melia-text);
-    box-shadow: 0 0 0 3px rgba(24, 23, 21, 0.06);
-    background: #FFFFFF;
-}
-
-textarea.melia-form-control {
-    min-height: 110px;
-    resize: vertical;
+    white-space: nowrap;
 }
 
 /* Map Section */
 .melia-map-card {
     background: var(--melia-surface);
     border: 1px solid var(--melia-border);
-    border-radius: 24px;
+    border-radius: 22px;
     overflow: hidden;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.04);
-    margin-bottom: 80px;
+    margin-bottom: 72px;
 }
 
 .melia-map-header {
-    padding: 20px 28px;
+    padding: 18px 22px;
     border-bottom: 1px solid var(--melia-border);
     display: flex;
     align-items: center;
@@ -512,18 +608,24 @@ textarea.melia-form-control {
     gap: 12px;
 }
 
-.melia-map-header h4 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 700;
+.melia-map-title {
+    margin: 0 0 4px 0;
+    font-size: 15.5px;
+    font-weight: 600;
     color: var(--melia-text);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
 }
 
+.melia-map-sub {
+    font-size: 12.5px;
+    color: var(--melia-text-muted);
+    display: block;
+}
+
 .melia-map-frame {
-    height: 420px;
+    height: clamp(280px, 42vw, 400px);
     width: 100%;
 }
 
@@ -535,67 +637,75 @@ textarea.melia-form-control {
 }
 
 /* ==========================================================================
-   ROOMS SEARCH & RESERVATION PAGE SPECIFIC
+   ROOMS SEARCH & CATALOGUE PAGE SPECIFIC
    ========================================================================== */
 
 .melia-rooms-section {
-    padding: 40px 0 90px;
+    padding: 32px 0 64px;
 }
 
-/* Luxury Filter / Search Container */
 .melia-filter-wrap {
-    max-width: 1180px;
-    margin: -36px auto 48px;
-    padding: 0 24px;
+    max-width: 1240px;
+    margin: -30px auto 36px;
+    padding: 0 16px;
     position: relative;
     z-index: 20;
+    box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .melia-filter-wrap {
+        padding: 0 24px;
+        margin: -36px auto 44px;
+    }
 }
 
 .melia-search-bar {
     background: var(--melia-surface);
     border: 1px solid var(--melia-border);
-    border-radius: 24px;
-    padding: 16px 20px;
+    border-radius: 22px;
+    padding: 14px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
 }
 
+@media (min-width: 768px) {
+    .melia-search-bar {
+        padding: 16px 20px;
+    }
+}
+
+/* 3-State Responsive Search Bar: Mobile (2-col paired) -> Tablet (3x2) -> Desktop (6-col) */
 .melia-search-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-    align-items: center;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: stretch;
 }
 
-@media (max-width: 639.98px) {
+.melia-search-field.rooms-search__multiselect-field,
+.melia-search-grid > div:last-child {
+    grid-column: 1 / -1;
+}
+
+@media (min-width: 680px) and (max-width: 1079px) {
     .melia-search-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
     }
-    .melia-search-field.rooms-search__multiselect-field {
-        grid-column: span 2;
-    }
+    .melia-search-field.rooms-search__multiselect-field,
     .melia-search-grid > div:last-child {
-        grid-column: span 2;
-    }
-    .melia-search-submit {
-        width: 100%;
-        min-height: 46px;
-    }
-    .melia-stepper-btn {
-        width: 28px;
-        height: 28px;
+        grid-column: auto;
     }
 }
 
-@media (min-width: 640px) {
+@media (min-width: 1080px) {
     .melia-search-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1.35fr 1.05fr 1.05fr 0.85fr 0.85fr auto;
+        gap: 12px;
     }
-}
-
-@media (min-width: 1024px) {
-    .melia-search-grid {
-        grid-template-columns: 1.3fr 1.1fr 1.1fr 0.9fr 0.9fr auto;
+    .melia-search-field.rooms-search__multiselect-field,
+    .melia-search-grid > div:last-child {
+        grid-column: auto;
     }
 }
 
@@ -603,9 +713,10 @@ textarea.melia-form-control {
     background: #FDFBF8;
     border: 1px solid var(--melia-border);
     border-radius: 14px;
-    padding: 8px 14px;
+    padding: 9px 13px;
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: 3px;
     min-width: 0;
     position: relative;
@@ -613,15 +724,16 @@ textarea.melia-form-control {
 }
 
 .melia-search-field:focus-within {
-    border-color: var(--melia-text);
-    box-shadow: 0 0 0 2px rgba(24, 23, 21, 0.06);
+    border-color: #64748b;
+    box-shadow: none;
+    outline: none;
 }
 
 .melia-search-field label {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 10.5px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.07em;
     color: var(--melia-text-soft);
     margin: 0;
 }
@@ -637,16 +749,16 @@ textarea.melia-form-control {
     outline: none;
     cursor: pointer;
     width: 100%;
+    min-width: 0;
 }
 
 .melia-search-field small.melia-field-hint {
-    font-size: 9.5px;
+    font-size: 10px;
     color: var(--melia-text-soft);
     display: block;
-    line-height: 1;
+    line-height: 1.2;
 }
 
-/* Stepper inside Field */
 .melia-stepper-row {
     display: flex;
     align-items: center;
@@ -656,8 +768,8 @@ textarea.melia-form-control {
 }
 
 .melia-stepper-btn {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     border: 1px solid var(--melia-border);
     background: var(--melia-surface);
@@ -666,8 +778,8 @@ textarea.melia-form-control {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s ease;
+    font-size: 14px;
+    transition: background 0.2s ease, color 0.2s ease;
     padding: 0;
 }
 
@@ -683,14 +795,14 @@ textarea.melia-form-control {
 }
 
 .melia-stepper-val {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 14.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
     color: var(--melia-text);
-    min-width: 20px;
+    min-width: 22px;
     text-align: center;
 }
 
-/* Multi-select Dropdown */
 .melia-select-trigger {
     display: flex;
     align-items: center;
@@ -698,26 +810,28 @@ textarea.melia-form-control {
     width: 100%;
     background: transparent;
     border: none;
-    padding: 2px 0;
+    padding: 3px 0;
     cursor: pointer;
     font-size: 13.5px;
     font-weight: 600;
     color: var(--melia-text);
     text-align: left;
+    min-height: 28px;
 }
 
 .melia-select-text {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-right: 4px;
+    margin-right: 6px;
 }
 
 .melia-select-dropdown {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
-    min-width: 260px;
+    width: max(100%, 260px);
+    max-width: min(320px, calc(100vw - 32px));
     background: var(--melia-surface);
     border: 1px solid var(--melia-border);
     border-radius: 16px;
@@ -737,7 +851,7 @@ textarea.melia-form-control {
 
 .melia-select-header span {
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--melia-text-soft);
@@ -746,11 +860,11 @@ textarea.melia-form-control {
 .melia-clear-btn {
     border: none;
     background: transparent;
-    color: var(--melia-gold);
-    font-size: 11px;
+    color: var(--melia-gold-ink);
+    font-size: 11.5px;
     font-weight: 600;
     cursor: pointer;
-    padding: 0;
+    padding: 4px 6px;
 }
 
 .melia-select-list {
@@ -765,10 +879,10 @@ textarea.melia-form-control {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 10px;
+    padding: 9px 10px;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--melia-text);
     transition: background 0.15s ease;
 }
@@ -778,8 +892,8 @@ textarea.melia-form-control {
     background: var(--melia-surface-stone);
 }
 
-/* Search Submit Button */
 .melia-search-submit {
+    width: 100%;
     height: 100%;
     min-height: 48px;
     padding: 0 24px;
@@ -787,147 +901,60 @@ textarea.melia-form-control {
     background: var(--melia-text);
     color: #FFFFFF !important;
     border: none;
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-    transition: all 0.25s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+    transition: background 0.2s ease, transform 0.2s ease;
     white-space: nowrap;
 }
 
 .melia-search-submit:hover {
     background: #000000;
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
 }
 
-/* Rooms Collection Grid */
+/* 3-State Equal-Height Rooms Grid: 1 col Mobile -> 2 cols Tablet -> 3 cols Desktop */
 .melia-rooms-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    align-items: stretch;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 680px) {
     .melia-rooms-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
     }
 }
 
-@media (min-width: 1140px) {
+@media (min-width: 1100px) {
     .melia-rooms-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 28px;
     }
 }
 
-@media (max-width: 640px) {
-    .melia-room-card {
-        border-radius: 14px !important;
-    }
-    .melia-room-card__thumb {
-        aspect-ratio: 16 / 10 !important;
-        width: 100% !important;
-    }
-    .melia-room-card__thumb img {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: cover !important;
-    }
-    .melia-room-card__badge-wrap {
-        top: 6px !important;
-        left: 6px !important;
-        right: 6px !important;
-    }
-    .melia-card-badge,
-    .melia-card-avail {
-        font-size: 9.5px !important;
-        padding: 3px 6px !important;
-        border-radius: 6px !important;
-    }
-    .melia-room-card__body {
-        padding: 10px 10px 12px !important;
-    }
-    .melia-room-card__meta-bar {
-        font-size: 9.5px !important;
-        margin-bottom: 4px !important;
-    }
-    .melia-room-card__name {
-        font-size: 13px !important;
-        line-height: 1.3 !important;
-        margin-bottom: 4px !important;
-        display: -webkit-box !important;
-        -webkit-line-clamp: 2 !important;
-        -webkit-box-orient: vertical !important;
-        overflow: hidden !important;
-    }
-    .melia-room-card__specs {
-        font-size: 10.5px !important;
-        margin-bottom: 4px !important;
-    }
-    .melia-room-card__desc {
-        display: none !important;
-    }
-    .melia-room-card__amenities {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        gap: 4px !important;
-        margin-bottom: 8px !important;
-    }
-    .melia-amenity-tag {
-        font-size: 9px !important;
-        padding: 2px 5px !important;
-        border-radius: 4px !important;
-    }
-    .melia-room-card__footer {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 6px !important;
-        padding-top: 6px !important;
-    }
-    .melia-room-price {
-        display: flex !important;
-        flex-direction: column !important;
-    }
-    .melia-price-label {
-        font-size: 9px !important;
-    }
-    .melia-price-amount {
-        font-size: 13px !important;
-        font-weight: 700 !important;
-    }
-    .melia-price-unit {
-        display: none !important;
-    }
-    .melia-card-btn {
-        width: 100% !important;
-        min-height: 32px !important;
-        padding: 0 8px !important;
-        font-size: 11px !important;
-        justify-content: center !important;
-        border-radius: 8px !important;
-    }
-}
-
-/* Individual Room Card */
 .melia-room-card {
     background: var(--melia-surface);
     border: 1px solid var(--melia-border);
-    border-radius: 24px;
+    border-radius: 20px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+    height: 100%;
+    min-width: 0;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .melia-room-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.07);
     border-color: #D3CDC2;
 }
 
@@ -937,80 +964,93 @@ textarea.melia-form-control {
     aspect-ratio: 16 / 10;
     overflow: hidden;
     background: var(--melia-surface-stone);
+    flex-shrink: 0;
 }
 
 .melia-room-card__thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     display: block;
 }
 
 .melia-room-card:hover .melia-room-card__thumb img {
-    transform: scale(1.05);
+    transform: scale(1.04);
 }
 
 .melia-room-card__badge-wrap {
     position: absolute;
-    top: 14px;
-    left: 14px;
-    right: 14px;
+    top: 12px;
+    left: 12px;
+    right: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     pointer-events: none;
 }
 
 .melia-card-badge {
-    background: rgba(20, 20, 19, 0.85);
+    background: rgba(20, 20, 19, 0.84);
     backdrop-filter: blur(8px);
     color: #FFFFFF;
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 10.5px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 5px 12px;
+    letter-spacing: 0.08em;
+    padding: 5px 11px;
     border-radius: 999px;
 }
 
 .melia-card-avail {
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(8px);
     color: #166534;
-    font-size: 10.5px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
     padding: 4px 10px;
     border-radius: 999px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .melia-room-card__body {
-    padding: 24px 24px 22px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+@media (min-width: 1100px) {
+    .melia-room-card__body {
+        padding: 22px 24px;
+    }
 }
 
 .melia-room-card__meta-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     color: var(--melia-text-soft);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .melia-room-card__name {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 1.25rem;
-    font-weight: 700;
-    line-height: 1.35;
+    font-size: 1.18rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.32;
     color: var(--melia-text);
-    margin: 0 0 10px 0;
+    margin: 0 0 8px 0;
 }
 
 .melia-room-card__name a {
@@ -1022,37 +1062,41 @@ textarea.melia-form-control {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--melia-text-muted);
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
 }
 
 .melia-room-card__specs span {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
 }
 
 .melia-room-card__desc {
     font-size: 13.5px;
-    line-height: 1.6;
+    line-height: 1.58;
     color: var(--melia-text-muted);
-    margin: 0 0 16px 0;
-    flex-grow: 1;
+    margin: 0 0 14px 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 42px;
 }
 
 .melia-room-card__amenities {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
 
 .melia-amenity-tag {
     background: var(--melia-surface-stone);
     color: var(--melia-text-muted);
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 500;
     padding: 4px 10px;
     border-radius: 999px;
@@ -1061,9 +1105,10 @@ textarea.melia-form-control {
 
 .melia-room-card__footer {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
-    padding-top: 16px;
+    gap: 12px;
+    padding-top: 14px;
     border-top: 1px solid var(--melia-border);
     margin-top: auto;
 }
@@ -1071,19 +1116,22 @@ textarea.melia-form-control {
 .melia-room-price {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .melia-price-label {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 10.5px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     color: var(--melia-text-soft);
 }
 
 .melia-price-amount {
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
     color: var(--melia-text);
 }
 
@@ -1095,45 +1143,48 @@ textarea.melia-form-control {
 .melia-card-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
+    min-height: 42px;
+    padding: 0 18px;
     background: var(--melia-text);
     color: #FFFFFF !important;
-    padding: 9px 18px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     text-decoration: none !important;
-    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.2s ease, transform 0.2s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .melia-card-btn:hover {
     background: #000000;
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
 /* Empty State */
 .melia-empty-state {
     text-align: center;
-    padding: 72px 24px;
+    padding: 56px 24px;
     background: var(--melia-surface);
     border: 1px solid var(--melia-border);
-    border-radius: 24px;
-    max-width: 640px;
-    margin: 40px auto;
+    border-radius: 22px;
+    max-width: 620px;
+    margin: 32px auto;
 }
 
 .melia-empty-state i {
-    font-size: 42px;
+    font-size: 38px;
     color: var(--melia-gold);
     display: block;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .melia-empty-state h3 {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 2rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 1.55rem;
     font-weight: 600;
     letter-spacing: -0.03em;
     line-height: 1.25;
@@ -1143,5 +1194,22 @@ textarea.melia-form-control {
 .melia-empty-state p {
     font-size: 14.5px;
     color: var(--melia-text-muted);
-    margin: 0 0 24px 0;
+    margin: 0 0 22px 0;
+}
+
+/* Mobile bottom clearance above tab bar */
+@media (max-width: 768px) {
+    .melia-contact-shell,
+    .melia-rooms-shell {
+        padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    }
+    .melia-faqs {
+        padding-bottom: 36px !important;
+    }
+    .melia-map-card {
+        margin-bottom: 36px;
+    }
+    .melia-card-btn {
+        min-height: 44px;
+    }
 }

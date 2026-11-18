@@ -13,6 +13,7 @@ export const AgentConfigurationAnnotation = Annotation.Root({
   actorScope: Annotation<string>,
   correlationId: Annotation<string>,
   dedupeFingerprint: Annotation<string>,
+  userReality: Annotation<string>,
 });
 
 export function ensureAgentConfiguration(
@@ -34,5 +35,6 @@ export function ensureAgentConfiguration(
     actorScope: String(configurable.actorScope || 'public'),
     correlationId: String(configurable.correlationId || ''),
     dedupeFingerprint: String(configurable.dedupeFingerprint || ''),
+    userReality: String(configurable.userReality || ''),
   };
 }

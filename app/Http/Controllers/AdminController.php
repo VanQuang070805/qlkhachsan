@@ -83,8 +83,10 @@ class AdminController extends Controller
         $roomCount                 = max(1, (int) $roomCountQuery->count());
         $firstStay                 = $filters['start_date'] ?: DB::table('bookings')->min('check_in') ?: now()->toDateString();
         $lastStay                  = $filters['end_date'] ?: DB::table('bookings')->max('check_out') ?: now()->toDateString();
-        // check_out is exclusive: a stay from 10/11 to 11/11 consumes one room-night.
-        $periodDays                = max(1, (int) \Carbon\Carbon::parse($firstStay)->diffInDays(\Carbon\Carbon::parse($lastStay)));
+        // When both start_date and end_date are explicitly filtered, they form an inclusive date cohort;
+        // otherwise min(check_in) to max(check_out) uses exclusive check_out.
+        $rawSpanDays               = (int) \Carbon\Carbon::parse($firstStay)->diffInDays(\Carbon\Carbon::parse($lastStay));
+        $periodDays                = max(1, ($filters['start_date'] && $filters['end_date']) ? ($rawSpanDays + 1) : $rawSpanDays);
         $soldNights                = max(0, (int) ($stats['total_nights'] ?? 0));
         $stats['adr']              = $filters['room_type_id'] ? null : ($soldNights > 0 ? $stats['total_revenue'] / $soldNights : 0);
         $stats['revpar']           = $filters['room_type_id'] ? null : $stats['total_revenue'] / ($roomCount * $periodDays);
@@ -203,15 +205,17 @@ class AdminController extends Controller
 
     public function priceSettingsStore(Request $request)
     {
+        $maxAdjustment = $request->input('adjustment_type') === 'percent' ? 500 : 9999999999.99;
         $request->validate([
             'name'             => 'required|string|max:100',
             'start_date'       => 'required|date',
-            'end_date'         => 'required|date|gte:start_date',
+            'end_date'         => 'required|date|after_or_equal:start_date',
             'adjustment_type'  => 'required|in:percent,fixed',
-            'adjustment_value' => ['required', 'numeric', 'regex:/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/', 'min:0.01'],
+            'adjustment_value' => ['required', 'numeric', 'regex:/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/', 'min:0.01', 'max:'.$maxAdjustment],
         ], [
-            'end_date.gte'            => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
+            'end_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
             'adjustment_value.min'    => 'Giá trị điều chỉnh phải lớn hơn 0.',
+            'adjustment_value.max'    => 'Giá trị điều chỉnh vượt quá giới hạn cho phép.',
             'adjustment_value.regex'  => 'Giá trị điều chỉnh chỉ được nhập chữ số và tối đa 2 chữ số thập phân.',
         ]);
 
@@ -247,16 +251,18 @@ class AdminController extends Controller
 
     public function priceSettingsUpdate(Request $request, int $id)
     {
+        $maxAdjustment = $request->input('adjustment_type') === 'percent' ? 500 : 9999999999.99;
         $request->validate([
             'name'             => 'required|string|max:100',
             'start_date'       => 'required|date',
-            'end_date'         => 'required|date|gte:start_date',
+            'end_date'         => 'required|date|after_or_equal:start_date',
             'adjustment_type'  => 'required|in:percent,fixed',
-            'adjustment_value' => ['required', 'numeric', 'regex:/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/', 'min:0.01'],
+            'adjustment_value' => ['required', 'numeric', 'regex:/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/', 'min:0.01', 'max:'.$maxAdjustment],
         ], [
-            'end_date.gte'         => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
-            'adjustment_value.min' => 'Giá trị điều chỉnh phải lớn hơn 0.',
-            'adjustment_value.regex' => 'Giá trị điều chỉnh chỉ được nhập chữ số và tối đa 2 chữ số thập phân.',
+            'end_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
+            'adjustment_value.min'    => 'Giá trị điều chỉnh phải lớn hơn 0.',
+            'adjustment_value.max'    => 'Giá trị điều chỉnh vượt quá giới hạn cho phép.',
+            'adjustment_value.regex'  => 'Giá trị điều chỉnh chỉ được nhập chữ số và tối đa 2 chữ số thập phân.',
         ]);
 
         $lock = \Illuminate\Support\Facades\Cache::lock('price-settings-write', 10);

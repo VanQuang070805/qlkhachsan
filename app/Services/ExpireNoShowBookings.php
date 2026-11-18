@@ -21,7 +21,7 @@ class ExpireNoShowBookings
             $checkIn = $booking->check_in->toDateString();
             $isPastArrivalDate = $checkIn < $now->toDateString();
             $isPastArrivalWindow = $checkIn === $now->toDateString()
-                && $now->greaterThanOrEqualTo($now->copy()->setTime(16, 0));
+                && $now->greaterThanOrEqualTo($now->copy()->setTime(18, 0));
 
             if (! $isPastArrivalDate && ! $isPastArrivalWindow) {
                 return false;
@@ -30,7 +30,7 @@ class ExpireNoShowBookings
             $booking->update([
                 'status' => 'cancelled',
                 'cancelled_at' => $now,
-                'cancellation_reason' => 'Không đến nhận phòng trước 16:00.',
+                'cancellation_reason' => 'Không đến nhận phòng trước 18:00.',
                 'refund_status' => 'none',
                 'refund_amount' => 0,
             ]);
@@ -42,7 +42,7 @@ class ExpireNoShowBookings
     public function cancelDueBookings(): int
     {
         $now = now('Asia/Ho_Chi_Minh');
-        $lastDueDate = $now->hour >= 16
+        $lastDueDate = $now->hour >= 18
             ? $now->toDateString()
             : $now->copy()->subDay()->toDateString();
         $cancelledCount = 0;

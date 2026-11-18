@@ -181,7 +181,7 @@ class InternalAuthController extends Controller
         }
 
         if ($user->hasInternalPermission('rp_view_reports')) {
-            return route('admin.reports');
+            return route('staff.reports');
         }
 
         if ($user->hasInternalPermission('bp_view_schedule')) {

@@ -5,8 +5,8 @@
         </button>
         <div class="topbar-breadcrumb">
             <span class="topbar-brand-label" style="display: inline-flex; align-items: center; gap: 6px;">
-                <img src="{{ asset('images/branding/rosa_mascot_flamingo_transparent.png') }}" alt="Rosa Hotel" style="height: 22px; width: auto; object-fit: contain;">
-                <span>Rosa Hotel</span>
+                <img src="{{ asset('images/branding/rosa_mascot_flamingo_transparent.png') }}" alt="Rosaliza Hotel" style="height: 22px; width: auto; object-fit: contain;">
+                <span>Rosaliza Hotel</span>
             </span>
             <span class="topbar-sep">/</span>
             <span class="topbar-current-page">@hasSection('page-title')@yield('page-title')@else @yield('title', 'Vận hành')@endif</span>
@@ -27,7 +27,7 @@
             <span id="topbarClockText">--:--:--</span>
         </div>
         <div class="topbar-status-chip" title="Hệ thống đang hoạt động trực tuyến">
-            <span class="topbar-status-dot"></span>
+            <i class="bi bi-shield-check text-success" aria-hidden="true"></i>
             <span>Trực tuyến</span>
         </div>
         <div class="topbar-user-chip">

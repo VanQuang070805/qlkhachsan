@@ -2,8 +2,11 @@
 
 namespace App\Services\Chatbot;
 
+use App\Models\Booking;
+use App\Models\User;
 use App\Services\CacheVersionService;
 use App\Services\OutboxService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -27,21 +30,159 @@ class LangGraphChatbotService
         return trim((string) config('services.langgraph.base_url')) !== '';
     }
 
+    /**
+     * Fast-path check so SSE controller can skip upstream thread creation on cache hits.
+     *
+     * @param  array<int, array{role?: string, content?: string}>  $history
+     * @param  array<string, mixed>  $pageContext
+     */
+    public function hasCachedPublicReply(string $message, array $history = [], ?Request $request = null, array $pageContext = []): bool
+    {
+        $cacheKey = $this->publicFaqCacheKey($message, $history, $request, $pageContext);
+        if ($cacheKey === null) {
+            return false;
+        }
+
+        $cached = Cache::get($cacheKey);
+
+        return is_array($cached) && isset($cached['reply']) && is_string($cached['reply']) && $cached['reply'] !== '';
+    }
+
+    /**
+     * @param  array<int, array{role?: string, content?: string}>  $history
+     * @param  array<string, mixed>  $pageContext
+     */
+    private function publicFaqCacheKey(string $message, array $history = [], ?Request $request = null, array $pageContext = []): ?string
+    {
+        $trimmed = trim($message);
+        if (
+            $trimmed === '' ||
+            $history !== [] ||
+            ($request !== null && (int) $request->session()->get('customer_user_id', 0) > 0) ||
+            ! empty($pageContext['room_name']) ||
+            $this->isPersonalBookingQuery($trimmed) ||
+            $this->isContextDependentQuery($trimmed) ||
+            $this->isTimeSensitiveQuery($trimmed) ||
+            preg_match('/\b\d{1,2}[\/\-]\d{1,2}\b|\b202\d[\-\/]\d{1,2}\b/u', $trimmed) ||
+            preg_match('/^(còn|con|thế|the|vậy|vay|nó|no|loại đó|loai do|phòng đó|phong do|hạng đó|hang do|bao nhiêu|bao nhieu|giá thì sao|gia thi sao|nếu|neu|quá giờ|qua gio|sớm hơn|som hon|ở đó|o do|vừa rồi|vua roi)\b/iu', $trimmed)
+        ) {
+            return null;
+        }
+
+        return 'royal:chatbot:answer:'.$this->buildFingerprint($trimmed, [], 'public');
+    }
+
+    private function isContextDependentQuery(string $message): bool
+    {
+        return (bool) preg_match('/\b(tôi|mình|của tôi|cua toi|tên gì|ten gi|là ai|la ai|trang này|trang nay|phòng này|phong nay|hạng này|hang nay|đang xem|dang xem|đang ở|dang o|tài khoản|tai khoan)\b/iu', $message);
+    }
+
     public function sessionParticipantId(Request $request): string
     {
         $customerId = (int) $request->session()->get('customer_user_id', 0);
         $staffContext = (int) $request->session()->get('staff_user_id', 0) > 0 && $customerId === 0;
-        $sessionToken = (string) $request->session()->get('chatbot.participant_token', '');
-        if ($sessionToken === '') {
-            $sessionToken = $request->session()->getId() ?: bin2hex(random_bytes(16));
-            $request->session()->put('chatbot.participant_token', $sessionToken);
+        $visitNonce = (string) $request->session()->get('chatbot.visit_nonce', '');
+        if ($visitNonce === '') {
+            $visitNonce = bin2hex(random_bytes(12));
+            $request->session()->put('chatbot.visit_nonce', $visitNonce);
         }
+
+        $actorKey = $customerId > 0
+            ? 'user:'.$customerId
+            : ($staffContext ? 'staff-session' : 'guest');
 
         return 'royal_'.substr(hash_hmac(
             'sha256',
-            $sessionToken.'|'.($staffContext ? 'staff-session' : 'customer-'.$customerId),
+            $actorKey.'|'.$visitNonce,
             (string) config('app.key'),
         ), 0, 40);
+    }
+
+    /**
+     * Build a verified reality snapshot of the current user, their bookings, and the page they are viewing.
+     *
+     * @param  array<string, mixed>  $pageContext
+     */
+    public function buildUserRealitySummary(Request $request, array $pageContext = []): string
+    {
+        $lines = [];
+        $now = now('Asia/Ho_Chi_Minh');
+        $after18 = (int) $now->format('H') >= 18;
+        $lines[] = 'Thời điểm thực tế tại Hà Nội: '.$now->format('H:i d/m/Y').' ('.($after18
+            ? 'Đã qua 18:00 nên khách đặt mới lúc này chỉ có thể chọn ngày nhận phòng từ ngày mai trở đi'
+            : 'Khung nhận phòng hôm nay mở từ 14:00 đến trước 18:00').').';
+
+        $customerId = (int) $request->session()->get('customer_user_id', 0);
+        $user = $customerId > 0 ? User::where('role', 'customer')->find($customerId) : null;
+
+        if ($user) {
+            $phoneState = $user->phone ? 'Đã cập nhật số điện thoại ('.substr((string) $user->phone, 0, 3).'***'.substr((string) $user->phone, -3).')' : 'Chưa cập nhật số điện thoại';
+            $lines[] = sprintf(
+                'Khách hàng đang đăng nhập: %s | Email: %s | %s.',
+                $user->fullname ?: 'Khách hàng',
+                $user->email,
+                $phoneState
+            );
+
+            $bookings = Booking::with('rooms.roomType')
+                ->where('user_id', $user->id)
+                ->orderByDesc((new Booking)->getCreatedAtColumn())
+                ->limit(3)
+                ->get();
+
+            if ($bookings->isEmpty()) {
+                $lines[] = 'Lịch sử đặt phòng hiện tại của khách: Chưa có đơn đặt phòng nào.';
+            } else {
+                $summaries = $bookings->map(function (Booking $b) {
+                    $rooms = $b->rooms->map(fn ($r) => 'P.'.$r->room_number.' ('.($r->roomType?->type_name ?? 'Phòng').')')->implode(', ');
+                    $in = $b->check_in ? Carbon::parse($b->check_in)->format('d/m/Y') : '';
+                    $out = $b->check_out ? Carbon::parse($b->check_out)->format('d/m/Y') : '';
+                    $statusLabel = match ($b->status) {
+                        'pending' => 'Chờ thanh toán cọc 50%',
+                        'confirmed' => 'Đã xác nhận giữ phòng',
+                        'checked_in' => 'Đang lưu trú',
+                        'completed' => 'Đã trả phòng',
+                        'cancelled' => 'Đã hủy',
+                        default => (string) $b->status,
+                    };
+
+                    return sprintf(
+                        'Đơn #%d [%s | %s | Nhận %s - Trả %s | Tổng %sđ]',
+                        $b->id,
+                        $statusLabel,
+                        $rooms !== '' ? $rooms : 'Chưa gán phòng',
+                        $in,
+                        $out,
+                        number_format((float) $b->total_price, 0, ',', '.')
+                    );
+                })->implode('; ');
+                $lines[] = 'Các đơn đặt phòng gần nhất của khách: '.$summaries.'.';
+            }
+        } else {
+            $lines[] = 'Trạng thái tài khoản: Khách vãng lai (chưa đăng nhập). Nếu khách muốn xem đơn đặt phòng cá nhân hoặc đặt phòng, hãy hướng dẫn khách đăng nhập.';
+        }
+
+        $path = trim((string) ($pageContext['path'] ?? ''));
+        $title = trim((string) ($pageContext['title'] ?? ''));
+        $roomName = trim((string) ($pageContext['room_name'] ?? ''));
+        $roomPrice = trim((string) ($pageContext['room_price'] ?? ''));
+        $checkIn = trim((string) ($pageContext['check_in'] ?? ''));
+        $checkOut = trim((string) ($pageContext['check_out'] ?? ''));
+        $guests = trim((string) ($pageContext['guests'] ?? ''));
+
+        if ($path !== '' || $title !== '') {
+            $pageParts = array_filter([
+                $path !== '' ? 'Đường dẫn '.$path : null,
+                $title !== '' ? 'Tiêu đề "'.$title.'"' : null,
+                $roomName !== '' ? 'Đang xem hạng phòng "'.$roomName.'"' : null,
+                $roomPrice !== '' ? 'Giá hiển thị '.$roomPrice : null,
+                ($checkIn !== '' || $checkOut !== '') ? 'Ngày đang chọn '.$checkIn.' -> '.$checkOut : null,
+                $guests !== '' ? 'Số khách đang chọn '.$guests : null,
+            ]);
+            $lines[] = 'Ngữ cảnh trang web khách đang mở ngay lúc này: '.implode(' | ', $pageParts).'.';
+        }
+
+        return implode("\n", $lines);
     }
 
     public function isPersonalBookingQuery(string $message): bool
@@ -157,12 +298,33 @@ class LangGraphChatbotService
 
     public function resetThread(Request $request): void
     {
+        $baseUrl = rtrim((string) config('services.langgraph.base_url'), '/');
         $participant = $this->sessionParticipantId($request);
         $threadKey = 'royal_langgraph_thread_'.substr(hash('sha256', $participant), 0, 32);
-        $request->session()->forget([$threadKey, $threadKey.'_expires_at', 'chatbot.langgraph_thread_id']);
+        $existingThreadId = (string) ($request->session()->get($threadKey) ?: $request->session()->get('chatbot.langgraph_thread_id', ''));
+
+        if ($baseUrl !== '' && $existingThreadId !== '' && preg_match('/^[A-Za-z0-9_-]{1,120}$/', $existingThreadId)) {
+            try {
+                $this->httpClient(3)->delete("{$baseUrl}/threads/{$existingThreadId}");
+            } catch (\Throwable) {
+                // Ignore upstream cleanup errors during reset.
+            }
+        }
+
+        $request->session()->forget([
+            $threadKey,
+            $threadKey.'_expires_at',
+            'chatbot.langgraph_thread_id',
+            'chatbot.participant_token',
+        ]);
+        $request->session()->put('chatbot.visit_nonce', bin2hex(random_bytes(12)));
     }
 
-    public function ask(Request $request, string $message, array $history = []): ?array
+    /**
+     * @param  array<int, array{role?: string, content?: string}>  $history
+     * @param  array<string, mixed>  $pageContext
+     */
+    public function ask(Request $request, string $message, array $history = [], array $pageContext = []): ?array
     {
         $baseUrl = rtrim((string) config('services.langgraph.base_url'), '/');
         if ($baseUrl === '') {
@@ -173,8 +335,8 @@ class LangGraphChatbotService
         $correlationId = (string) ($request->attributes->get('correlation_id') ?? Str::ulid());
         $participant = $this->sessionParticipantId($request);
         $capability = $this->capabilities->issueForRequest($request, $participant, $correlationId);
-        $isPersonal = $this->isPersonalBookingQuery($message);
-        $fingerprint = $this->buildFingerprint($message, $history, $capability['actor_scope']);
+        $userReality = $this->buildUserRealitySummary($request, $pageContext);
+        $fingerprint = hash('sha256', $this->buildFingerprint($message, $history, $capability['actor_scope']).'|'.($pageContext['path'] ?? '').'|'.($pageContext['room_name'] ?? ''));
 
         $this->outbox->recordChatbotEvent('requested', [
             'actor_type' => $capability['actor_type'],
@@ -182,8 +344,9 @@ class LangGraphChatbotService
             'cache_status' => 'pending',
         ], $correlationId);
 
-        if (! $isPersonal && ! $this->isTimeSensitiveQuery($message) && $history === []) {
-            $cached = Cache::get("royal:chatbot:answer:{$fingerprint}");
+        $cacheKey = $this->publicFaqCacheKey($message, $history, $request, $pageContext);
+        if ($cacheKey !== null) {
+            $cached = Cache::get($cacheKey);
             if (is_array($cached) && isset($cached['reply']) && is_string($cached['reply']) && $cached['reply'] !== '') {
                 $this->outbox->recordChatbotEvent('cache_hit', [
                     'actor_type' => $capability['actor_type'],
@@ -222,12 +385,13 @@ class LangGraphChatbotService
                     'config' => [
                         'configurable' => [
                             'retrieverProvider' => config('services.langgraph.vector_provider', 'mysql'),
-                            'queryModel' => config('services.langgraph.query_model', 'google-genai/gemini-flash-latest'),
+                            'queryModel' => $this->resolvedQueryModel(),
                             'k' => 5,
                             'capabilityToken' => $capability['token'],
                             'actorScope' => $capability['actor_scope'],
                             'correlationId' => $correlationId,
                             'dedupeFingerprint' => $fingerprint,
+                            'userReality' => $userReality,
                             'knowledgeVersion' => $this->versions->knowledgeVersion(),
                             'catalogVersion' => $this->versions->catalogVersion(),
                         ],
@@ -260,8 +424,8 @@ class LangGraphChatbotService
                 'sources' => is_array($data['sources'] ?? null) ? $data['sources'] : [],
             ];
 
-            if (! $isPersonal && ! $this->isTimeSensitiveQuery($message) && $history === []) {
-                Cache::put("royal:chatbot:answer:{$fingerprint}", $result, now()->addMinutes(10));
+            if ($cacheKey !== null) {
+                Cache::put($cacheKey, $result, now()->addMinutes(10));
             }
 
             $this->outbox->recordChatbotEvent('completed', [
@@ -293,6 +457,7 @@ class LangGraphChatbotService
      *
      * @param  array<int, string>  $sources
      * @param  array<int, array{role?: string, content?: string}>  $history
+     * @param  array<string, mixed>  $pageContext
      */
     public function stream(
         Request $request,
@@ -301,6 +466,7 @@ class LangGraphChatbotService
         array &$sources = [],
         ?string $preResolvedThreadId = null,
         array $history = [],
+        array $pageContext = [],
     ): bool {
         $baseUrl = rtrim((string) config('services.langgraph.base_url'), '/');
         if ($baseUrl === '') {
@@ -311,14 +477,37 @@ class LangGraphChatbotService
         $correlationId = (string) ($request->attributes->get('correlation_id') ?? Str::ulid());
         $participant = $this->sessionParticipantId($request);
         $capability = $this->capabilities->issueForRequest($request, $participant, $correlationId);
-        $isPersonal = $this->isPersonalBookingQuery($message);
-        $fingerprint = $this->buildFingerprint($message, $history, $capability['actor_scope']);
+        $userReality = $this->buildUserRealitySummary($request, $pageContext);
+        $fingerprint = hash('sha256', $this->buildFingerprint($message, $history, $capability['actor_scope']).'|'.($pageContext['path'] ?? '').'|'.($pageContext['room_name'] ?? ''));
 
         $this->outbox->recordChatbotEvent('requested', [
             'actor_type' => $capability['actor_type'],
             'actor_ref_hash' => $capability['actor_ref_hash'],
             'cache_status' => 'pending',
         ], $correlationId);
+
+        $cacheKey = $this->publicFaqCacheKey($message, $history, $request, $pageContext);
+        if ($cacheKey !== null) {
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached) && isset($cached['reply']) && is_string($cached['reply']) && $cached['reply'] !== '') {
+                $sources = is_array($cached['sources'] ?? null) ? $cached['sources'] : [];
+                $words = preg_split('/(?<=\s)/u', $cached['reply'], -1, PREG_SPLIT_NO_EMPTY) ?: [$cached['reply']];
+                foreach (array_chunk($words, 6) as $index => $phrase) {
+                    if ($index > 0 && ! app()->runningUnitTests()) {
+                        usleep(15000);
+                    }
+                    $onDelta(implode('', $phrase));
+                }
+                $this->outbox->recordChatbotEvent('cache_hit', [
+                    'actor_type' => $capability['actor_type'],
+                    'actor_ref_hash' => $capability['actor_ref_hash'],
+                    'cache_status' => 'hit',
+                    'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+                ], $correlationId);
+
+                return true;
+            }
+        }
 
         $threadId = $preResolvedThreadId ?: $this->ensureThreadId($request);
         if (! $threadId) {
@@ -348,12 +537,13 @@ class LangGraphChatbotService
                     'config' => [
                         'configurable' => [
                             'retrieverProvider' => config('services.langgraph.vector_provider', 'mysql'),
-                            'queryModel' => config('services.langgraph.query_model', 'google-genai/gemini-flash-latest'),
+                            'queryModel' => $this->resolvedQueryModel(),
                             'k' => 5,
                             'capabilityToken' => $capability['token'],
                             'actorScope' => $capability['actor_scope'],
                             'correlationId' => $correlationId,
                             'dedupeFingerprint' => $fingerprint,
+                            'userReality' => $userReality,
                             'knowledgeVersion' => $this->versions->knowledgeVersion(),
                             'catalogVersion' => $this->versions->catalogVersion(),
                         ],
@@ -408,12 +598,16 @@ class LangGraphChatbotService
                     break;
                 }
 
-                $chunk = $body->read(1024);
-                if ($chunk === '') {
+                $line = \GuzzleHttp\Psr7\Utils::readLine($body);
+                if ($line === '' && $body->eof()) {
                     break;
                 }
 
-                $buffer .= str_replace("\r\n", "\n", $chunk);
+                $buffer .= str_replace("\r\n", "\n", $line);
+                if (! str_contains($buffer, "\n\n")) {
+                    continue;
+                }
+
                 $events = explode("\n\n", $buffer);
                 $buffer = array_pop($events) ?? '';
 
@@ -437,8 +631,8 @@ class LangGraphChatbotService
             }
 
             if ($emittedAny) {
-                if (! $isPersonal && ! $this->isTimeSensitiveQuery($message) && $history === [] && $accumulated !== '') {
-                    Cache::put("royal:chatbot:answer:{$fingerprint}", [
+                if ($cacheKey !== null && $accumulated !== '') {
+                    Cache::put($cacheKey, [
                         'reply' => $accumulated,
                         'sources' => $sources,
                     ], now()->addMinutes(10));
@@ -581,6 +775,18 @@ class LangGraphChatbotService
         }
 
         return '';
+    }
+
+    private function resolvedQueryModel(): string
+    {
+        $explicit = trim((string) config('services.langgraph.query_model', ''));
+        if ($explicit !== '') {
+            return str_contains($explicit, '/') ? $explicit : 'google-genai/'.$explicit;
+        }
+
+        $chatModel = trim((string) config('services.gemini.chat_model', 'gemini-3.1-flash-lite'));
+
+        return str_contains($chatModel, '/') ? $chatModel : 'google-genai/'.($chatModel ?: 'gemini-3.1-flash-lite');
     }
 
     private function httpClient(int $timeout)

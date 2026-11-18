@@ -1,7 +1,6 @@
 {{-- =========================================================================
-     Royal Hotel — Apple iOS Mobile Tab Bar & Navigation Drawer System
+     Rosaliza Hotel - Mobile Navigation Drawer System
      Strictly active on screens <= 768px (Desktop & Tablet > 768px untouched)
-     Design inspired by Apple iOS UITabBar, SwiftUI TabView & NameThatUI
      ========================================================================= --}}
 
 {{-- 1. Apple Mobile Floating Hamburger Button --}}
@@ -30,9 +29,9 @@
     <div class="mobile-drawer-header">
         <a href="{{ route('home') }}" class="mobile-drawer-brand" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none;">
             <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: #0f172a; flex-shrink: 0;">
-                <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosa Hotel" style="height: 22px; width: auto; object-fit: contain;">
+                <img src="{{ asset('images/branding/rosa_mascot_flamingo_white_transparent.png') }}" alt="Rosaliza Hotel" style="height: 22px; width: auto; object-fit: contain;">
             </span>
-            <span class="mobile-drawer-title" style="margin: 0; color: #0f172a;">Rosa Hotel</span>
+            <span class="mobile-drawer-title" style="margin: 0; color: #0f172a;">Rosaliza Hotel</span>
         </a>
         <button type="button" class="mobile-drawer-close" aria-label="Đóng menu" data-drawer-close>
             <i class="bi bi-x-lg" aria-hidden="true"></i>

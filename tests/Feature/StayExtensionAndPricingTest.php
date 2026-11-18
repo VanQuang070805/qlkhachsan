@@ -168,7 +168,7 @@ class StayExtensionAndPricingTest extends TestCase
 
     public function test_no_show_is_cancelled_at_the_end_of_the_checkin_window(): void
     {
-        $this->travelTo(Carbon::parse('2026-10-04 15:59:00', 'Asia/Ho_Chi_Minh'));
+        $this->travelTo(Carbon::parse('2026-10-04 17:59:00', 'Asia/Ho_Chi_Minh'));
         [$customer, $booking] = $this->bookingWithRoom('confirmed', 600000);
         $booking->update([
             'check_in' => now('Asia/Ho_Chi_Minh')->toDateString(),
@@ -178,12 +178,12 @@ class StayExtensionAndPricingTest extends TestCase
         $this->artisan('bookings:expire-no-shows')->assertExitCode(0);
         $this->assertSame('confirmed', $booking->fresh()->status);
 
-        $this->travelTo(Carbon::parse('2026-10-04 16:00:00', 'Asia/Ho_Chi_Minh'));
+        $this->travelTo(Carbon::parse('2026-10-04 18:00:00', 'Asia/Ho_Chi_Minh'));
         $this->artisan('bookings:expire-no-shows')->assertExitCode(0);
 
         $booking->refresh();
         $this->assertSame('cancelled', $booking->status);
-        $this->assertSame('Không đến nhận phòng trước 16:00.', $booking->cancellation_reason);
+        $this->assertSame('Không đến nhận phòng trước 18:00.', $booking->cancellation_reason);
         $this->assertNotNull($booking->cancelled_at);
         $this->asCustomer($customer)->get(route('booking.mine'))
             ->assertOk()
@@ -206,9 +206,9 @@ class StayExtensionAndPricingTest extends TestCase
         $this->assertSame('checked_in', $booking->fresh()->status);
     }
 
-    public function test_checkin_at_16h_cancels_the_unchecked_booking_even_before_scheduler_runs(): void
+    public function test_checkin_at_18h_cancels_the_unchecked_booking_even_before_scheduler_runs(): void
     {
-        $this->travelTo(Carbon::parse('2026-10-04 16:00:00', 'Asia/Ho_Chi_Minh'));
+        $this->travelTo(Carbon::parse('2026-10-04 18:00:00', 'Asia/Ho_Chi_Minh'));
         [, $booking] = $this->bookingWithRoom('confirmed', 600000);
         $booking->update(['check_in' => '2026-10-04', 'check_out' => '2026-10-05']);
 
@@ -223,7 +223,7 @@ class StayExtensionAndPricingTest extends TestCase
 
     public function test_early_checkin_is_refused_without_cancelling_the_reservation(): void
     {
-        $this->travelTo(Carbon::parse('2026-10-04 11:59:00', 'Asia/Ho_Chi_Minh'));
+        $this->travelTo(Carbon::parse('2026-10-04 13:59:00', 'Asia/Ho_Chi_Minh'));
         [, $booking] = $this->bookingWithRoom('confirmed', 600000);
         $booking->update(['check_in' => '2026-10-04', 'check_out' => '2026-10-05']);
 

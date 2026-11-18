@@ -74,8 +74,8 @@
         transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .operations-search-box:focus-within {
-        border-color: #0071e3;
-        box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.16);
+        border-color: #64748b;
+        box-shadow: none;
     }
     .operations-search-box i {
         color: #94a3b8;
@@ -241,7 +241,9 @@
         transition: border-color 0.15s;
     }
     .filter-select:focus {
-        border-color: #0071e3;
+        border-color: #64748b;
+        box-shadow: none;
+        outline: none;
     }
     .btn-reset-filters {
         display: inline-flex;
@@ -585,14 +587,19 @@
     .qr-target-box .corner.bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 8px; }
     .qr-target-box .corner.bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
     .qr-scan-actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 100%;
         max-width: 380px;
         margin: 0 auto;
     }
     .qr-scan-action {
         min-height: 44px;
+        min-width: 176px;
+        padding: 0 20px;
         border: 1px solid rgba(15, 23, 42, 0.18);
         border-radius: 12px;
         background: #ffffff;
@@ -607,12 +614,10 @@
     }
     .qr-scan-action:hover,
     .qr-scan-action:focus-visible {
-        border-color: #0f172a;
+        border-color: #64748b;
         background: #f8fafc;
-    }
-    .qr-scan-action:focus-visible {
-        outline: 3px solid rgba(37, 151, 208, 0.28);
-        outline-offset: 2px;
+        outline: none;
+        box-shadow: none;
     }
     .qr-scan-action[aria-pressed="true"] {
         background: #070709;
@@ -620,7 +625,7 @@
         color: #ffffff;
     }
     .qr-scan-action[hidden] {
-        display: none;
+        display: none !important;
     }
     .qr-scan-help {
         max-width: 380px;
@@ -773,7 +778,17 @@
             <div class="operations-quick-actions">
                 @if($permissions['bp_checkin_checkout'])
                     <button type="button" id="open-qr-scanner-btn" class="action-pill-btn btn-obsidian" onclick="openQRScannerModal()">
-                        <i class="fa-solid fa-qrcode"></i> Quét mã QR
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;">
+                            <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                            <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                            <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                            <rect x="7" y="7" width="3" height="3" rx="0.5"/>
+                            <rect x="14" y="7" width="3" height="3" rx="0.5"/>
+                            <rect x="7" y="14" width="3" height="3" rx="0.5"/>
+                            <path d="M14 14h3v3h-3z"/>
+                        </svg>
+                        <span>Quét mã QR</span>
                     </button>
                 @endif
                 @if($permissions['bp_create_booking'] && !$permissions['bp_checkin_checkout'])
@@ -1499,6 +1514,13 @@
                 <p class="qr-scan-help">Giữ mã QR phẳng, nghiêng nhẹ để tránh phản sáng. Nếu màn hình khách quá sáng, hãy giảm độ sáng hoặc chọn ảnh QR đã lưu.</p>
                 <div id="qr-scan-status" role="status" aria-live="polite">Căn mã QR vào khung màu xanh.</div>
                 <div id="qr-scan-error" class="text-danger small mt-1" role="alert" style="display: none;"></div>
+                <div class="mt-3 pt-3 border-top text-start" style="border-color: rgba(0,0,0,0.06) !important;">
+                    <label for="manual-booking-id" class="form-label small fw-semibold mb-1" style="color: #475569; font-size: 0.78rem;">Nhập ID đặt phòng thủ công</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="manual-booking-id" inputmode="numeric" class="form-control form-control-sm" placeholder="Ví dụ: 71 hoặc #71" autocomplete="off" style="min-height: 40px; border-radius: 10px;" onkeydown="if (event.key === 'Enter') { event.preventDefault(); lookupManualBookingId(); }">
+                        <button type="button" id="manual-booking-submit-btn" class="btn btn-dark btn-sm px-3 fw-semibold" style="min-height: 40px; border-radius: 10px; white-space: nowrap;" onclick="lookupManualBookingId()">Tra cứu</button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer px-4 py-3" style="background: #f8fafc; border-top: 1px solid rgba(0,0,0,0.06);">
                 <button type="button" class="btn btn-light w-100 fw-medium" data-bs-dismiss="modal" style="border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); color: #64748b;" onclick="closeQRScanner()">Hủy bỏ</button>
@@ -1609,7 +1631,24 @@
         const parts = String(value).split('-');
         return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]} 14:00` : value;
     }
-    function formatCheckoutVi(value) {
+    function formatCheckoutVi(value, scheduledIso = null) {
+        if (scheduledIso) {
+            const dt = new Date(scheduledIso);
+            if (!Number.isNaN(dt.getTime())) {
+                const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+                    timeZone: 'Asia/Ho_Chi_Minh',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                }).formatToParts(dt).map(p => [p.type, p.value]));
+                if (parts.day && parts.month && parts.year && parts.hour && parts.minute) {
+                    return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`;
+                }
+            }
+        }
         if (!value) return '---';
         const parts = String(value).split('-');
         return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]} 12:00` : value;
@@ -1812,7 +1851,7 @@
                     document.getElementById('occupied-customer-phone').innerText = roomData.customer_phone || '---';
                     document.getElementById('occupied-customer-email').innerText = roomData.active_customer_email || '---';
                     document.getElementById('occupied-checkin').innerText = formatCheckinVi(roomData.active_check_in);
-                    document.getElementById('occupied-checkout').innerText = formatCheckoutVi(roomData.active_check_out);
+                    document.getElementById('occupied-checkout').innerText = formatCheckoutVi(roomData.active_check_out, roomData.active_scheduled_checkout_at);
 
                     const adults = parseInt(roomData.active_adult_count) || 0;
                     const children = parseInt(roomData.active_child_count) || 0;
@@ -2290,7 +2329,7 @@
         document.getElementById('mo-customer').innerText = selectedRoomData.customer_name || '---';
         document.getElementById('mo-room').innerText = 'Phòng ' + selectedRoomData.room_number;
         document.getElementById('mo-checkin').innerText = formatCheckinVi(selectedRoomData.active_check_in);
-        document.getElementById('mo-checkout').innerText = formatDateVi(selectedRoomData.active_check_out);
+        document.getElementById('mo-checkout').innerText = formatCheckoutVi(selectedRoomData.active_check_out, selectedRoomData.active_scheduled_checkout_at);
         
         document.getElementById('mo-total').innerText = new Intl.NumberFormat('vi-VN').format(baseTotal) + ' đ';
         document.getElementById('mo-paid').innerText = new Intl.NumberFormat('vi-VN').format(paid) + ' đ';
@@ -2825,7 +2864,46 @@
         });
     }
 
+    async function lookupManualBookingId() {
+        const inputEl = document.getElementById('manual-booking-id');
+        const rawVal = String(inputEl?.value || '').trim().replace(/^#/, '').trim();
+        if (!/^\d+$/.test(rawVal) || Number(rawVal) <= 0) {
+            setQrScanError('Vui lòng nhập ID đặt phòng hợp lệ (ví dụ: 71).');
+            inputEl?.focus();
+            return;
+        }
+
+        setQrScanError('');
+        await stopQRScanner();
+        const modalEl = document.getElementById('qrScannerModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+        if (inputEl) inputEl.value = '';
+
+        fetch(`{{ route('staff.reception.booking-by-scan') }}?booking_id=${encodeURIComponent(rawVal)}`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || 'Không tìm thấy đơn đặt phòng'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showQRResult(data.booking, data.rooms, data.checkin_token || null);
+                } else {
+                    showToast(data.message || 'Không tìm thấy thông tin đặt phòng.', 'bg-danger');
+                }
+            })
+            .catch(error => {
+                showToast(error.message || 'Không tìm thấy thông tin đặt phòng.', 'bg-danger');
+            });
+    }
+
     function showQRResult(booking, rooms, checkinToken) {
+        const modalTitleEl = document.getElementById('qrResultModalLabel');
+        if (modalTitleEl) {
+            modalTitleEl.innerText = `Thông tin đơn đặt phòng #${booking.id}`;
+        }
         document.getElementById('qr-guest-name').innerText = booking.customer_name;
         document.getElementById('qr-guest-phone').innerText = booking.customer_phone;
         document.getElementById('qr-guest-email').innerText = booking.customer_email || '---';
@@ -2881,7 +2959,7 @@
                 alertContainer.classList.add('alert-info');
                 alertContainer.innerHTML = `<i class="fa-solid fa-circle-info fs-4 text-info"></i><div>Đơn đặt phòng hợp lệ. Có thể tiến hành nhận phòng nhanh cho toàn bộ ${rooms.length} phòng hôm nay.</div>`;
                 btnAction.style.display = 'block';
-                btnAction.onclick = () => performQuickCheckin(checkinToken);
+                btnAction.onclick = () => performQuickCheckin(checkinToken, booking.id);
             } else {
                 alertContainer.classList.add('alert-warning');
                 alertContainer.innerHTML = `<i class="fa-solid fa-triangle-exclamation fs-4 text-warning"></i><div>Cảnh báo: Ngày nhận phòng là ${formatCivilDate(checkinDate)} (không phải hôm nay).</div>`;
@@ -2901,7 +2979,7 @@
         resultModal.show();
     }
 
-    async function performQuickCheckin(checkinToken) {
+    async function performQuickCheckin(checkinToken, bookingId = null) {
         if (!await window.confirmOperation('Xác nhận nhận phòng nhanh cho tất cả các phòng thuộc đơn đặt này?')) return;
         
         fetch("{{ route('staff.reception.quick-checkin') }}", {
@@ -2911,7 +2989,7 @@
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': CSRF_TOKEN
             },
-            body: JSON.stringify({ token: checkinToken })
+            body: JSON.stringify({ token: checkinToken || '', booking_id: bookingId })
         })
         .then(response => response.json())
         .then(data => {

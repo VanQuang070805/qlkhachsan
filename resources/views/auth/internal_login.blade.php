@@ -13,7 +13,7 @@
 <div class="sana-auth-card">
     <header class="sana-heading auth-intro">
         <h1 class="sana-heading__title">{{ $headingTitle }}</h1>
-        <p style="margin: 6px 0 0; font-size: 13px; color: #71717a;">{{ $headingSubtitle }}</p>
+        <p style="margin: 6px 0 0; font-size: 13px; color: #52525b;">{{ $headingSubtitle }}</p>
     </header>
 
     @include('auth.partials.form-status')
@@ -23,6 +23,7 @@
 
         {{-- Username for internal system --}}
         <div class="sana-form-group">
+            <label class="sana-field-label" for="username">Tên đăng nhập <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <input type="text"
                    class="sana-input @error('username') is-invalid @enderror"
                    id="username"
@@ -41,6 +42,7 @@
 
         {{-- Password for internal system --}}
         <div class="sana-form-group">
+            <label class="sana-field-label" for="password">Mật khẩu <span class="sana-required-mark" aria-hidden="true">*</span></label>
             <div class="sana-password-wrap">
                 <input type="password"
                        class="sana-input @error('password') is-invalid @enderror"
@@ -66,22 +68,11 @@
             {{ $activePortal === 'admin' ? 'Đăng nhập Quản trị' : 'Đăng nhập Nhân viên' }}
         </button>
 
-        {{-- Switch between internal portals --}}
-        <div class="sana-switch-link" style="margin-top: 18px;">
-            @if($activePortal === 'admin')
-                <span>Bạn là nhân viên vận hành?</span>
-                <a href="{{ rtrim(config('services.portal.staff_url'), '/') . route('staff.login', [], false) }}">Cổng Nhân viên</a>
-            @else
-                <span>Bạn là quản trị viên?</span>
-                <a href="{{ rtrim(config('services.portal.admin_url'), '/') . route('admin.login', [], false) }}">Cổng Quản trị</a>
-            @endif
-        </div>
-
-        {{-- Return to Customer Login --}}
-        <div class="sana-switch-link" style="margin-top: 8px;">
-            <span>Bạn là khách lưu trú?</span>
-            <a href="{{ rtrim(config('services.portal.customer_url'), '/') . route('login', [], false) }}">Đăng nhập khách hàng</a>
-        </div>
+        <p class="sana-terms" style="margin-top: 16px;">
+            {{ $activePortal === 'admin'
+                ? 'Khu vực dành riêng cho tài khoản Quản trị viên Rosaliza Hotel.'
+                : 'Khu vực dành riêng cho tài khoản Lễ tân và Nhân viên vận hành Rosaliza Hotel.' }}
+        </p>
     </form>
 </div>
 @endsection

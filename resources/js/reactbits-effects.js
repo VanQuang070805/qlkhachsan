@@ -262,7 +262,11 @@ export function initAnimatedContent(elements, { reduceMotion = false } = {}) {
         root.dataset.animatedContentBound = '1';
         root.setAttribute('data-animated-content', '');
 
-        const items = [...root.children].filter((item) => !item.hidden && getComputedStyle(item).display !== 'none');
+        const items = [...root.children].filter((item) => {
+            if (item.hidden) return false;
+            const style = getComputedStyle(item);
+            return style.display !== 'none' && style.position !== 'sticky';
+        });
         const targets = items.length ? items : [root];
         const distance = Number(root.dataset.acDistance || 28);
         const direction = root.dataset.acDirection === 'horizontal' ? 'x' : 'y';

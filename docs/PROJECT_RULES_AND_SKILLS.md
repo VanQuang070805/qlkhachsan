@@ -127,16 +127,19 @@ The admin and staff sidebar/header must remain persistent across their pages. Na
 
 ## 8. Booking, payment and operational logic
 
-- Same-day check-in is available from 12:00 until before 16:00; at 16:00 an unchecked confirmed booking is cancelled.
+- Unified brand identity: **Rosaliza Hotel** (`5B Trần Quốc Toản, Phường Hàng Bài, Quận Hoàn Kiếm, Hà Nội`, hotline `024 3828 9999`, email `contact@rosalizahotel.vn`).
+- Three isolated Docker portals: Customer (`:18080` and `:10800`), Staff (`:18081` and `:10801`), and Admin (`:18082` and `:10802`), plus Internal API (`:18084`), LangGraph Chatbot (`:2024`), MariaDB (`:3306`), Redis (`:16379`/`:16380`), and Kafka (`:19092`).
+- Same-day check-in is available from **14:00 until before 18:00** (`Asia/Ho_Chi_Minh`); at **18:00** an unchecked confirmed booking is automatically cancelled (`bookings:expire-no-shows`), and same-day check-in bookings/holds are rejected at or after 18:00.
+- Customer bookings accept **online 50% deposit only** (`vietqr`, `momo`, `zalopay`, `vnpay`) across both Web and REST API v1. Cash/counter settlement remains available exclusively for front-desk staff walk-in and checkout operations.
 - Customer check-in QR payloads use `ROYAL-CHECKIN:v1:<booking_id>:<32-character nonce>`. The nonce is an expiring, one-time server-side credential; staff scan endpoints validate the full prefixed payload and never look up a booking from a raw invoice ID. Keep legacy encrypted `ROYAL-CHECKIN:` / `POSH-CHECKIN:` payloads readable only until their original expiry.
 - A booking may reserve capacity greater than the entered guest count. It must reject selected room capacity lower than the guest count with one clear inline/animated notice.
 - Unpaid pending booking holds and deposit payment attempts expire after 10 minutes; expired bookings are cancelled and their rooms released. Laravel's scheduler must run (`php artisan schedule:work` locally, `schedule:run` from the production cron).
 - Checkout late fee starts only after the scheduled checkout time plus one-hour grace and equals 50% of one room-night rate, not 50% of the booking total.
 - Hourly stay extension costs 10% of the room-night price per hour through 18:00; crossing 18:00 converts that checkout date to one full night, crediting previously charged extension hours. Daily extension uses the nightly price.
 - Customers may extend confirmed or checked-in stays by whole days only before the checkout date. The server must lock the booking and rooms, reject any overlap with an active reservation, and add the date-adjusted room price to the existing booking snapshot.
-- A confirmed booking with no check-in is automatically cancelled when its arrival date has passed or the 16:00 check-in deadline is reached. The scheduler must run for this status to remain current.
+- A confirmed booking with no check-in is automatically cancelled when its arrival date has passed or the 18:00 check-in deadline is reached. The scheduler must run for this status to remain current.
 - Customer booking views show one clear booking status, not several overlapping status badges.
-- Payment supports configured online methods and cash where the business flow permits it. Steps before payment may be revisited to edit information safely.
+- Payment for customer reservations requires online deposit (`vietqr`, `momo`, `zalopay`, `vnpay`). Steps before payment may be revisited to edit information safely.
 - Live availability, booking, payment and room status come from transactional database queries/tools, never stale vector-store content.
 - Customer room search and detail must show occupied/reserved rooms as disabled choices, including active unpaid pending holds, without adding per-room availability copy. Refresh the shared booking availability result without cache while the page is visible so cancellation, checkout/cleaning and return-to-available changes propagate promptly; expired 10-minute unpaid holds become selectable again only if the physical room status is `available`.
 - `room_types.price` is the canonical base nightly price for customer quotes, booking totals and staff/admin room data. Admin seasonal price settings remain date-specific adjustments over that base; changes to a booking's stored total remain a historical snapshot.

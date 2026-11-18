@@ -32,7 +32,7 @@
 }
 
 .rooms-search__field:focus-within {
-    background: rgba(0, 113, 227, 0.03);
+    background: rgba(15, 23, 42, 0.025);
     border-radius: 12px;
 }
 
@@ -383,7 +383,7 @@
 .rooms-search__submit:focus,
 .rooms-search__submit:focus-visible {
     outline: none !important;
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25) !important;
+    box-shadow: none !important;
 }
 
 /* STRICT BAN ON HARSH BLACK BORDERS ACROSS INTERACTIVE ELEMENTS */

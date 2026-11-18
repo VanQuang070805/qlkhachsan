@@ -245,7 +245,11 @@
     }
 
     async function deleteProfile(profile) {
-        if (!confirm(`Xóa khách "${profile.guest_name}" và vô hiệu hóa Face ID này?`)) return;
+        const message = `Xóa khách "${profile.guest_name}" và vô hiệu hóa Face ID này?`;
+        const confirmed = typeof window.confirmOperation === 'function'
+            ? await window.confirmOperation(message)
+            : window.confirm(message);
+        if (!confirmed) return;
         try {
             const url = endpoint(root.dataset.deleteUrl, '__PROFILE__', profile.id);
             const result = await jsonRequest(url, { method: 'DELETE' });
@@ -399,6 +403,12 @@
     }
 
     function notify(message, background) {
+        if (typeof window.royalToast === 'function') {
+            const bg = String(background || '');
+            const tone = bg.includes('danger') ? 'error' : (bg.includes('warning') ? 'warning' : 'success');
+            window.royalToast(message, tone);
+            return;
+        }
         if (typeof window.showToast === 'function') {
             window.showToast(message, background);
         }

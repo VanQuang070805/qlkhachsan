@@ -185,6 +185,10 @@ export async function getOrCreateThread(
 export async function saveThread(record: ThreadRecord): Promise<void> {
   record.updated_at = new Date().toISOString();
   const payload = dehydrateThread(record);
+  if (!localThreads.has(record.thread_id) && localThreads.size >= MAX_LOCAL_THREADS) {
+    const oldestKey = localThreads.keys().next().value;
+    if (oldestKey) localThreads.delete(oldestKey);
+  }
   localThreads.set(record.thread_id, payload);
 
   const redis = getRedisQueueClient();

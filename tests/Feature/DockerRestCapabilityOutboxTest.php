@@ -67,17 +67,26 @@ class DockerRestCapabilityOutboxTest extends TestCase
             ->assertJsonPath('error.code', 'PORTAL_CONTEXT_MISMATCH');
     }
 
-    public function test_login_pages_link_to_each_portal_host(): void
+    public function test_login_pages_isolate_portal_navigation_links(): void
     {
         $this->get('http://127.0.0.1:18080/login')
             ->assertOk()
-            ->assertSee(rtrim(config('services.portal.staff_url'), '/').'/staff/login', false)
-            ->assertSee(rtrim(config('services.portal.admin_url'), '/').'/admin/login', false);
+            ->assertDontSee('/staff/login', false)
+            ->assertDontSee('/admin/login', false)
+            ->assertDontSee('Cổng Nhân viên')
+            ->assertDontSee('Cổng Quản trị');
 
         $this->get('http://127.0.0.1:18081/staff/login')
             ->assertOk()
-            ->assertSee(rtrim(config('services.portal.customer_url'), '/').'/login', false)
-            ->assertSee(rtrim(config('services.portal.admin_url'), '/').'/admin/login', false);
+            ->assertDontSee('/admin/login', false)
+            ->assertDontSee('Cổng Quản trị')
+            ->assertDontSee('Đăng nhập khách hàng');
+
+        $this->get('http://127.0.0.1:18082/admin/login')
+            ->assertOk()
+            ->assertDontSee('/staff/login', false)
+            ->assertDontSee('Cổng Nhân viên')
+            ->assertDontSee('Đăng nhập khách hàng');
     }
 
     public function test_rest_api_v1_public_customer_staff_admin_contracts_and_idempotency(): void

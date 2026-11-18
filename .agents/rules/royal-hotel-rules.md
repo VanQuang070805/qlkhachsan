@@ -18,10 +18,12 @@ Always follow the newest explicit user instruction first, then [`docs/PROJECT_RU
 - **Customer Visuals**: Keep `Inter` typography, the Royal blue hero gradient (`#779bc1 → #9abfda → #cbdcec`) with ambient stars, borderless-at-top frosted scroll header (no top-left brand on guest pages), white content canvases, and `#2597d0` strictly as a micro-accent (never as a button fill). Do not replace the blue hero with landscape photography unless explicitly asked.
 - **Internal Portals**: Persistent collapsible sidebar and topbar, light-only theme (`data-theme="light"`), scannable data tables and room matrix with FLIP transitions.
 - **Booking & Payment Logic**:
-  - Check-in: `12:00–17:00`; block same-day check-in at/after `17:00`.
+  - Brand: **Rosaliza Hotel** (`5B Trần Quốc Toản, Phường Hàng Bài, Quận Hoàn Kiếm, Hà Nội`). Portals run on `:10800/:18080` (Customer), `:10801/:18081` (Staff), and `:10802/:18082` (Admin).
+  - Check-in: `14:00` until before `18:00`; block same-day check-in at/after `18:00` and auto-cancel unchecked confirmed bookings at `18:00`.
+  - Customer deposit: 50% online deposit only (`vietqr`, `momo`, `zalopay`, `vnpay`). Counter cash is restricted to front-desk walk-in and checkout settlement.
   - Room capacity (`max_guests`) must be `>=` total guests; unpaid `pending` holds expire after `10` minutes and are cancelled by the backend.
   - Late checkout fee starts after `13:00` (12:00 + 1h grace) at **50% of one room-night rate** (not 50% of stay total).
-  - Stay extension: `200,000 VND/hour` or normal nightly rate per day.
+  - Stay extension: `10%` of room-night rate per hour through `18:00` (crossing `18:00` converts to one full night) or normal nightly rate per day.
   - Room status cannot jump from `occupied` to `cleaning` to bypass checkout settlement.
 - **Chatbot & Security**:
   - Live availability, prices, and bookings must come from server tools, never guessed or read from stale vector data.
