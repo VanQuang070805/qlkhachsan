@@ -17,6 +17,7 @@ class LangGraphChatbotService
 {
     public function __construct(
         private readonly ChatbotCapabilityService $capabilities = new ChatbotCapabilityService(),
+        private readonly HotelChatScopeService $scope = new HotelChatScopeService(),
         private readonly CacheVersionService $versions = new CacheVersionService(),
         private readonly OutboxService $outbox = new OutboxService(),
     ) {}
@@ -394,6 +395,7 @@ class LangGraphChatbotService
                             'userReality' => $userReality,
                             'knowledgeVersion' => $this->versions->knowledgeVersion(),
                             'catalogVersion' => $this->versions->catalogVersion(),
+                            'scopePolicy' => $this->scope->upstreamPolicy(),
                         ],
                     ],
                 ]);
@@ -546,6 +548,7 @@ class LangGraphChatbotService
                             'userReality' => $userReality,
                             'knowledgeVersion' => $this->versions->knowledgeVersion(),
                             'catalogVersion' => $this->versions->catalogVersion(),
+                            'scopePolicy' => $this->scope->upstreamPolicy(),
                         ],
                     ],
                 ]);

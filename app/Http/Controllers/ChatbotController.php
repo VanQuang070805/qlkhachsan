@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Chatbot\ChatbotCapabilityService;
+use App\Services\Chatbot\HotelChatScopeService;
 use App\Services\Chatbot\HotelRoomToolService;
 use App\Services\Chatbot\LangGraphChatbotService;
 use App\Services\OutboxService;
@@ -15,6 +16,7 @@ class ChatbotController extends Controller
     public function __construct(
         private readonly LangGraphChatbotService $langGraph,
         private readonly HotelRoomToolService $roomTools,
+        private readonly HotelChatScopeService $scope = new HotelChatScopeService(),
         private readonly ChatbotCapabilityService $capabilities = new ChatbotCapabilityService(),
         private readonly OutboxService $outbox = new OutboxService(),
     ) {}
@@ -38,6 +40,14 @@ class ChatbotController extends Controller
         $message = trim($validated['message']);
         $history = $validated['history'] ?? [];
         $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
+
+        if (! $this->scope->allows($message, $history)) {
+            return response()->json([
+                'source' => 'scope-guard',
+                'reply' => $this->scope->refusal(),
+                'sources' => [],
+            ]);
+        }
 
         if (! $this->langGraph->configured()) {
             return response()->json([
@@ -90,6 +100,10 @@ class ChatbotController extends Controller
         $message = trim($validated['message']);
         $history = $validated['history'] ?? [];
         $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
+
+        if (! $this->scope->allows($message, $history)) {
+            return $this->scopedStreamResponse($this->scope->refusal());
+        }
 
         if (! $this->langGraph->configured()) {
             return response()->json([
@@ -228,11 +242,24 @@ class ChatbotController extends Controller
             'history.*.content' => ['required_with:history', 'string', 'max:1000'],
         ]);
 
+        $message = trim($validated['message']);
+        $history = $validated['history'] ?? [];
+        if (! $this->scope->allows($message, $history)) {
+            return response()->json([
+                'error' => [
+                    'code' => 'CHATBOT_OUT_OF_SCOPE',
+                    'message' => $this->scope->refusal(),
+                    'fields' => (object) [],
+                    'correlation_id' => $corrId,
+                ],
+            ], 422);
+        }
+
         $participant = $this->langGraph->sessionParticipantId($request);
         $capability = $this->capabilities->issueForRequest($request, $participant, $corrId);
         $fingerprint = $this->langGraph->buildFingerprint(
-            trim($validated['message']),
-            $validated['history'] ?? [],
+            $message,
+            $history,
             $capability['actor_scope'],
         );
 
@@ -248,8 +275,8 @@ class ChatbotController extends Controller
             'run_id' => $runId,
             'thread_id' => $thread,
             'participant' => $participant,
-            'message' => trim($validated['message']),
-            'history' => $validated['history'] ?? [],
+            'message' => $message,
+            'history' => $history,
             'fingerprint' => $fingerprint,
             'status' => 'queued',
             'created_at' => now()->toIso8601String(),
@@ -316,6 +343,10 @@ class ChatbotController extends Controller
                     'correlation_id' => $corrId,
                 ],
             ], 404);
+        }
+
+        if (! $this->scope->allows((string) $record['message'], is_array($record['history'] ?? null) ? $record['history'] : [])) {
+            return $this->scopedStreamResponse($this->scope->refusal());
         }
 
         $threadId = $this->langGraph->ensureThreadId($request) ?: (string) $record['thread_id'];
@@ -475,5 +506,18 @@ class ChatbotController extends Controller
         $request->attributes->set('verified_chatbot_capability', $verification);
 
         return null;
+    }
+
+    private function scopedStreamResponse(string $reply)
+    {
+        return response()->stream(function () use ($reply) {
+            echo ": connected\n\n";
+            echo 'data: '.json_encode(['delta' => $reply], JSON_UNESCAPED_UNICODE)."\n\n";
+            echo 'data: '.json_encode(['done' => true, 'source' => 'scope-guard', 'sources' => []], JSON_UNESCAPED_UNICODE)."\n\n";
+        }, 200, [
+            'Content-Type' => 'text/event-stream; charset=UTF-8',
+            'Cache-Control' => 'no-cache, no-transform',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 }
