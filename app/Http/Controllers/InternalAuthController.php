@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class InternalAuthController extends Controller
 {
@@ -106,6 +108,8 @@ class InternalAuthController extends Controller
             return back()->withInput($request->only('username'))
                 ->withErrors(['username' => $lockedMessage]);
         }
+
+        RateLimiter::clear('internal-id:'.Str::lower($username));
 
         $userData = [
             'id'       => $user->id,

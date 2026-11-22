@@ -420,7 +420,11 @@
     cancelEnrollmentButton.addEventListener('click', cancelEnrollment);
     saveButton.addEventListener('click', saveProfile);
     cancelEditButton.addEventListener('click', resetForm);
+    modalElement.addEventListener('show.bs.modal', () => {
+        document.body.classList.add('face-guest-modal-open');
+    });
     modalElement.addEventListener('hidden.bs.modal', async () => {
+        document.body.classList.remove('face-guest-modal-open');
         if (sessionId) await cancelEnrollment();
         enrolling = false;
         stopCamera();

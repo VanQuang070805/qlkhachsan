@@ -215,3 +215,16 @@ A change is complete only when applicable checks pass:
 - A cancellation refund is available only when the booking is paid and an amount was actually collected. The refund request amount is capped at the booking total and uses the successful payment log sum (legacy fallback: `deposit_amount`). Staff marks the refund complete only after performing it through the payment provider; database status alone does not send money.
 - Current refund window: cancel at least 5 days before weekday check-in, or 3 days before weekend/holiday check-in. Keep the UI, `Booking::refundDeadlineDays()`, and tests aligned if this policy changes.
 - Room detail disables booking while selected guests exceed total, adult, or child capacity across the selected rooms. Server validation remains authoritative if a request bypasses the browser UI.
+
+## 14. Room 101 Raspberry Pi test rig
+
+- The active Raspberry Pi test rig targets room `101` for both Face ID and the housekeeping switch. Runtime values remain environment-driven through `FACE_PI_ROOM_NUMBER` and `IOT_CLEANING_ROOM_NUMBER`.
+- The servo signal uses BCM GPIO 18 (physical pin 12) with an external 5 V supply and a shared ground. The housekeeping switch uses BCM GPIO 17 (physical pin 11) to ground with the Pi's internal pull-up.
+- The laptop exposes the authenticated IoT endpoint on port `18084` through `IOT_LAN_BIND_IP`. Keep API keys server-side and follow [`TEST-PI.md`](TEST-PI.md) for setup and verification.
+
+## 15. Internal booking calendar and early arrival
+
+- Admin and receptionist users with `bp_view_schedule` share the canonical booking calendar at `/staff/booking-calendar`; search and date/status filters read directly from bookings and assigned rooms.
+- Early check-in is an explicit staff action, not a general relaxation of check-in rules. It is allowed only on the booked arrival date before 14:00, for a confirmed and payment-eligible booking whose assigned rooms are all available. Normal date, conflict, room-state and authorization checks remain authoritative.
+- The internal notification bell combines bookings created in the last 24 hours with unresolved room-cleaning requests. Opening the panel marks booking notices as seen, while cleaning requests remain actionable until completed.
+- Booking calendar edits require `bp_create_booking`. Paid bookings allow contact corrections only; unpaid pending/confirmed bookings may also change dates, guests and rooms after availability and capacity checks. The calendar's delete action is a recorded cancellation, never a hard delete, and preserves refund eligibility data.

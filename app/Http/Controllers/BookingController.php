@@ -418,6 +418,20 @@ class BookingController extends Controller
     }
 
     /**
+     * Cho phép lễ tân nhận phòng trước 14:00 trong đúng ngày đến khi phòng đã sẵn sàng.
+     */
+    public function earlyCheckIn(int $id)
+    {
+        try {
+            $booking = app(\App\Services\BookingTransitionService::class)->checkIn($id, true);
+
+            return back()->with('success', "Đã check-in sớm booking #{$booking->id}.");
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
      * Ghi nhận khách check-out (occupied → completed).
      */
     public function checkOut(int $id)

@@ -21,7 +21,10 @@ class FaceIdServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['face_id.sync_immediately' => false]);
+        config([
+            'face_id.sync_immediately' => false,
+            'face_id.pi_room_number' => '501',
+        ]);
 
         Schema::create('users', function (Blueprint $table) {
             $table->id();

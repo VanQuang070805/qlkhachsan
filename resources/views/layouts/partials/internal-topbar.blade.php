@@ -1,3 +1,8 @@
+@php
+    $topbarUserId = session('staff_user_id') ?: session('admin_user_id') ?: session('auth_user_id');
+    $topbarUser = $topbarUserId ? \App\Models\User::find($topbarUserId) : auth()->user();
+    $topbarCanViewSchedule = $topbarUser?->hasInternalPermission('bp_view_schedule') ?? false;
+@endphp
 <header class="internal-topbar">
     <div class="topbar-left">
         <button type="button" class="sidebar-mobile-toggle" aria-label="Mở danh mục điều hướng" id="sidebarMobileToggle">
@@ -22,6 +27,23 @@
     </div>
 
     <div class="topbar-right">
+        @if($topbarCanViewSchedule)
+            <div class="internal-notifications" data-notifications data-index-url="{{ route('staff.notifications.index') }}" data-read-url="{{ route('staff.notifications.read') }}">
+                <button class="notification-trigger" type="button" data-notification-trigger aria-label="Thông báo nhân viên" aria-expanded="false" aria-controls="internalNotificationPanel">
+                    <i class="bi bi-bell" aria-hidden="true"></i>
+                    <span class="notification-badge" data-notification-count hidden>0</span>
+                </button>
+                <section class="notification-panel" id="internalNotificationPanel" data-notification-panel hidden aria-label="Thông báo mới">
+                    <header>
+                        <div><strong>Thông báo</strong><span>Booking mới và yêu cầu dọn phòng</span></div>
+                        <button type="button" data-notification-close aria-label="Đóng thông báo"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                    </header>
+                    <div class="notification-list" data-notification-list role="list"></div>
+                    <div class="notification-empty" data-notification-empty hidden>Chưa có thông báo mới.</div>
+                    <footer><a href="{{ route('staff.booking-calendar') }}">Mở lịch đặt phòng</a></footer>
+                </section>
+            </div>
+        @endif
         <div class="topbar-clock" id="topbarLiveClock" title="Thời gian hiện tại">
             <i class="bi bi-clock text-primary"></i>
             <span id="topbarClockText">--:--:--</span>

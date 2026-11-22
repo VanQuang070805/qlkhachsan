@@ -263,7 +263,7 @@ class ReceptionController extends Controller
                    ) as today_deposit_amount
             FROM rooms r
             JOIN room_types rt ON r.room_type_id = rt.id
-            ORDER BY r.floor DESC, r.room_number ASC
+            ORDER BY r.floor ASC, r.room_number ASC
         ";
 
         $sql = str_replace('b.updated_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)', $this->pendingHoldExpirySql(), $sql);

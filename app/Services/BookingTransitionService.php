@@ -9,16 +9,16 @@ use Illuminate\Support\Facades\DB;
 
 class BookingTransitionService
 {
-    public function checkIn(int $bookingId): Booking
+    public function checkIn(int $bookingId, bool $allowEarlyCheckIn = false): Booking
     {
         app(ExpireNoShowBookings::class)->cancelIfDue($bookingId);
-        return DB::transaction(function () use ($bookingId) {
+        return DB::transaction(function () use ($bookingId, $allowEarlyCheckIn) {
             $booking = Booking::with('rooms')->lockForUpdate()->findOrFail($bookingId);
             if ($booking->status !== 'confirmed') throw new DomainException('Booking phải ở trạng thái đã xác nhận.');
             if ($booking->check_in->toDateString() !== now('Asia/Ho_Chi_Minh')->toDateString()) {
                 throw new DomainException('Booking chưa đến ngày nhận phòng.');
             }
-            if (now('Asia/Ho_Chi_Minh')->hour < 14) {
+            if (now('Asia/Ho_Chi_Minh')->hour < 14 && ! $allowEarlyCheckIn) {
                 throw new DomainException('Chưa đến giờ nhận phòng (14:00).');
             }
             if (now('Asia/Ho_Chi_Minh')->hour >= 18) {
@@ -29,6 +29,9 @@ class BookingTransitionService
             }
 
             $roomIds = $booking->rooms->pluck('id');
+            if ($roomIds->isEmpty()) {
+                throw new DomainException('Booking chưa được gán phòng để nhận khách.');
+            }
             $rooms = Room::whereIn('id', $roomIds)->orderBy('id')->lockForUpdate()->get();
             if ($rooms->count() !== $roomIds->count() || $rooms->contains(fn ($room) => $room->status !== Room::STATUS_AVAILABLE)) {
                 throw new DomainException('Một hoặc nhiều phòng chưa sẵn sàng để nhận khách.');

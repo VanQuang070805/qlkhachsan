@@ -57,6 +57,104 @@ document.addEventListener('DOMContentLoaded', () => {
         sync();
     });
 
+    const notifications = document.querySelector('[data-notifications]');
+    if (notifications) {
+        const trigger = notifications.querySelector('[data-notification-trigger]');
+        const panel = notifications.querySelector('[data-notification-panel]');
+        const list = notifications.querySelector('[data-notification-list]');
+        const empty = notifications.querySelector('[data-notification-empty]');
+        const badge = notifications.querySelector('[data-notification-count]');
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+        const renderNotifications = payload => {
+            list.replaceChildren();
+            const items = Array.isArray(payload.items) ? payload.items : [];
+            items.forEach(item => {
+                const link = document.createElement('a');
+                link.className = `notification-item is-${item.type === 'cleaning' ? 'cleaning' : 'booking'}`;
+                link.href = item.url;
+                link.setAttribute('role', 'listitem');
+
+                const icon = document.createElement('i');
+                icon.className = item.type === 'cleaning' ? 'bi bi-stars' : 'bi bi-calendar-plus';
+                icon.setAttribute('aria-hidden', 'true');
+
+                const body = document.createElement('span');
+                const title = document.createElement('strong');
+                title.textContent = item.title || 'Thông báo';
+                const message = document.createElement('span');
+                message.textContent = item.message || '';
+                const time = document.createElement('small');
+                time.textContent = item.time
+                    ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }).format(new Date(item.time))
+                    : '';
+                body.append(title, message, time);
+                link.append(icon, body);
+                list.append(link);
+            });
+
+            empty.hidden = items.length > 0;
+            const count = Math.max(0, Number(payload.unread_count) || 0);
+            badge.textContent = count > 99 ? '99+' : String(count);
+            badge.hidden = count === 0;
+            trigger.setAttribute('aria-label', count ? `Thông báo nhân viên, ${count} mục cần xem` : 'Thông báo nhân viên');
+        };
+
+        const loadNotifications = async () => {
+            try {
+                const response = await fetch(notifications.dataset.indexUrl, { headers: { Accept: 'application/json' } });
+                if (response.ok) renderNotifications(await response.json());
+            } catch (_) {
+                // Keep the last successful notification state during a brief network interruption.
+            }
+        };
+
+        const setPanelOpen = async open => {
+            panel.hidden = !open;
+            trigger.setAttribute('aria-expanded', String(open));
+            if (!open) return;
+            await loadNotifications();
+            try {
+                await fetch(notifications.dataset.readUrl, {
+                    method: 'POST',
+                    headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                    body: '{}',
+                });
+                await loadNotifications();
+            } catch (_) {
+                // Reading the list still works even if the seen marker cannot be persisted.
+            }
+        };
+
+        trigger.addEventListener('click', () => setPanelOpen(panel.hidden));
+        notifications.querySelector('[data-notification-close]')?.addEventListener('click', () => setPanelOpen(false));
+        document.addEventListener('click', event => {
+            if (!panel.hidden && event.target instanceof Node && !notifications.contains(event.target)) setPanelOpen(false);
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !panel.hidden) {
+                setPanelOpen(false);
+                trigger.focus();
+            }
+        });
+        loadNotifications();
+        window.setInterval(loadNotifications, 30000);
+    }
+
+    document.querySelectorAll('[data-booking-url]').forEach(row => {
+        const open = event => {
+            if (event.target instanceof Element && event.target.closest('a,button,input,select,textarea,form')) return;
+            window.location.assign(row.dataset.bookingUrl);
+        };
+        row.addEventListener('click', open);
+        row.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                open(event);
+            }
+        });
+    });
+
     // Keep the booking destination visually identical in both internal portals.
     document.querySelectorAll('.workspace-sidebar a[href*="/staff/bookings"] i').forEach(icon => {
         icon.className = 'bi bi-calendar2-check';

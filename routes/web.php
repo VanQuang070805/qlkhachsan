@@ -117,6 +117,8 @@ Route::middleware(['auth.custom', 'verified.custom'])->group(function () {
 // RECEPTIONIST — Legacy profile redirect & POST compatibility
 // ============================================================
 use App\Http\Controllers\ReceptionUserController;
+use App\Http\Controllers\BookingScheduleController;
+use App\Http\Controllers\InternalNotificationController;
 
 Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('receptionist')->name('receptionist.')->group(function () {
     Route::get('/profile', fn () => redirect()->route('staff.profile'))->name('profile');
@@ -147,8 +149,15 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
     });
 
     Route::get('/bookings', [ReceptionController::class, 'index'])->middleware('permission:bp_view_schedule')->name('bookings');
+    Route::get('/booking-calendar', [BookingScheduleController::class, 'index'])->middleware('permission:bp_view_schedule')->name('booking-calendar');
+    Route::get('/booking-calendar/{booking}', [BookingScheduleController::class, 'show'])->middleware('permission:bp_view_schedule')->name('booking-calendar.show');
+    Route::patch('/booking-calendar/{booking}', [BookingScheduleController::class, 'update'])->middleware('permission:bp_create_booking')->name('booking-calendar.update');
+    Route::delete('/booking-calendar/{booking}', [BookingScheduleController::class, 'destroy'])->middleware('permission:bp_create_booking')->name('booking-calendar.destroy');
+    Route::get('/notifications', [InternalNotificationController::class, 'index'])->middleware('permission:bp_view_schedule')->name('notifications.index');
+    Route::post('/notifications/read', [InternalNotificationController::class, 'markRead'])->middleware('permission:bp_view_schedule')->name('notifications.read');
     Route::patch('/bookings/{id}/confirm', [BookingController::class, 'confirm'])->middleware('permission:bp_create_booking')->name('bookings.confirm');
     Route::patch('/bookings/{id}/checkin', [BookingController::class, 'checkIn'])->middleware('permission:bp_checkin_checkout')->name('bookings.checkin');
+    Route::patch('/bookings/{id}/early-checkin', [BookingController::class, 'earlyCheckIn'])->middleware('permission:bp_checkin_checkout')->name('bookings.early-checkin');
     Route::patch('/bookings/{id}/checkout', [BookingController::class, 'checkOut'])->middleware(['permission:bp_checkin_checkout', 'permission:tn_collect_payment'])->name('bookings.checkout');
     Route::patch('/bookings/{id}/refund', [CancellationController::class, 'processRefund'])->middleware('permission:tn_refund')->name('bookings.refund');
     Route::get('/bookings/{id}/vietqr', [PaymentController::class, 'staffVietQR'])

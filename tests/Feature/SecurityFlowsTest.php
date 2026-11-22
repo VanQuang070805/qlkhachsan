@@ -14,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -125,6 +126,21 @@ class SecurityFlowsTest extends TestCase
 
         $this->post('/staff/login', ['username' => 'missing', 'password' => 'wrong'])
             ->assertStatus(429);
+    }
+
+    public function test_successful_internal_login_clears_the_identity_rate_limit(): void
+    {
+        $staff = $this->staff('rate-limit-reset@example.com', 'receptionist');
+        $key = 'internal-id:'.strtolower($staff->username);
+
+        RateLimiter::hit($key, 60);
+
+        $this->post(route('staff.login.submit'), [
+            'username' => $staff->username,
+            'password' => 'password123',
+        ])->assertRedirect();
+
+        $this->assertSame(0, RateLimiter::attempts($key));
     }
 
     public function test_internal_login_errors_are_attached_to_the_relevant_field(): void

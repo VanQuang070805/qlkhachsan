@@ -391,6 +391,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap;
         gap: 8px;
     }
     .room-number {
@@ -407,6 +408,7 @@
     .room-status-badge {
         display: inline-flex;
         align-items: center;
+        flex: 0 0 auto;
         gap: 5px;
         padding: 3px 9px;
         border-radius: 999px;
@@ -414,6 +416,8 @@
         font-weight: 600;
         letter-spacing: -0.01em;
         line-height: 1.2;
+        max-width: 100%;
+        white-space: nowrap;
     }
     .badge-dot {
         width: 6px;
@@ -1109,7 +1113,6 @@
         </div>
 
         <!-- Operational Business Buttons -->
-        @if($permissions['bp_checkin_checkout'] || $permissions['bp_extend_stay'] || $permissions['bp_clean_status'])
         <div class="mt-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <span class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 0.06em;">Nghiệp vụ phòng</span>
@@ -1137,6 +1140,10 @@
                         <span>Hoàn tất yêu cầu dọn</span>
                     </button>
                 @endif
+                <button type="button" class="staff-action-btn staff-action-secondary btn-action" id="btn-action-face-id" onclick="openSelectedRoomFaceId()">
+                    <i class="bi bi-person-bounding-box"></i>
+                    <span>Đăng ký / quản lý Face ID</span>
+                </button>
                 @if($permissions['bp_extend_stay'])
                     <button type="button" class="staff-action-btn staff-action-secondary btn-action" id="btn-action-extend" onclick="openExtendStayModal()">
                         <i class="bi bi-calendar-plus"></i>
@@ -1145,7 +1152,6 @@
                 @endif
             </div>
         </div>
-        @endif
         <div style="height: 28px; flex-shrink: 0;" aria-hidden="true"></div>
     </div>
 
@@ -1596,6 +1602,8 @@
     </div>
 </div>
 
+@include('staff.partials.face-guest-manager')
+
 <script>
     // Laravel Base URL & CSRF Token
     const BASE_URL = "{{ url('/') }}";
@@ -1924,12 +1932,14 @@
         const btnExtend = document.getElementById('btn-action-extend');
         const btnCleaningDone = document.getElementById('btn-action-cleaning-done');
         const btnCleaningRequestDone = document.getElementById('btn-action-cleaning-request-done');
+        const btnFaceId = document.getElementById('btn-action-face-id');
 
         if (btnAvailable) { btnAvailable.style.display = 'none'; btnAvailable.disabled = false; }
         if (btnOccupied) { btnOccupied.style.display = 'none'; btnOccupied.disabled = false; }
         if (btnExtend) { btnExtend.style.display = 'none'; btnExtend.disabled = false; }
         if (btnCleaningDone) { btnCleaningDone.style.display = 'none'; btnCleaningDone.disabled = false; }
         if (btnCleaningRequestDone) { btnCleaningRequestDone.style.display = 'none'; btnCleaningRequestDone.disabled = false; }
+        if (btnFaceId) { btnFaceId.style.display = 'none'; btnFaceId.disabled = false; }
 
         const isOccupied = isOccupiedStatus(currentStatus) || (selectedRoomData && parseInt(selectedRoomData.has_active_booking) > 0);
 
@@ -1940,6 +1950,7 @@
             if (btnOccupied && canCheckInSelectedRoom) btnOccupied.style.display = 'block';
         } else if (isOccupied) {
             if (btnAvailable) btnAvailable.style.display = 'block';
+            if (btnFaceId && selectedRoomData?.active_booking_id) btnFaceId.style.display = 'block';
             if (btnExtend) {
                 btnExtend.style.display = 'block';
                 btnExtend.disabled = !(selectedRoomData && parseInt(selectedRoomData.has_active_booking) > 0);
@@ -1950,6 +1961,21 @@
         } else if (currentStatus === 'cleaning') {
             if (btnCleaningDone) btnCleaningDone.style.display = 'block';
         }
+    }
+
+    function openSelectedRoomFaceId() {
+        if (!selectedRoomData?.active_booking_id || !selectedRoomData?.id) {
+            showToast('Chỉ đăng ký Face ID cho phòng đang có khách lưu trú.', 'bg-warning text-dark');
+            return;
+        }
+
+        window.openFaceGuestManager?.({
+            bookingId: selectedRoomData.active_booking_id,
+            roomId: selectedRoomData.id,
+            roomNumber: selectedRoomData.room_number,
+            customerName: selectedRoomData.customer_name,
+            customerPhone: selectedRoomData.customer_phone,
+        });
     }
 
     async function completeCleaningRequest() {
@@ -3027,4 +3053,5 @@
     }
 
 </script>
+<script src="{{ asset('js/face-guest-manager.js') }}?v={{ filemtime(public_path('js/face-guest-manager.js')) }}" defer></script>
 @endsection

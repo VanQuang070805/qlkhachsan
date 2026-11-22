@@ -198,6 +198,7 @@ class FilterConsistencyTest extends TestCase
         $customer = $this->customer();
         $type = RoomType::create(['type_name' => 'Staff Filter Room', 'price' => 10000, 'max_adults' => 2, 'max_children' => 0, 'max_guests' => 2]);
         $room = Room::create(['room_number' => 'FILTER-101', 'floor' => 1, 'room_type_id' => $type->id, 'status' => 'occupied']);
+        Room::create(['room_number' => 'FILTER-1001', 'floor' => 10, 'room_type_id' => $type->id, 'status' => 'available']);
         $booking = $this->booking($customer, 'checked_in');
         $booking->update(['check_in' => now()->subDay()->toDateString(), 'check_out' => now()->addDay()->toDateString()]);
         $booking->rooms()->attach($room->id);
@@ -215,6 +216,14 @@ class FilterConsistencyTest extends TestCase
         $this->assertMatchesRegularExpression('/data-search="[^"]*filter-101[^"]*\b'.$booking->id.'\b[^"]*"/', $html);
         $this->assertStringContainsString('class="staff-floor-nav"', $html);
         $this->assertStringContainsString('data-floor-tab="1"', $html);
+        $this->assertStringContainsString('id="btn-action-face-id"', $html);
+        $this->assertStringContainsString('id="faceGuestModal"', $html);
+        $this->assertStringContainsString('window.openFaceGuestManager?.({', $html);
+        $this->assertStringNotContainsString('window.location.assign(url)', $html);
+        $this->assertLessThan(
+            strpos($html, 'data-floor-num="10"'),
+            strpos($html, 'data-floor-num="1"'),
+        );
     }
 
     public function test_admin_role_filter_includes_legacy_accounts_without_role_id(): void

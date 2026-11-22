@@ -23,7 +23,8 @@
         <a class="{{ request()->routeIs('admin.dashboard','admin.reports')?'is-active':'' }}" href="{{ route('admin.reports') }}"><i class="bi bi-grid-1x2" aria-hidden="true"></i><span>Tổng quan</span></a>
         
         <div class="sidebar-section-label">VẬN HÀNH KHÁCH SẠN</div>
-        <a class="{{ request()->routeIs('staff.bookings')?'is-active':'' }}" href="{{ route('staff.bookings') }}"><i class="bi bi-calendar2-week" aria-hidden="true"></i><span>Sơ đồ phòng</span></a>
+        <a class="{{ request()->routeIs('staff.bookings')?'is-active':'' }}" href="{{ route('staff.bookings') }}"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i><span>Sơ đồ phòng</span></a>
+        <a class="{{ request()->routeIs('staff.booking-calendar')?'is-active':'' }}" href="{{ route('staff.booking-calendar') }}"><i class="bi bi-calendar2-week" aria-hidden="true"></i><span>Lịch đặt phòng</span></a>
         <a class="{{ request()->routeIs('admin.rooms.*','admin.room-types.*')?'is-active':'' }}" href="{{ route('admin.rooms.index') }}"><i class="bi bi-door-open" aria-hidden="true"></i><span>Phòng &amp; hạng phòng</span></a>
         <a class="{{ request()->routeIs('staff.iot','staff.face-id.*')?'is-active':'' }}" href="{{ route('staff.iot') }}"><i class="bi bi-person-bounding-box" aria-hidden="true"></i><span>Face ID &amp; IoT</span></a>
         <a class="{{ request()->routeIs('staff.cancellations')?'is-active':'' }}" href="{{ route('staff.cancellations') }}"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i><span>Hủy phòng &amp; hoàn tiền</span></a>

@@ -65,7 +65,7 @@ class AppServiceProvider extends ServiceProvider
             $identity = Str::lower(trim((string) $request->input('username')));
 
             return [
-                Limit::perMinute(20)->by('internal-ip:'.$request->ip()),
+                Limit::perMinute(60)->by('internal-ip:'.$request->ip()),
                 Limit::perMinute(8)->by('internal-id:'.$identity),
             ];
         });
