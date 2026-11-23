@@ -561,7 +561,8 @@
     display: grid;
     place-items: center;
 }
-.my-bookings-search-input {
+.my-bookings-page .my-bookings-search-input,
+input.my-bookings-search-input {
     width: 100%;
     min-height: 44px;
     padding: 8px 38px 8px 40px;
@@ -569,7 +570,10 @@
     border: 1px solid #dce3ea;
     background: #ffffff;
     color: #0f172a;
-    font-size: 13.5px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
 }
 .my-bookings-search-input:focus {
     outline: none;
@@ -587,28 +591,34 @@
     color: #475569;
     display: grid;
     place-items: center;
-    font-size: 11px;
+    font-size: 11px !important;
 }
-.my-bookings-type-select {
+.my-bookings-page .my-bookings-type-select,
+select.my-bookings-type-select {
     min-height: 44px;
     padding: 0 34px 0 16px;
     border-radius: 999px;
     border: 1px solid #dce3ea;
     background-color: #ffffff;
     color: #0f172a;
-    font-size: 13.5px;
-    font-weight: 500;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
     cursor: pointer;
 }
-.my-bookings-reset-link {
+.my-bookings-page .my-bookings-reset-link,
+a.my-bookings-reset-link {
     min-height: 44px;
     padding: 0 14px;
     border-radius: 999px;
     border: 1px solid #e2e8f0;
     background: #f8fafc;
-    color: #334155;
-    font-size: 13px;
-    font-weight: 500;
+    color: #334155 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
     display: inline-flex;
     align-items: center;
     text-decoration: none;
@@ -635,11 +645,14 @@
 .my-bookings-tabs::-webkit-scrollbar {
     display: none;
 }
-.my-bookings-tabs .filter-tab {
+.my-bookings-page .my-bookings-tabs .filter-tab,
+button.filter-tab {
     min-height: 40px;
     white-space: nowrap;
-    font-size: 13px;
-    font-weight: 500;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
 }
 .my-bookings-list {
     display: flex;
@@ -702,34 +715,42 @@
     align-items: center;
     gap: 8px;
 }
-.booking-code-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    min-height: 32px;
-    padding: 4px 12px;
-    border-radius: 999px;
-    border: 1px solid #cbd5e1;
-    background: #f8fafc;
-    color: #0f172a;
-    font-size: 12px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    cursor: pointer;
-    transition: background 0.18s ease, border-color 0.18s ease;
+.my-bookings-page .booking-code-pill,
+button.booking-code-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    min-height: 28px !important;
+    padding: 4px 12px !important;
+    border-radius: 999px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    font-variant-numeric: tabular-nums !important;
+    cursor: pointer !important;
+    transition: background 0.18s ease, border-color 0.18s ease !important;
 }
-.booking-code-pill:hover {
-    background: #0f172a;
-    border-color: #0f172a;
-    color: #ffffff;
+.my-bookings-page .booking-code-pill:hover,
+button.booking-code-pill:hover {
+    background: #0f172a !important;
+    border-color: #0f172a !important;
+    color: #ffffff !important;
 }
+.my-bookings-page .booking-status-badge,
 .booking-status-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 11px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    font-weight: 600;
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 28px !important;
+    padding: 4px 12px !important;
+    border-radius: 999px !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
 }
 .booking-status-badge--upcoming {
     background: #ecfdf5;
@@ -801,18 +822,23 @@
     justify-content: flex-end;
     gap: 8px;
 }
+.my-bookings-page .booking-action-btn,
+button.booking-action-btn,
+a.booking-action-btn,
 .booking-action-btn {
-    min-height: 40px;
-    padding: 7px 14px;
-    border-radius: 999px;
-    font-size: 12.5px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    text-decoration: none;
-    cursor: pointer;
-    transition: transform 0.16s ease, background 0.16s ease;
+    min-height: 40px !important;
+    padding: 7px 14px !important;
+    border-radius: 999px !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: transform 0.16s ease, background 0.16s ease !important;
 }
 .booking-action-btn--primary,
 a.booking-action-btn--primary {
