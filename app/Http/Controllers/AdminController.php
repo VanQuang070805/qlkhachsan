@@ -47,7 +47,7 @@ class AdminController extends Controller
 
         $bookingModel = new Booking();
         $userModel    = new User();
-        $reportViewerId = session('staff_user_id') ?: session('auth_user_id');
+        $reportViewerId = session('admin_user_id') ?: session('staff_user_id') ?: session('auth_user_id');
         $canViewReportBookings = User::query()->find($reportViewerId)?->isAdmin() ?? false;
         $chartFilters = $filters;
 

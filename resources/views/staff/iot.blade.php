@@ -312,11 +312,19 @@
 @endpush
 
 @section('content')
+@php
+    $iotPrefix = (
+        request()->is('admin*')
+        || in_array((int) request()->getPort(), [18082, 10802], true)
+        || strtolower((string) (request()->header('X-Portal-Context') ?: config('services.portal.context', ''))) === 'admin'
+        || str_contains(strtolower(request()->getHost()), 'admin')
+    ) ? 'admin' : 'staff';
+@endphp
 <main class="iot-page" id="face-id-app"
-      data-recognize-url="{{ route('staff.face-id.recognize') }}"
-      data-health-url="{{ route('staff.face-id.health') }}"
-      data-sync-url="{{ route('staff.face-id.sync') }}"
-      data-full-sync-url="{{ route('staff.face-id.full-sync') }}">
+      data-recognize-url="{{ route($iotPrefix.'.face-id.recognize') }}"
+      data-health-url="{{ route($iotPrefix.'.face-id.health') }}"
+      data-sync-url="{{ route($iotPrefix.'.face-id.sync') }}"
+      data-full-sync-url="{{ route($iotPrefix.'.face-id.full-sync') }}">
     
     {{-- Header with clear spacing below internal topbar --}}
     <div class="iot-header">

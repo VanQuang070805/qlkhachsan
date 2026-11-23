@@ -23,7 +23,12 @@ class SetContextSessionMiddleware
             18084 => 'internal',
             10804 => 'internal',
         ];
+        $host = strtolower((string) $request->getHost());
+        $hostContext = str_contains($host, 'admin')
+            ? 'admin'
+            : (str_contains($host, 'staff') ? 'staff' : null);
         $portalContext = $portMap[(int) $request->getPort()]
+            ?? $hostContext
             ?? strtolower(trim((string) ($request->header('X-Portal-Context') ?: config('services.portal.context', 'all'))));
         $isStaffPath = $request->is('staff*')
             || $request->is('admin*')
@@ -33,7 +38,10 @@ class SetContextSessionMiddleware
             || $request->is('api/v1/admin*');
 
         if ($isStaffPath) {
-            $staffId = session('staff_user_id') ?: session('admin_user_id') ?: Auth::guard('staff')->id() ?: Auth::guard('admin')->id();
+            $isAdminRoute = $request->is('admin*') || $request->is('api/v1/admin*') || $portalContext === 'admin';
+            $staffId = $isAdminRoute
+                ? (session('admin_user_id') ?: session('staff_user_id') ?: Auth::guard('admin')->id() ?: Auth::guard('staff')->id())
+                : (session('staff_user_id') ?: session('admin_user_id') ?: Auth::guard('staff')->id() ?: Auth::guard('admin')->id());
             $u = $staffId ? User::find($staffId) : null;
 
             if ($u && in_array($u->role, ['admin', 'receptionist'], true) && $u->verified) {
@@ -146,6 +154,14 @@ class SetContextSessionMiddleware
                 return $adminId
                     ? redirect()->route('admin.dashboard')
                     : redirect()->route('admin.login');
+            }
+
+            if ($request->isMethod('GET') && ($request->is('staff') || $request->is('staff/*'))) {
+                if ($request->is('staff/login')) {
+                    return redirect()->route('admin.login');
+                }
+                $adminUri = preg_replace('#^/staff(?=/|$)#', '/admin', $request->getRequestUri());
+                return redirect($adminUri ?: route('admin.dashboard'));
             }
 
             $allowed = $request->is('admin*')

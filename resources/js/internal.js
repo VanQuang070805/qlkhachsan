@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Keep the booking destination visually identical in both internal portals.
-    document.querySelectorAll('.workspace-sidebar a[href*="/staff/bookings"] i').forEach(icon => {
+    document.querySelectorAll('.workspace-sidebar a[href*="/staff/bookings"] i, .workspace-sidebar a[href*="/admin/bookings"] i').forEach(icon => {
         icon.className = 'bi bi-calendar2-check';
     });
 

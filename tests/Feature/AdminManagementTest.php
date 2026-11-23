@@ -657,15 +657,15 @@ class AdminManagementTest extends TestCase
         $this->asInternal($admin)
             ->get('http://127.0.0.1:18082/admin/users')
             ->assertOk()
-            ->assertSee('/staff/profile', false)
+            ->assertSee('/admin/profile', false)
             ->assertDontSee('/receptionist/profile', false);
 
-        $this->get('http://127.0.0.1:18082/staff/profile')->assertOk()->assertSee('Hồ Sơ Cá Nhân');
-        $this->post('http://127.0.0.1:18082/staff/profile/update-info', [
+        $this->get('http://127.0.0.1:18082/admin/profile')->assertOk()->assertSee('Hồ Sơ Cá Nhân');
+        $this->post('http://127.0.0.1:18082/admin/profile/update-info', [
             'fullname' => 'Admin Portal',
             'email' => $admin->email,
             'phone' => '0912345678',
-        ])->assertRedirect(route('staff.profile'));
+        ])->assertRedirect(route('admin.profile'));
         $this->assertDatabaseHas('users', ['id' => $admin->id, 'fullname' => 'Admin Portal']);
     }
 

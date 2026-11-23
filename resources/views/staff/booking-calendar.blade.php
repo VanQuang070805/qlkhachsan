@@ -4,6 +4,7 @@
 
 @section('content')
 @php
+    $routePrefix = request()->is('admin*') ? 'admin' : 'staff';
     $statusLabels = [
         'pending' => 'Chờ xác nhận',
         'confirmed' => 'Đã xác nhận',
@@ -19,13 +20,13 @@
             <h1>Lịch đặt phòng</h1>
             <p>Tìm theo khách, mã booking hoặc số phòng và xử lý khách đến trong ngày.</p>
         </div>
-        <a class="schedule-room-map-link" href="{{ route('staff.bookings') }}">
+        <a class="schedule-room-map-link" href="{{ route($routePrefix.'.bookings') }}">
             <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
             Sơ đồ phòng
         </a>
     </header>
 
-    <form class="booking-calendar-filter" method="GET" action="{{ route('staff.booking-calendar') }}" role="search">
+    <form class="booking-calendar-filter" method="GET" action="{{ route($routePrefix.'.booking-calendar') }}" role="search">
         <label class="schedule-search-field" for="schedule-search">
             <span>Tìm kiếm</span>
             <span class="schedule-input-wrap">
@@ -52,7 +53,7 @@
         </label>
         <div class="schedule-filter-actions">
             <button type="submit"><i class="bi bi-funnel" aria-hidden="true"></i><span>Lọc</span></button>
-            <a href="{{ route('staff.booking-calendar') }}" aria-label="Xóa bộ lọc" title="Xóa bộ lọc"><i class="bi bi-x-lg" aria-hidden="true"></i></a>
+            <a href="{{ route($routePrefix.'.booking-calendar') }}" aria-label="Xóa bộ lọc" title="Xóa bộ lọc"><i class="bi bi-x-lg" aria-hidden="true"></i></a>
         </div>
     </form>
 
@@ -90,8 +91,8 @@
                     </thead>
                     <tbody>
                     @foreach($bookings as $booking)
-                        <tr class="schedule-clickable-row" data-booking-url="{{ route('staff.booking-calendar.show', $booking) }}" tabindex="0" aria-label="Mở booking #{{ $booking->id }} của {{ $booking->customer_name }}">
-                            <td><a class="schedule-booking-link" href="{{ route('staff.booking-calendar.show', $booking) }}">#{{ $booking->id }}</a><small>{{ ucfirst($booking->payment_method ?: '—') }} · {{ $booking->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</small></td>
+                        <tr class="schedule-clickable-row" data-booking-url="{{ route($routePrefix.'.booking-calendar.show', $booking) }}" tabindex="0" aria-label="Mở booking #{{ $booking->id }} của {{ $booking->customer_name }}">
+                            <td><a class="schedule-booking-link" href="{{ route($routePrefix.'.booking-calendar.show', $booking) }}">#{{ $booking->id }}</a><small>{{ ucfirst($booking->payment_method ?: '—') }} · {{ $booking->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</small></td>
                             <td><strong>{{ $booking->customer_name }}</strong><small>{{ $booking->customer_phone ?: $booking->customer_email ?: 'Chưa có liên hệ' }}</small></td>
                             <td>
                                 <div class="schedule-room-list">
@@ -104,7 +105,7 @@
                             </td>
                             <td><strong>{{ $booking->check_in?->format('d/m/Y') }}</strong><small>đến {{ $booking->check_out?->format('d/m/Y') }}</small></td>
                             <td><span class="schedule-status is-{{ $booking->status }}">{{ $statusLabels[$booking->status] ?? $booking->status }}</span></td>
-                            <td>@include('staff.partials.booking-checkin-action', ['booking' => $booking, 'canCheckIn' => $canCheckIn])</td>
+                            <td>@include('staff.partials.booking-checkin-action', ['booking' => $booking, 'canCheckIn' => $canCheckIn, 'routePrefix' => $routePrefix])</td>
                         </tr>
                     @endforeach
                     </tbody>
@@ -113,9 +114,9 @@
 
             <div class="schedule-mobile-list">
                 @foreach($bookings as $booking)
-                    <article class="schedule-clickable-row" data-booking-url="{{ route('staff.booking-calendar.show', $booking) }}" tabindex="0" aria-label="Mở booking #{{ $booking->id }} của {{ $booking->customer_name }}">
+                    <article class="schedule-clickable-row" data-booking-url="{{ route($routePrefix.'.booking-calendar.show', $booking) }}" tabindex="0" aria-label="Mở booking #{{ $booking->id }} của {{ $booking->customer_name }}">
                         <header>
-                            <div><a class="schedule-booking-link" href="{{ route('staff.booking-calendar.show', $booking) }}">#{{ $booking->id }} · {{ $booking->customer_name }}</a><span>{{ $booking->customer_phone ?: $booking->customer_email ?: 'Chưa có liên hệ' }}</span></div>
+                            <div><a class="schedule-booking-link" href="{{ route($routePrefix.'.booking-calendar.show', $booking) }}">#{{ $booking->id }} · {{ $booking->customer_name }}</a><span>{{ $booking->customer_phone ?: $booking->customer_email ?: 'Chưa có liên hệ' }}</span></div>
                             <span class="schedule-status is-{{ $booking->status }}">{{ $statusLabels[$booking->status] ?? $booking->status }}</span>
                         </header>
                         <dl>
@@ -124,7 +125,7 @@
                             <div><dt>Trả</dt><dd>{{ $booking->check_out?->format('d/m/Y') }}</dd></div>
                             <div><dt>Thanh toán</dt><dd>{{ $booking->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</dd></div>
                         </dl>
-                        <footer>@include('staff.partials.booking-checkin-action', ['booking' => $booking, 'canCheckIn' => $canCheckIn])</footer>
+                        <footer>@include('staff.partials.booking-checkin-action', ['booking' => $booking, 'canCheckIn' => $canCheckIn, 'routePrefix' => $routePrefix])</footer>
                     </article>
                 @endforeach
             </div>

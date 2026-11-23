@@ -42,23 +42,25 @@
             <kbd class="command-esc-badge" style="flex: 0 0 auto !important; margin-left: auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; height: 20px !important; min-width: 24px !important; padding: 0 6px !important; font-size: 0.65rem !important; font-weight: 700 !important; border-radius: 5px !important; background: #f1f5f9 !important; color: #64748b !important; border: 1px solid rgba(0,0,0,0.14) !important; box-shadow: 0 1px 1px rgba(0,0,0,0.05) !important;">ESC</kbd>
         </label>
         <div class="command-results">
-            @if(session('user.role') === 'admin')
+            @php($toolPrefix = $toolIsAdmin ? 'admin' : 'staff')
+            @if($toolIsAdmin)
                 <a href="{{ route('admin.reports') }}"><i class="bi bi-graph-up"></i><span>Báo cáo tài chính<small>Doanh thu, ADR và RevPAR</small></span></a>
                 <a href="{{ route('admin.users.index') }}"><i class="bi bi-people"></i><span>Người dùng & RBAC<small>Tài khoản và phân quyền</small></span></a>
                 <a href="{{ route('admin.rooms.index') }}"><i class="bi bi-door-open"></i><span>Phòng &amp; hạng phòng<small>Thêm, chỉnh sửa phòng và tiện nghi</small></span></a>
                 <a href="{{ route('admin.price-settings.index') }}"><i class="bi bi-sliders"></i><span>Điều chỉnh giá<small>Giá theo mùa và sự kiện</small></span></a>
             @endif
-            @if($toolCanViewReports && session('user.role') !== 'admin')
-                <a href="{{ route('admin.reports') }}"><i class="bi bi-graph-up"></i><span>Báo cáo &amp; doanh thu<small>Chỉ số tổng hợp</small></span></a>
+            @if($toolCanViewReports && !$toolIsAdmin)
+                <a href="{{ route('staff.reports') }}"><i class="bi bi-graph-up"></i><span>Báo cáo &amp; doanh thu<small>Chỉ số tổng hợp</small></span></a>
             @endif
             @if($toolCanViewRoomSchedule)
-                <a href="{{ route('staff.bookings') }}"><i class="bi bi-grid-3x3-gap"></i><span>Sơ đồ phòng<small>Tra cứu và thao tác tại quầy</small></span></a>
+                <a href="{{ route($toolPrefix.'.bookings') }}"><i class="bi bi-grid-3x3-gap"></i><span>Sơ đồ phòng<small>Tra cứu và thao tác tại quầy</small></span></a>
+                <a href="{{ route($toolPrefix.'.booking-calendar') }}"><i class="bi bi-calendar2-week"></i><span>Lịch đặt phòng<small>Danh sách lịch đặt và nhận phòng</small></span></a>
             @endif
             @if($toolCanManageRefunds)
-                <a href="{{ route('staff.cancellations') }}"><i class="bi bi-arrow-counterclockwise"></i><span>Hủy phòng &amp; hoàn tiền<small>Danh sách hủy và xử lý hoàn tiền</small></span></a>
+                <a href="{{ route($toolPrefix.'.cancellations') }}"><i class="bi bi-arrow-counterclockwise"></i><span>Hủy phòng &amp; hoàn tiền<small>Danh sách hủy và xử lý hoàn tiền</small></span></a>
             @endif
-            <a href="{{ route('staff.iot') }}"><i class="bi bi-person-bounding-box"></i><span>Face ID &amp; IoT<small>Nhận diện và thiết bị dọn phòng</small></span></a>
-            <a href="{{ route('staff.profile') }}"><i class="bi bi-person"></i><span>Hồ sơ cá nhân<small>Thông tin và mật khẩu</small></span></a>
+            <a href="{{ route($toolPrefix.'.iot') }}"><i class="bi bi-person-bounding-box"></i><span>Face ID &amp; IoT<small>Nhận diện và thiết bị dọn phòng</small></span></a>
+            <a href="{{ route($toolPrefix.'.profile') }}"><i class="bi bi-person"></i><span>Hồ sơ cá nhân<small>Thông tin và mật khẩu</small></span></a>
         </div>
     </section>
 </div>

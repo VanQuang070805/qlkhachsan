@@ -126,13 +126,12 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('reception
     Route::post('/profile/update-password', [ReceptionUserController::class, 'updatePassword'])->name('profile.update-password');
 });
 // ============================================================
-// RECEPTIONIST + ADMIN — Quản lý đặt phòng & Hồ sơ nhân viên
+// RECEPTIONIST + ADMIN — Quản lý vận hành (Tách riêng đường dẫn /staff/* và /admin/*)
 // ============================================================
-Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->name('staff.')->group(function () {
+$registerInternalOperationalRoutes = function (): void {
     Route::get('/profile',                  [ReceptionUserController::class, 'profile'])->name('profile');
     Route::post('/profile/update-info',     [ReceptionUserController::class, 'updateInfo'])->name('profile.update-info');
     Route::post('/profile/update-password', [ReceptionUserController::class, 'updatePassword'])->name('profile.update-password');
-    Route::get('/reports', [AdminController::class, 'reports'])->middleware('permission:rp_view_reports')->name('reports');
 
     Route::middleware('permission:bp_checkin_checkout')->group(function () {
         Route::get('/iot', [FaceIdController::class, 'index'])->name('iot');
@@ -188,17 +187,23 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
     Route::post('/reception/update-status', [ReceptionController::class, 'updateStatus'])->name('reception.update-status');
     Route::post('/reception/quick-checkin', [ReceptionController::class, 'quickCheckinMultipleRooms'])->middleware('permission:bp_checkin_checkout')->name('reception.quick-checkin');
     Route::get('/cleaning-notifications', [ReceptionController::class, 'cleaningNotifications'])->middleware('permission:bp_clean_status')->name('cleaning-notifications');
+};
+
+Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->name('staff.')->group(function () use ($registerInternalOperationalRoutes) {
+    Route::get('/reports', [AdminController::class, 'reports'])->middleware('permission:rp_view_reports')->name('reports');
+    $registerInternalOperationalRoutes();
 });
 
 // ============================================================
-// ADMIN
+// ADMIN (Đường dẫn /admin/* riêng biệt với /staff/*)
 // ============================================================
 Route::middleware(['auth.custom', 'permission:rp_view_reports'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
 });
 
-Route::middleware(['auth.custom', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth.custom', 'role:admin'])->prefix('admin')->name('admin.')->group(function () use ($registerInternalOperationalRoutes) {
+    $registerInternalOperationalRoutes();
 
     // Cài đặt giá
     Route::get('/rooms', [AdminRoomController::class, 'index'])->name('rooms.index');

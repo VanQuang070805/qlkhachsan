@@ -4,6 +4,7 @@
 
 @section('content')
 @php
+    $routePrefix = request()->is('admin*') ? 'admin' : 'staff';
     $allFloors = array_keys($floors);
     sort($allFloors, SORT_NUMERIC);
 
@@ -808,7 +809,7 @@
                     </label>
                 @endif
                 @if($permissions['tn_refund'])
-                    <a href="{{ route('staff.cancellations') }}" class="action-pill-btn btn-white">
+                    <a href="{{ route($routePrefix . '.cancellations') }}" class="action-pill-btn btn-white">
                         <i class="fa-solid fa-arrow-rotate-left text-secondary"></i> Hủy phòng &amp; hoàn tiền
                         @if(($pendingRefunds ?? 0) > 0)
                             <span class="action-badge">{{ $pendingRefunds }}</span>
@@ -1983,7 +1984,7 @@
         if (!selectedRoomId || !selectedRoomData?.needs_cleaning) return;
         const button = document.getElementById('btn-action-cleaning-request-done');
         if (button) button.disabled = true;
-        const url = @json(route('staff.room.cleaning.complete', ['roomId' => '__ROOM__']))
+        const url = @json(route($routePrefix . '.room.cleaning.complete', ['roomId' => '__ROOM__']))
             .replace('__ROOM__', encodeURIComponent(selectedRoomId));
         try {
             const response = await fetch(url, {
@@ -2053,7 +2054,7 @@
             return;
         }
 
-        fetch("{{ route('staff.reception.extend') }}", {
+        fetch("{{ route($routePrefix . '.reception.extend') }}", {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -2086,7 +2087,7 @@
         if (!selectedRoomData) return;
         
         if (parseInt(selectedRoomData.has_today_booking) > 0) {
-            fetch(`{{ route('staff.reception.today-booking') }}?room_id=${selectedRoomData.id}`)
+            fetch(`{{ route($routePrefix . '.reception.today-booking') }}?room_id=${selectedRoomData.id}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -2125,7 +2126,7 @@
     async function checkInSelectedRoom() {
         if (!INTERNAL_CAPABILITIES.bp_checkin_checkout || !selectedRoomId) return;
 
-        const url = @json(route('staff.room.checkin', ['id' => '__ROOM__']))
+        const url = @json(route($routePrefix . '.room.checkin', ['id' => '__ROOM__']))
             .replace('__ROOM__', encodeURIComponent(selectedRoomId));
         try {
             const response = await fetch(url, {
@@ -2233,7 +2234,7 @@
 
         const roomIds = rooms.map(r => r.id);
 
-        fetch("{{ route('staff.reception.walkin') }}", {
+        fetch("{{ route($routePrefix . '.reception.walkin') }}", {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -2394,7 +2395,9 @@
         const modal = bootstrap.Modal.getInstance(modalEl);
         if (modal) modal.hide();
 
-        fetch(`/staff/bookings/${bookingId}/checkout-payment`, {
+        const checkoutPaymentUrl = @json(route($routePrefix . '.bookings.checkout-payment', ['id' => '__BOOKING__']))
+            .replace('__BOOKING__', encodeURIComponent(bookingId));
+        fetch(checkoutPaymentUrl, {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -2471,7 +2474,7 @@
             if (label) label.textContent = optimisticSnapshot.label;
         };
 
-        fetch("{{ route('staff.reception.update-status') }}", {
+        fetch("{{ route($routePrefix . '.reception.update-status') }}", {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -2871,7 +2874,7 @@
             return;
         }
         
-        fetch(`{{ route('staff.reception.booking-by-scan') }}?payload=${encodeURIComponent(normalizedText)}`)
+        fetch(`{{ route($routePrefix . '.reception.booking-by-scan') }}?payload=${encodeURIComponent(normalizedText)}`)
         .then(response => {
             if (!response.ok) {
                 return response.json().then(err => { throw new Error(err.message || 'Lỗi liên kết dữ liệu'); });
@@ -2906,7 +2909,7 @@
         if (modalInstance) modalInstance.hide();
         if (inputEl) inputEl.value = '';
 
-        fetch(`{{ route('staff.reception.booking-by-scan') }}?booking_id=${encodeURIComponent(rawVal)}`)
+        fetch(`{{ route($routePrefix . '.reception.booking-by-scan') }}?booking_id=${encodeURIComponent(rawVal)}`)
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(err => { throw new Error(err.message || 'Không tìm thấy đơn đặt phòng'); });
@@ -3008,7 +3011,7 @@
     async function performQuickCheckin(checkinToken, bookingId = null) {
         if (!await window.confirmOperation('Xác nhận nhận phòng nhanh cho tất cả các phòng thuộc đơn đặt này?')) return;
         
-        fetch("{{ route('staff.reception.quick-checkin') }}", {
+        fetch("{{ route($routePrefix . '.reception.quick-checkin') }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

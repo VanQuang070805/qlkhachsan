@@ -21,11 +21,12 @@ class ReceptionUserController extends Controller
         return ($user && in_array($user->role, ['receptionist', 'admin'], true)) ? $user : null;
     }
 
-    public function profile()
+    public function profile(Request $request)
     {
+        $prefix = $request->is('admin*') ? 'admin' : 'staff';
         $user = $this->getCurrentUser();
         if (! $user) {
-            return redirect()->route('staff.login');
+            return redirect()->route($prefix . '.login');
         }
 
         return view('receptionist.profile', compact('user'));
@@ -33,9 +34,10 @@ class ReceptionUserController extends Controller
 
     public function updateInfo(Request $request)
     {
+        $prefix = $request->is('admin*') ? 'admin' : 'staff';
         $user = $this->getCurrentUser();
         if (! $user) {
-            return redirect()->route('staff.login');
+            return redirect()->route($prefix . '.login');
         }
 
         $request->merge(['email' => mb_strtolower(trim((string) $request->email))]);
@@ -70,15 +72,16 @@ class ReceptionUserController extends Controller
             session(['admin_user' => $updatedSession]);
         }
 
-        return redirect()->route('staff.profile')
+        return redirect()->route($prefix . '.profile')
             ->with('success_info', 'Cập nhật thông tin thành công!');
     }
 
     public function updatePassword(Request $request)
     {
+        $prefix = $request->is('admin*') ? 'admin' : 'staff';
         $user = $this->getCurrentUser();
         if (! $user) {
-            return redirect()->route('staff.login');
+            return redirect()->route($prefix . '.login');
         }
 
         $request->validate([
@@ -100,7 +103,7 @@ class ReceptionUserController extends Controller
         $request->session()->regenerateToken();
         app(\App\Services\SessionRevocationService::class)->revoke($user, $request->session()->getId());
 
-        return redirect()->route('staff.profile')
+        return redirect()->route($prefix . '.profile')
             ->with('success_password', 'Đổi mật khẩu thành công!');
     }
 }

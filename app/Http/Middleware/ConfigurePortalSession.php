@@ -12,11 +12,19 @@ class ConfigurePortalSession
         // Cookies are scoped by host, not port. Use a different session name
         // before Laravel starts the session for each public portal.
         $port = (int) $request->getPort();
+        $contextHeader = strtolower(trim((string) ($request->header('X-Portal-Context') ?: config('services.portal.context', ''))));
+        $host = strtolower($request->getHost());
+
         $cookie = match ($port) {
             18080, 10800 => 'rosaliza_customer_session',
             18081, 10801 => 'rosaliza_staff_session',
             18082, 10802 => 'rosaliza_admin_session',
-            default => null,
+            default => match (true) {
+                $contextHeader === 'admin' || str_contains($host, 'admin') => 'rosaliza_admin_session',
+                $contextHeader === 'staff' || str_contains($host, 'staff') => 'rosaliza_staff_session',
+                $contextHeader === 'customer' => 'rosaliza_customer_session',
+                default => null,
+            },
         };
 
         if ($cookie !== null) {

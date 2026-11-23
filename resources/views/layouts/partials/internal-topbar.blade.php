@@ -2,6 +2,13 @@
     $topbarUserId = session('staff_user_id') ?: session('admin_user_id') ?: session('auth_user_id');
     $topbarUser = $topbarUserId ? \App\Models\User::find($topbarUserId) : auth()->user();
     $topbarCanViewSchedule = $topbarUser?->hasInternalPermission('bp_view_schedule') ?? false;
+    $topbarRoutePrefix = (
+        request()->is('admin*')
+        || in_array((int) request()->getPort(), [18082, 10802], true)
+        || strtolower((string) (request()->header('X-Portal-Context') ?: config('services.portal.context', ''))) === 'admin'
+        || str_contains(strtolower(request()->getHost()), 'admin')
+        || ($topbarUser?->isAdmin() ?? false)
+    ) ? 'admin' : 'staff';
 @endphp
 <header class="internal-topbar">
     <div class="topbar-left">
@@ -28,7 +35,7 @@
 
     <div class="topbar-right">
         @if($topbarCanViewSchedule)
-            <div class="internal-notifications" data-notifications data-index-url="{{ route('staff.notifications.index') }}" data-read-url="{{ route('staff.notifications.read') }}">
+            <div class="internal-notifications" data-notifications data-index-url="{{ route($topbarRoutePrefix.'.notifications.index') }}" data-read-url="{{ route($topbarRoutePrefix.'.notifications.read') }}">
                 <button class="notification-trigger" type="button" data-notification-trigger aria-label="Thông báo nhân viên" aria-expanded="false" aria-controls="internalNotificationPanel">
                     <i class="bi bi-bell" aria-hidden="true"></i>
                     <span class="notification-badge" data-notification-count hidden>0</span>
@@ -40,7 +47,7 @@
                     </header>
                     <div class="notification-list" data-notification-list role="list"></div>
                     <div class="notification-empty" data-notification-empty hidden>Chưa có thông báo mới.</div>
-                    <footer><a href="{{ route('staff.booking-calendar') }}">Mở lịch đặt phòng</a></footer>
+                    <footer><a href="{{ route($topbarRoutePrefix.'.booking-calendar') }}">Mở lịch đặt phòng</a></footer>
                 </section>
             </div>
         @endif

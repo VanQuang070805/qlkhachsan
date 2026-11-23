@@ -172,6 +172,8 @@ class BookingScheduleController extends Controller
             ]);
         });
 
-        return redirect()->route('staff.booking-calendar')->with('success', "Đã hủy booking #{$booking->id}; lịch sử vẫn được lưu.");
+        $prefix = $request->is('admin*') ? 'admin' : 'staff';
+
+        return redirect()->route($prefix.'.booking-calendar')->with('success', "Đã hủy booking #{$booking->id}; lịch sử vẫn được lưu.");
     }
 }

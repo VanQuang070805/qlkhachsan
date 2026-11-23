@@ -49,21 +49,28 @@
                     @endif
                 </div>
 
-                <select
-                    name="room_type"
-                    id="bookingRoomTypeSelect"
-                    class="my-bookings-type-select"
-                    aria-label="Lọc theo hạng phòng"
-                    onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()"
-                >
-                    <option value="">Tất cả hạng phòng</option>
-                    @foreach($availableRoomTypes as $rt)
-                        <option value="{{ $rt->id }}" @selected($selectedRoomTypeId === (int) $rt->id)>{{ $rt->type_name }}</option>
-                    @endforeach
-                </select>
+                <div class="my-bookings-select-wrap {{ $selectedRoomTypeId > 0 ? 'is-active' : '' }}">
+                    <i class="bi bi-sliders2 my-bookings-select-icon" aria-hidden="true"></i>
+                    <select
+                        name="room_type"
+                        id="bookingRoomTypeSelect"
+                        class="my-bookings-type-select"
+                        aria-label="Lọc theo hạng phòng"
+                        onchange="handleRoomTypeChange(this)"
+                    >
+                        <option value="">Tất cả hạng phòng</option>
+                        @foreach($availableRoomTypes as $rt)
+                            <option value="{{ $rt->id }}" @selected($selectedRoomTypeId === (int) $rt->id)>{{ $rt->type_name }}</option>
+                        @endforeach
+                    </select>
+                    <i class="bi bi-chevron-down my-bookings-select-chevron" aria-hidden="true"></i>
+                </div>
 
                 @if($q !== '' || $selectedRoomTypeId > 0 || $status !== 'all')
-                    <a href="{{ route('booking.mine') }}" class="my-bookings-reset-link">Đặt lại lọc</a>
+                    <a href="{{ route('booking.mine') }}" class="my-bookings-reset-link">
+                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+                        <span>Đặt lại lọc</span>
+                    </a>
                 @endif
             </form>
         </div>
@@ -92,16 +99,19 @@
         </div>
 
         {{-- 3. Danh sách thẻ đặt phòng --}}
+        @php
+            $hasActiveFilters = ($q !== '' || $selectedRoomTypeId > 0 || $status !== 'all');
+        @endphp
         @if($bookings->isEmpty())
             <div class="text-center py-5 bg-white rounded-4 border border-slate-200 shadow-xs my-4 px-3">
                 <i class="bi bi-calendar2-heart text-slate-300" style="font-size: 44px;" aria-hidden="true"></i>
                 <h2 class="fw-semibold mt-3 mb-1" style="font-size: 18px; color: #0f172a;">
-                    {{ $allCount ? 'Không tìm thấy đơn đặt phòng phù hợp' : 'Chưa có kỳ nghỉ nào' }}
+                    {{ ($allCount > 0 || $hasActiveFilters) ? 'Không tìm thấy đơn đặt phòng phù hợp' : 'Chưa có kỳ nghỉ nào' }}
                 </h2>
                 <p class="text-muted mb-4" style="font-size: 13.5px;">
-                    {{ $allCount ? 'Hãy thử mã đặt phòng khác, số phòng khác hoặc đặt lại bộ lọc.' : 'Khám phá không gian lưu trú yên tĩnh tại Rosaliza Hotel cho hành trình tiếp theo.' }}
+                    {{ ($allCount > 0 || $hasActiveFilters) ? 'Hãy thử mã đặt phòng khác, chọn hạng phòng khác hoặc đặt lại bộ lọc.' : 'Khám phá không gian lưu trú yên tĩnh tại Rosaliza Hotel cho hành trình tiếp theo.' }}
                 </p>
-                @if($allCount && ($q !== '' || $selectedRoomTypeId > 0 || $status !== 'all'))
+                @if($hasActiveFilters)
                     <a href="{{ route('booking.mine') }}" class="aeth-btn-primary d-inline-flex w-auto px-4 py-2 text-decoration-none">
                         <span>Xem toàn bộ đặt phòng</span>
                     </a>
@@ -119,6 +129,7 @@
                         $firstRoom = $booking->rooms->first();
                         $roomType = $firstRoom?->roomType;
                         $roomTypeNames = $booking->rooms->map(fn($room) => $room->roomType?->type_name)->filter()->unique()->join(' · ');
+                        $roomTypeIdsList = $booking->rooms->pluck('room_type_id')->filter()->unique()->join(',');
                         $nights = max(1, \Carbon\Carbon::parse($booking->check_in)->diffInDays($booking->check_out));
                         $roomNames = $booking->rooms->map(fn($room) => 'Phòng '.$room->room_number)->join(', ');
                         $floor = $firstRoom?->floor;
@@ -154,6 +165,7 @@
                     <article
                         class="booking-card-horizontal {{ $isCancelled ? 'is-cancelled' : '' }}"
                         data-status-group="{{ $filterGroup }}"
+                        data-room-type-ids="{{ $roomTypeIdsList }}"
                         data-search-text="{{ $booking->id }} #{{ $booking->id }} {{ $roomNames }} {{ $roomTypeNames }} {{ $booking->customer_name }}"
                     >
                         <div class="booking-card-grid">
@@ -593,10 +605,42 @@ input.my-bookings-search-input {
     place-items: center;
     font-size: 11px !important;
 }
+.my-bookings-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-width: 220px;
+}
+.my-bookings-select-icon {
+    position: absolute;
+    left: 14px;
+    color: #64748b;
+    font-size: 13.5px;
+    pointer-events: none;
+    z-index: 1;
+}
+.my-bookings-select-chevron {
+    position: absolute;
+    right: 14px;
+    color: #64748b;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1;
+}
+.my-bookings-select-wrap.is-active .my-bookings-type-select {
+    border-color: #181715;
+    background-color: #faf8f5;
+    font-weight: 600 !important;
+}
+.my-bookings-select-wrap.is-active .my-bookings-select-icon,
+.my-bookings-select-wrap.is-active .my-bookings-select-chevron {
+    color: #181715;
+}
 .my-bookings-page .my-bookings-type-select,
 select.my-bookings-type-select {
+    width: 100%;
     min-height: 44px;
-    padding: 0 34px 0 16px;
+    padding: 0 36px 0 38px;
     border-radius: 999px;
     border: 1px solid #dce3ea;
     background-color: #ffffff;
@@ -606,6 +650,15 @@ select.my-bookings-type-select {
     font-weight: 500 !important;
     line-height: 1.3 !important;
     cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+.my-bookings-type-select:hover,
+.my-bookings-type-select:focus {
+    outline: none;
+    border-color: #64748b;
 }
 .my-bookings-page .my-bookings-reset-link,
 a.my-bookings-reset-link {
@@ -949,6 +1002,7 @@ a.booking-action-btn--danger {
         width: 100%;
     }
     .my-bookings-search-wrap,
+    .my-bookings-select-wrap,
     .my-bookings-type-select {
         width: 100%;
         flex: 1 1 100%;
@@ -1001,14 +1055,42 @@ function filterByStatus(status) {
     window.location.assign(url);
 }
 
+function applyClientSideBookingFilter() {
+    const searchInput = document.getElementById('bookingSearchInput');
+    const roomTypeSelect = document.getElementById('bookingRoomTypeSelect');
+    const rawQuery = (searchInput?.value || '').trim().toLowerCase();
+    const cleanedQuery = rawQuery.replace(/^(mã|ma|đơn|don|phòng|phong|p\.|#)\s*/i, '').replace(/^#/, '').trim();
+    const selectedTypeId = (roomTypeSelect?.value || '').trim();
+
+    const cards = document.querySelectorAll('#bookingCardsContainer .booking-card-horizontal');
+    if (!cards.length) return;
+
+    cards.forEach((card) => {
+        const searchText = (card.dataset.searchText || '').toLowerCase();
+        const typeIds = (card.dataset.roomTypeIds || '').split(',').map((s) => s.trim()).filter(Boolean);
+        const matchesQuery = !cleanedQuery || searchText.includes(cleanedQuery) || searchText.includes(rawQuery);
+        const matchesType = !selectedTypeId || typeIds.includes(selectedTypeId);
+        card.style.display = (matchesQuery && matchesType) ? '' : 'none';
+    });
+}
+
+function handleRoomTypeChange(selectEl) {
+    applyClientSideBookingFilter();
+    const form = selectEl?.form || document.getElementById('bookingFilterForm');
+    if (form) {
+        form.requestSubmit ? form.requestSubmit() : form.submit();
+    }
+}
+
 function handleBookingFilter() {
+    applyClientSideBookingFilter();
     clearTimeout(window.bookingSearchTimer);
     window.bookingSearchTimer = setTimeout(() => {
         const form = document.getElementById('bookingFilterForm');
         if (form) {
             form.requestSubmit ? form.requestSubmit() : form.submit();
         }
-    }, 400);
+    }, 550);
 }
 
 function clearSearchInput() {

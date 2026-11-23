@@ -268,7 +268,16 @@
         </div>
 
         {{-- Form Đổi Mật Khẩu --}}
-        <form id="formPwd" method="POST" action="{{ route('staff.profile.update-password') }}" class="macos-modal-form-wrap">
+        @php
+            $profilePrefix = (
+                request()->is('admin*')
+                || in_array((int) request()->getPort(), [18082, 10802], true)
+                || strtolower((string) (request()->header('X-Portal-Context') ?: config('services.portal.context', ''))) === 'admin'
+                || str_contains(strtolower(request()->getHost()), 'admin')
+                || $user->role === 'admin'
+            ) ? 'admin' : 'staff';
+        @endphp
+        <form id="formPwd" method="POST" action="{{ route($profilePrefix.'.profile.update-password') }}" class="macos-modal-form-wrap">
             @csrf
 
             <div class="macos-modal-body">
@@ -354,7 +363,7 @@
         </div>
 
         {{-- Form Chỉnh Sửa Hồ Sơ --}}
-        <form id="formInfo" method="POST" action="{{ route('staff.profile.update-info') }}" class="macos-modal-form-wrap">
+        <form id="formInfo" method="POST" action="{{ route($profilePrefix.'.profile.update-info') }}" class="macos-modal-form-wrap">
             @csrf
 
             <div class="macos-modal-body">

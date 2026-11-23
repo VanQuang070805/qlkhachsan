@@ -47,6 +47,46 @@ class FilterConsistencyTest extends TestCase
             ->assertViewHas('bookings', fn ($bookings) => $bookings->total() === 0);
     }
 
+    public function test_booking_history_filters_by_room_type_and_updates_status_tab_counts(): void
+    {
+        $customer = $this->customer();
+        $typeDeluxe = RoomType::create(['type_name' => 'Deluxe Suite', 'price' => 15000, 'max_adults' => 2, 'max_children' => 1, 'max_guests' => 3]);
+        $typeRoyal = RoomType::create(['type_name' => 'Royal Suite', 'price' => 25000, 'max_adults' => 2, 'max_children' => 1, 'max_guests' => 3]);
+
+        $roomDeluxe = Room::create(['room_number' => 'DLX-201', 'floor' => 2, 'room_type_id' => $typeDeluxe->id, 'status' => 'available']);
+        $roomRoyal = Room::create(['room_number' => 'RYL-301', 'floor' => 3, 'room_type_id' => $typeRoyal->id, 'status' => 'available']);
+
+        $b1 = $this->booking($customer, 'confirmed');
+        $b1->rooms()->attach($roomDeluxe->id);
+
+        $b2 = $this->booking($customer, 'completed');
+        $b2->rooms()->attach($roomRoyal->id);
+
+        $b3 = $this->booking($customer, 'cancelled');
+        $b3->rooms()->attach($roomRoyal->id);
+
+        // Filter by Deluxe Suite: only 1 upcoming booking, 0 completed, 0 cancelled
+        $this->asCustomer($customer)
+            ->get(route('booking.mine', ['room_type' => $typeDeluxe->id]))
+            ->assertOk()
+            ->assertSee('Deluxe Suite')
+            ->assertSee('data-room-type-ids="'.$typeDeluxe->id.'"', false)
+            ->assertViewHas('bookings', fn ($bookings) => $bookings->total() === 1 && $bookings->first()->id === $b1->id)
+            ->assertViewHas('bookingCounts', fn ($counts) => (int) $counts->all_count === 1
+                && (int) $counts->upcoming_count === 1
+                && (int) $counts->completed_count === 0
+                && (int) $counts->cancelled_count === 0);
+
+        // Filter by Royal Suite + status=cancelled: returns b3 while counts reflect 2 total Royal Suite bookings
+        $this->asCustomer($customer)
+            ->get(route('booking.mine', ['room_type' => $typeRoyal->id, 'status' => 'cancelled']))
+            ->assertOk()
+            ->assertViewHas('bookings', fn ($bookings) => $bookings->total() === 1 && $bookings->first()->id === $b3->id)
+            ->assertViewHas('bookingCounts', fn ($counts) => (int) $counts->all_count === 2
+                && (int) $counts->completed_count === 1
+                && (int) $counts->cancelled_count === 1);
+    }
+
     public function test_room_search_requires_an_adult_and_homepage_links_to_room_search(): void
     {
         $this->travelTo(now('Asia/Ho_Chi_Minh')->setTime(10, 0));

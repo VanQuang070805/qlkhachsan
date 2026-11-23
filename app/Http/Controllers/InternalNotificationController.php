@@ -21,11 +21,13 @@ class InternalNotificationController extends Controller
             ->with('rooms:id,room_number')
             ->where($createdColumn, '>=', $now->copy()->subDay());
 
+        $prefix = $request->is('admin*') ? 'admin' : 'staff';
+
         $bookingItems = (clone $bookingQuery)
             ->orderByDesc($createdColumn)
             ->limit(6)
             ->get()
-            ->map(function (Booking $booking) use ($createdColumn): array {
+            ->map(function (Booking $booking) use ($createdColumn, $prefix): array {
                 $rooms = $booking->rooms->pluck('room_number')->join(', ');
                 $createdAt = $booking->getAttribute($createdColumn);
 
@@ -34,7 +36,7 @@ class InternalNotificationController extends Controller
                     'title' => "Booking mới #{$booking->id}",
                     'message' => trim($booking->customer_name.' · Phòng '.($rooms ?: 'chưa gán')),
                     'time' => optional($createdAt ? Carbon::parse($createdAt) : null)?->toIso8601String(),
-                    'url' => route('staff.booking-calendar.show', $booking),
+                    'url' => route($prefix.'.booking-calendar.show', $booking),
                 ];
             });
 
@@ -50,7 +52,7 @@ class InternalNotificationController extends Controller
             'title' => "Phòng {$room->room_number} cần dọn",
             'message' => $room->status === Room::STATUS_OCCUPIED ? 'Khách đang lưu trú yêu cầu dọn phòng' : 'Phòng chờ hoàn tất dọn dẹp',
             'time' => optional($room->cleaning_requested_at)?->toIso8601String(),
-            'url' => route('staff.bookings', ['search' => $room->room_number]),
+            'url' => route($prefix.'.bookings', ['search' => $room->room_number]),
         ]);
 
         $items = $bookingItems

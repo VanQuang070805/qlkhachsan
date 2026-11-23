@@ -892,11 +892,12 @@ class PaymentController extends Controller
         $amount = (int) round($booking->fresh()->outstandingAmount());
         abort_if($amount <= 0, 409, 'Booking không còn số dư cần thanh toán.');
 
+        $routePrefix = $request->is('admin*') ? 'admin' : 'staff';
         $url = match($method) {
             'momo'    => $this->momo->createPaymentUrl($booking, $amount, 'checkout'),
             'zalopay' => $this->zalopay->createPaymentUrl($booking, $amount, 'checkout'),
             'vnpay'   => $this->vnpay->createPaymentUrl($booking, $amount, 'checkout'),
-            'vietqr'  => route('staff.bookings.vietqr', $booking->id),
+            'vietqr'  => route($routePrefix . '.bookings.vietqr', $booking->id),
             default   => null,
         };
 
@@ -926,12 +927,13 @@ class PaymentController extends Controller
      */
     public function staffCheckStatus(int $bookingId): JsonResponse
     {
+        $routePrefix = request()->is('admin*') ? 'admin' : 'staff';
         $booking = Booking::with('rooms.roomType')->findOrFail($bookingId);
 
         if ($booking->status === 'completed' && $booking->payment_status === 'paid') {
             return response()->json([
                 'status'       => 'paid',
-                'redirect_url' => route('staff.bookings.checkout-success', $bookingId),
+                'redirect_url' => route($routePrefix . '.bookings.checkout-success', $bookingId),
             ]);
         }
 
@@ -946,7 +948,7 @@ class PaymentController extends Controller
 
             return response()->json([
                 'status'       => 'paid',
-                'redirect_url' => route('staff.bookings.checkout-success', $bookingId),
+                'redirect_url' => route($routePrefix . '.bookings.checkout-success', $bookingId),
             ]);
         }
 

@@ -2,6 +2,7 @@
 
 @section('content')
 @php
+    $routePrefix = request()->is('admin*') ? 'admin' : 'staff';
     $nights = \Carbon\Carbon::parse($booking->check_in)->diffInDays($booking->check_out);
     $rooms  = $booking->rooms;
 @endphp
@@ -9,7 +10,7 @@
 <main class="main-content">
 <div style="max-width:900px;margin:auto;">
     <div class="d-flex align-items-center gap-3 mb-4">
-        <a href="{{ route('staff.bookings') }}" class="btn btn-outline-secondary btn-sm">
+        <a href="{{ route($routePrefix . '.bookings') }}" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-arrow-left me-1"></i> Sơ đồ phòng
         </a>
         <div>
@@ -146,7 +147,7 @@
 @push('scripts')
 <script>
     const BOOKING_ID = {{ $booking->id }};
-    const CHECK_URL  = '{{ route('staff.bookings.check-status', $booking->id) }}';
+    const CHECK_URL  = '{{ route($routePrefix . '.bookings.check-status', $booking->id) }}';
 
     // ── Countdown 1 phút ──────────────────────────────────
     const timerKey = 'vietqr_checkout_timer_' + BOOKING_ID;

@@ -1,4 +1,5 @@
 @php
+    $routePrefix = request()->is('admin*') ? 'admin' : 'staff';
     $today = now('Asia/Ho_Chi_Minh');
     $isArrivalDay = $booking->check_in?->toDateString() === $today->toDateString();
     $roomsReady = $booking->rooms->isNotEmpty()
@@ -9,7 +10,7 @@
 @endphp
 
 @if($canAct)
-    <form method="POST" action="{{ $isEarly ? route('staff.bookings.early-checkin', $booking->id) : route('staff.bookings.checkin', $booking->id) }}">
+    <form method="POST" action="{{ $isEarly ? route($routePrefix.'.bookings.early-checkin', $booking->id) : route($routePrefix.'.bookings.checkin', $booking->id) }}">
         @csrf
         @method('PATCH')
         <button class="schedule-checkin-button" type="submit">

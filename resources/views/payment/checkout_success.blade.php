@@ -2,6 +2,7 @@
 
 @section('content')
 @php
+    $routePrefix = request()->is('admin*') ? 'admin' : 'staff';
     $nights = \Carbon\Carbon::parse($booking->check_in)->diffInDays($booking->check_out);
 @endphp
 <main class="main-content">
@@ -80,7 +81,7 @@
                 <span>Phòng {{ $booking->rooms->map(fn($r) => $r->room_number)->join(', ') }} đã chuyển sang trạng thái <strong>đang dọn dẹp</strong>.</span>
             </div>
 
-            <a href="{{ route('staff.bookings') }}" class="btn btn-primary w-100" style="border-radius:10px;padding:12px;font-weight:700;font-size:1rem;">
+            <a href="{{ route($routePrefix . '.bookings') }}" class="btn btn-primary w-100" style="border-radius:10px;padding:12px;font-weight:700;font-size:1rem;">
                 <i class="fa-solid fa-arrow-left me-2"></i> Quay về sơ đồ phòng
             </a>
         </div>

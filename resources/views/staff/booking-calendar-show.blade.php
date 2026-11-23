@@ -4,6 +4,7 @@
 
 @section('content')
 @php
+    $routePrefix = request()->is('admin*') ? 'admin' : 'staff';
     $statusLabels = [
         'pending' => 'Chờ xác nhận',
         'confirmed' => 'Đã xác nhận',
@@ -18,13 +19,13 @@
 <main class="booking-detail-page">
     <header class="booking-detail-head">
         <div>
-            <a href="{{ route('staff.booking-calendar') }}"><i class="bi bi-arrow-left" aria-hidden="true"></i>Lịch đặt phòng</a>
+            <a href="{{ route($routePrefix.'.booking-calendar') }}"><i class="bi bi-arrow-left" aria-hidden="true"></i>Lịch đặt phòng</a>
             <h1>Booking #{{ $booking->id }}</h1>
             <p>{{ $booking->customer_name }} · {{ $booking->rooms->pluck('room_number')->join(', ') ?: 'Chưa gán phòng' }}</p>
         </div>
         <div class="booking-detail-actions">
             <span class="schedule-status is-{{ $booking->status }}">{{ $statusLabels[$booking->status] ?? $booking->status }}</span>
-            @include('staff.partials.booking-checkin-action', ['booking' => $booking, 'canCheckIn' => $canCheckIn])
+            @include('staff.partials.booking-checkin-action', ['booking' => $booking, 'canCheckIn' => $canCheckIn, 'routePrefix' => $routePrefix])
         </div>
     </header>
 
@@ -38,7 +39,7 @@
     <div class="booking-detail-grid">
         <section class="booking-detail-panel">
             <header><div><h2>Thông tin đặt phòng</h2><p>{{ $canEdit ? 'Cập nhật thông tin khách và lịch lưu trú.' : 'Booking này chỉ có thể xem.' }}</p></div><i class="bi bi-journal-text" aria-hidden="true"></i></header>
-            <form class="booking-edit-form" method="POST" action="{{ route('staff.booking-calendar.update', $booking) }}">
+            <form class="booking-edit-form" method="POST" action="{{ route($routePrefix.'.booking-calendar.update', $booking) }}">
                 @csrf
                 @method('PATCH')
                 <label for="booking-customer-name"><span>Họ tên khách</span><input id="booking-customer-name" name="customer_name" value="{{ old('customer_name', $booking->customer_name) }}" required @disabled(!$canEdit)></label>
@@ -91,7 +92,7 @@
             @if($canEdit)
                 <section class="booking-delete-panel">
                     <div><i class="bi bi-trash3" aria-hidden="true"></i><span><strong>Xóa booking</strong><small>Dữ liệu không bị xóa cứng; booking chuyển sang trạng thái đã hủy.</small></span></div>
-                    <form method="POST" action="{{ route('staff.booking-calendar.destroy', $booking) }}" data-confirm="Hủy booking #{{ $booking->id }}? Lịch sử và thông tin hoàn tiền vẫn được giữ.">
+                    <form method="POST" action="{{ route($routePrefix.'.booking-calendar.destroy', $booking) }}" data-confirm="Hủy booking #{{ $booking->id }}? Lịch sử và thông tin hoàn tiền vẫn được giữ.">
                         @csrf
                         @method('DELETE')
                         <label for="booking-cancel-reason">Lý do</label>

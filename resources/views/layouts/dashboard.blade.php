@@ -30,7 +30,7 @@
     $canManageRefunds = $isAdmin || ($internalUser?->hasInternalPermission('tn_refund') ?? false);
     $canViewReports = $isAdmin || ($internalUser?->hasInternalPermission('rp_view_reports') ?? false);
 @endphp
-<body class="internal-shell {{ $isAdmin && !request()->routeIs('admin.dashboard','admin.reports','staff.bookings','staff.iot','staff.face-id.*') ? 'admin-tags' : '' }}" data-theme="light">
+<body class="internal-shell {{ $isAdmin && !request()->routeIs('admin.dashboard','admin.reports','admin.bookings','admin.iot','admin.face-id.*','staff.bookings','staff.iot','staff.face-id.*') ? 'admin-tags' : '' }}" data-theme="light">
 <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 <div class="workspace-shell">
 <aside class="workspace-sidebar" id="workspaceSidebar">
@@ -41,29 +41,29 @@
         
         <div class="sidebar-section-label">VẬN HÀNH KHÁCH SẠN</div>
         @if($canViewRoomSchedule)
-            <a class="{{ request()->routeIs('staff.bookings')?'is-active':'' }}" href="{{ route('staff.bookings') }}"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i><span>Sơ đồ phòng</span></a>
-            <a class="{{ request()->routeIs('staff.booking-calendar')?'is-active':'' }}" href="{{ route('staff.booking-calendar') }}"><i class="bi bi-calendar2-week" aria-hidden="true"></i><span>Lịch đặt phòng</span></a>
+            <a class="{{ request()->routeIs('admin.bookings','staff.bookings')?'is-active':'' }}" href="{{ route('admin.bookings') }}"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i><span>Sơ đồ phòng</span></a>
+            <a class="{{ request()->routeIs('admin.booking-calendar*','staff.booking-calendar*')?'is-active':'' }}" href="{{ route('admin.booking-calendar') }}"><i class="bi bi-calendar2-week" aria-hidden="true"></i><span>Lịch đặt phòng</span></a>
         @endif
         <a class="{{ request()->routeIs('admin.rooms.*','admin.room-types.*')?'is-active':'' }}" href="{{ route('admin.rooms.index') }}"><i class="bi bi-door-open" aria-hidden="true"></i><span>Phòng &amp; hạng phòng</span></a>
-        <a class="{{ request()->routeIs('staff.iot','staff.face-id.*')?'is-active':'' }}" href="{{ route('staff.iot') }}"><i class="bi bi-person-bounding-box" aria-hidden="true"></i><span>Face ID &amp; IoT</span></a>
+        <a class="{{ request()->routeIs('admin.iot','admin.face-id.*','staff.iot','staff.face-id.*')?'is-active':'' }}" href="{{ route('admin.iot') }}"><i class="bi bi-person-bounding-box" aria-hidden="true"></i><span>Face ID &amp; IoT</span></a>
         @if($canManageRefunds)
-            <a class="{{ request()->routeIs('staff.cancellations')?'is-active':'' }}" href="{{ route('staff.cancellations') }}"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i><span>Hủy phòng &amp; hoàn tiền</span></a>
+            <a class="{{ request()->routeIs('admin.cancellations','staff.cancellations')?'is-active':'' }}" href="{{ route('admin.cancellations') }}"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i><span>Hủy phòng &amp; hoàn tiền</span></a>
         @endif
         
         <div class="sidebar-section-label">QUẢN TRỊ HỆ THỐNG</div>
         <a class="{{ request()->routeIs('admin.users.*')?'is-active':'' }}" href="{{ route('admin.users.index') }}"><i class="bi bi-people"></i><span>Người dùng</span></a>
         <a class="{{ request()->routeIs('admin.roles.*')?'is-active':'' }}" href="{{ route('admin.roles.index') }}"><i class="bi bi-shield-check"></i><span>Phân quyền</span></a>
         <a class="{{ request()->routeIs('admin.price-settings.*')?'is-active':'' }}" href="{{ route('admin.price-settings.index') }}"><i class="bi bi-tags" aria-hidden="true"></i><span>Điều chỉnh giá</span></a>
-        <a class="{{ request()->routeIs('staff.profile','receptionist.profile')?'is-active':'' }}" href="{{ route('staff.profile') }}"><i class="bi bi-person-circle" aria-hidden="true"></i><span>Hồ sơ cá nhân</span></a>
+        <a class="{{ request()->routeIs('admin.profile','staff.profile','receptionist.profile')?'is-active':'' }}" href="{{ route('admin.profile') }}"><i class="bi bi-person-circle" aria-hidden="true"></i><span>Hồ sơ cá nhân</span></a>
     @else
         @if($canViewReports)
             <div class="sidebar-section-label">BÁO CÁO &amp; PHÂN TÍCH</div>
-            <a class="{{ request()->routeIs('admin.dashboard','admin.reports')?'is-active':'' }}" href="{{ route('admin.reports') }}"><i class="bi bi-grid-1x2" aria-hidden="true"></i><span>Báo cáo &amp; doanh thu</span></a>
+            <a class="{{ request()->routeIs('staff.reports','admin.dashboard','admin.reports')?'is-active':'' }}" href="{{ route('staff.reports') }}"><i class="bi bi-grid-1x2" aria-hidden="true"></i><span>Báo cáo &amp; doanh thu</span></a>
         @endif
         <div class="sidebar-section-label">QUẦY LỄ TÂN</div>
         @if($canViewRoomSchedule)
             <a class="{{ request()->routeIs('staff.bookings')?'is-active':'' }}" href="{{ route('staff.bookings') }}"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i><span>Sơ đồ phòng</span></a>
-            <a class="{{ request()->routeIs('staff.booking-calendar')?'is-active':'' }}" href="{{ route('staff.booking-calendar') }}"><i class="bi bi-calendar2-week" aria-hidden="true"></i><span>Lịch đặt phòng</span></a>
+            <a class="{{ request()->routeIs('staff.booking-calendar*')?'is-active':'' }}" href="{{ route('staff.booking-calendar') }}"><i class="bi bi-calendar2-week" aria-hidden="true"></i><span>Lịch đặt phòng</span></a>
         @endif
         <a class="{{ request()->routeIs('staff.iot','staff.face-id.*')?'is-active':'' }}" href="{{ route('staff.iot') }}"><i class="bi bi-person-bounding-box"></i><span>Face ID &amp; IoT</span></a>
         @if($canManageRefunds)
@@ -79,7 +79,7 @@
 <section class="workspace-content">
     @include('layouts.partials.internal-topbar')
     <div class="staff-workspace">
-        @unless(request()->routeIs('staff.cancellations', 'staff.profile', 'receptionist.profile'))
+        @unless(request()->routeIs('admin.cancellations', 'admin.profile', 'staff.cancellations', 'staff.profile', 'receptionist.profile'))
             @include('client.partials.flash')
         @endunless
         @yield('content')

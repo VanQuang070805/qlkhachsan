@@ -11,7 +11,10 @@ class AuthCustomMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        $isAdminPath = $request->is('admin*');
+        $isAdminPath = $request->is('admin*')
+            || in_array((int) $request->getPort(), [18082, 10802], true)
+            || strtolower(trim((string) ($request->header('X-Portal-Context') ?: config('services.portal.context', '')))) === 'admin'
+            || str_contains(strtolower($request->getHost()), 'admin');
         $isStaffPath = $isAdminPath || $request->is('staff*') || $request->is('receptionist*') || $request->is('internalauth*');
 
         $userId = null;

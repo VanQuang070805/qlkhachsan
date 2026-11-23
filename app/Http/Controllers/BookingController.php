@@ -229,18 +229,35 @@ class BookingController extends Controller
     {
         $filters = $request->validate([
             'status' => ['nullable', 'in:all,upcoming,completed,cancelled'],
-            'room_type' => ['nullable', 'integer', 'min:1'],
+            'room_type' => ['nullable'],
             'q' => ['nullable', 'string', 'max:100'],
         ]);
         $status = $filters['status'] ?? 'all';
-        $roomTypeId = isset($filters['room_type']) ? (int) $filters['room_type'] : null;
-        $q = trim($filters['q'] ?? '');
+        $rawRoomType = $filters['room_type'] ?? null;
+        $roomTypeId = is_numeric($rawRoomType) && (int) $rawRoomType > 0 ? (int) $rawRoomType : null;
+        $q = trim((string) ($filters['q'] ?? ''));
         $searchTerm = preg_replace('/^(mã|ma|đơn|don|phòng|phong|p\.|#)\s*/iu', '', $q) ?? $q;
         $searchTerm = trim(ltrim($searchTerm, '#'));
         $noShows = app(\App\Services\ExpireNoShowBookings::class);
         Booking::query()->where('user_id', Auth::id())->where('status', 'confirmed')
             ->whereDate('check_in', '<=', now('Asia/Ho_Chi_Minh')->toDateString())
             ->pluck('id')->each(fn ($id) => $noShows->cancelIfDue((int) $id));
+
+        $applySearchAndTypeFilter = function ($query) use ($roomTypeId, $searchTerm) {
+            $query->when($roomTypeId, function ($qBuilder) use ($roomTypeId) {
+                $qBuilder->whereHas('rooms', fn ($rooms) => $rooms->where('rooms.room_type_id', $roomTypeId));
+            })->when($searchTerm !== '', function ($qBuilder) use ($searchTerm) {
+                $qBuilder->where(function ($match) use ($searchTerm) {
+                    $match->where('customer_name', 'like', "%{$searchTerm}%")
+                        ->orWhere('customer_phone', 'like', "%{$searchTerm}%")
+                        ->orWhereHas('rooms', fn ($rooms) => $rooms->where('rooms.room_number', 'like', "%{$searchTerm}%")
+                            ->orWhereHas('roomType', fn ($types) => $types->where('room_types.type_name', 'like', "%{$searchTerm}%")));
+                    if (ctype_digit($searchTerm)) {
+                        $match->orWhereKey((int) $searchTerm);
+                    }
+                });
+            });
+        };
 
         $bookings = Booking::with(['rooms.roomType', 'stayExtensionLogs'])
             ->where('user_id', Auth::id())
@@ -249,24 +266,12 @@ class BookingController extends Controller
                 'completed' => ['completed'],
                 'cancelled' => ['cancelled', 'rejected'],
             }))
-            ->when($roomTypeId, function ($query) use ($roomTypeId) {
-                $query->whereHas('rooms', fn ($rooms) => $rooms->where('room_type_id', $roomTypeId));
-            })
-            ->when($searchTerm !== '', function ($query) use ($searchTerm) {
-                $query->where(function ($match) use ($searchTerm) {
-                    $match->where('customer_name', 'like', "%{$searchTerm}%")
-                        ->orWhere('customer_phone', 'like', "%{$searchTerm}%")
-                        ->orWhereHas('rooms', fn ($rooms) => $rooms->where('room_number', 'like', "%{$searchTerm}%")
-                            ->orWhereHas('roomType', fn ($types) => $types->where('type_name', 'like', "%{$searchTerm}%")));
-                    if (ctype_digit($searchTerm)) {
-                        $match->orWhereKey((int) $searchTerm);
-                    }
-                });
-            })
+            ->tap($applySearchAndTypeFilter)
             ->orderByDesc((new Booking)->getCreatedAtColumn())
             ->paginate(10)->withQueryString();
 
         $bookingCounts = Booking::where('user_id', Auth::id())
+            ->tap($applySearchAndTypeFilter)
             ->selectRaw(
                 'COUNT(*) AS all_count,
                  COALESCE(SUM(CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END), 0) AS upcoming_count,

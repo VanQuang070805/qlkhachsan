@@ -1,10 +1,18 @@
+@php
+    $facePrefix = (
+        request()->is('admin*')
+        || in_array((int) request()->getPort(), [18082, 10802], true)
+        || strtolower((string) (request()->header('X-Portal-Context') ?: config('services.portal.context', ''))) === 'admin'
+        || str_contains(strtolower(request()->getHost()), 'admin')
+    ) ? 'admin' : 'staff';
+@endphp
 <div id="face-guest-manager"
-     data-profiles-url="{{ route('staff.face-id.profiles.index') }}"
-     data-update-url="{{ route('staff.face-id.profiles.update', ['profile' => '__PROFILE__']) }}"
-     data-delete-url="{{ route('staff.face-id.profiles.delete', ['profile' => '__PROFILE__']) }}"
-     data-create-session-url="{{ route('staff.face-id.sessions.create') }}"
-     data-sample-url="{{ route('staff.face-id.samples.store', ['sessionId' => '__SESSION__']) }}"
-     data-cancel-url="{{ route('staff.face-id.sessions.cancel', ['sessionId' => '__SESSION__']) }}">
+     data-profiles-url="{{ route($facePrefix.'.face-id.profiles.index') }}"
+     data-update-url="{{ route($facePrefix.'.face-id.profiles.update', ['profile' => '__PROFILE__']) }}"
+     data-delete-url="{{ route($facePrefix.'.face-id.profiles.delete', ['profile' => '__PROFILE__']) }}"
+     data-create-session-url="{{ route($facePrefix.'.face-id.sessions.create') }}"
+     data-sample-url="{{ route($facePrefix.'.face-id.samples.store', ['sessionId' => '__SESSION__']) }}"
+     data-cancel-url="{{ route($facePrefix.'.face-id.sessions.cancel', ['sessionId' => '__SESSION__']) }}">
     <div class="modal fade" id="faceGuestModal" tabindex="-1" aria-labelledby="faceGuestModalLabel" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">

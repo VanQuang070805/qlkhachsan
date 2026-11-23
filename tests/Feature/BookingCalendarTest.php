@@ -147,6 +147,56 @@ class BookingCalendarTest extends TestCase
         $this->travelBack();
     }
 
+    public function test_admin_operational_routes_use_dedicated_admin_prefix_and_block_receptionists(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-20 10:00:00', 'Asia/Ho_Chi_Minh'));
+        [$booking] = $this->bookingWithRoom('202', 'Phạm Hoàng Nam', 'confirmed');
+        $admin = $this->internalUser('portal-admin@example.test', 'admin');
+        $staff = $this->internalUser('portal-staff@example.test', 'receptionist');
+
+        // Admin accesses Sơ đồ phòng under /admin/bookings and all internal actions use /admin/*
+        $this->asInternal($admin)
+            ->get(route('admin.bookings'))
+            ->assertOk()
+            ->assertSee(route('admin.cancellations'), false)
+            ->assertSee(route('admin.reception.booking-by-scan'), false)
+            ->assertSee(route('admin.reception.walkin'), false)
+            ->assertDontSee('href="'.route('staff.bookings').'"', false)
+            ->assertDontSee('href="'.route('staff.booking-calendar').'"', false);
+
+        // Admin accesses Lịch đặt phòng under /admin/booking-calendar
+        $this->asInternal($admin)
+            ->get(route('admin.booking-calendar', ['q' => '202']))
+            ->assertOk()
+            ->assertSee('Phạm Hoàng Nam')
+            ->assertSee(route('admin.booking-calendar.show', $booking), false)
+            ->assertSee(route('admin.bookings.early-checkin', $booking->id), false);
+
+        // Admin accesses Chi tiết lịch đặt phòng under /admin/booking-calendar/{booking}
+        $this->asInternal($admin)
+            ->get(route('admin.booking-calendar.show', $booking))
+            ->assertOk()
+            ->assertSee(route('admin.booking-calendar.update', $booking), false)
+            ->assertSee(route('admin.booking-calendar.destroy', $booking), false);
+
+        // Admin accesses Face ID & IoT, Hủy phòng & hoàn tiền, Hồ sơ cá nhân under /admin/*
+        $this->asInternal($admin)->get(route('admin.iot'))->assertOk()->assertSee(route('admin.face-id.recognize'), false);
+        $this->asInternal($admin)->get(route('admin.cancellations'))->assertOk();
+        $this->asInternal($admin)->get(route('admin.profile'))->assertOk()->assertSee(route('admin.profile.update-info'), false);
+
+        // Admin notification feed generates /admin/* destination links
+        $this->asInternal($admin)
+            ->getJson(route('admin.notifications.index'))
+            ->assertOk()
+            ->assertJsonFragment(['url' => route('admin.booking-calendar.show', $booking)]);
+
+        // Receptionist cannot access /admin/bookings or /admin/booking-calendar
+        $this->asInternal($staff)->get(route('admin.bookings'))->assertRedirect();
+        $this->asInternal($staff)->get(route('admin.booking-calendar'))->assertRedirect();
+
+        $this->travelBack();
+    }
+
     private function bookingWithRoom(string $roomNumber, string $guestName, string $status, string $checkIn = '2026-11-20', string $paymentStatus = 'paid'): array
     {
         $type = RoomType::create([

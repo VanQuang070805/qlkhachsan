@@ -198,7 +198,15 @@
                 </div>
 
                 @if($c->refund_status === 'eligible')
-                    <button type="button" class="btn btn-sm btn-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 fw-medium" data-bs-toggle="modal" data-bs-target="#refundConfirm" data-refund-url="{{ route('staff.bookings.refund', $c->id) }}" data-refund-name="{{ $c->customer_name }}" data-refund-amount="{{ number_format($c->refund_amount, 0, ',', '.') }} đ" style="border-radius: 999px; background: #070709; font-size: 0.78rem; border: none;">
+                    @php
+                        $refundPrefix = (
+                            request()->is('admin*')
+                            || in_array((int) request()->getPort(), [18082, 10802], true)
+                            || strtolower((string) (request()->header('X-Portal-Context') ?: config('services.portal.context', ''))) === 'admin'
+                            || str_contains(strtolower(request()->getHost()), 'admin')
+                        ) ? 'admin' : 'staff';
+                    @endphp
+                    <button type="button" class="btn btn-sm btn-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 fw-medium" data-bs-toggle="modal" data-bs-target="#refundConfirm" data-refund-url="{{ route($refundPrefix.'.bookings.refund', $c->id) }}" data-refund-name="{{ $c->customer_name }}" data-refund-amount="{{ number_format($c->refund_amount, 0, ',', '.') }} đ" style="border-radius: 999px; background: #070709; font-size: 0.78rem; border: none;">
                         <i class="bi bi-check2-circle text-success"></i>
                         <span>Xác nhận đã hoàn</span>
                     </button>
