@@ -23,10 +23,21 @@ export async function loadApprovedHotelDocuments(): Promise<{
   documents: Document[];
   activeHashes: string[];
 }> {
-  const knowledgeDir = path.resolve(
-    __dirname,
-    '../../../../../resources/knowledge',
-  );
+  const candidateDirs = [
+    path.resolve(__dirname, '../../../../resources/knowledge'),
+    path.resolve(__dirname, '../../../../../resources/knowledge'),
+    '/workspace/resources/knowledge',
+  ];
+  let knowledgeDir = candidateDirs[0];
+  for (const dir of candidateDirs) {
+    try {
+      await fs.access(dir);
+      knowledgeDir = dir;
+      break;
+    } catch {
+      // try next candidate
+    }
+  }
 
   const documents: Document[] = [];
   const activeHashes: string[] = [];
@@ -150,7 +161,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
       process.exit(0);
     })
     .catch((err) => {
-      console.error('[sync-knowledge] Failed:', err);
-      process.exit(1);
+      console.warn('[sync-knowledge] Non-fatal sync warning (continuing startup):', err?.message || err);
+      process.exit(0);
     });
 }

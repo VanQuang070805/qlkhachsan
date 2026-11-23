@@ -26,6 +26,7 @@ COPY --from=builder /workspace/node_modules /workspace/node_modules
 COPY --from=builder /workspace/backend/package.json /workspace/backend/package.json
 COPY --from=builder /workspace/backend/dist /workspace/backend/dist
 COPY --from=builder /workspace/resources/knowledge /workspace/resources/knowledge
+COPY --from=builder /workspace/resources/knowledge /resources/knowledge
 
 USER node
 EXPOSE 2024
