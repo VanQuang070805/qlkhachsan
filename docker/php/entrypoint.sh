@@ -9,6 +9,14 @@ PORTAL="${PORTAL_CONTEXT:-all}"
 export APP_CONFIG_CACHE="/tmp/royal-config-${ROLE}-${PORTAL}.php"
 export APP_ROUTES_CACHE="/tmp/royal-routes-${ROLE}-${PORTAL}.php"
 
+if [ "$ROLE" = "app-init" ] || [ "$ROLE" = "customer-app" ]; then
+    if [ -d "/usr/local/share/royal-build" ]; then
+        mkdir -p /var/www/html/public/build
+        rm -rf /var/www/html/public/build/*
+        cp -a /usr/local/share/royal-build/. /var/www/html/public/build/
+    fi
+fi
+
 if [ "$ROLE" = "app-init" ]; then
     php /var/www/html/docker/scripts/bootstrap-db.php
     php artisan migrate --force

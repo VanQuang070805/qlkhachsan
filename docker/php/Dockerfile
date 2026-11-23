@@ -52,6 +52,7 @@ WORKDIR /var/www/html
 COPY --chown=www-data:www-data . /var/www/html
 COPY --from=vendor --chown=www-data:www-data /app/vendor /var/www/html/vendor
 COPY --from=frontend --chown=www-data:www-data /app/public/build /var/www/html/public/build
+COPY --from=frontend --chown=www-data:www-data /app/public/build /usr/local/share/royal-build
 COPY docker/php/entrypoint.sh /usr/local/bin/royal-entrypoint.sh
 
 RUN sed -i 's/\r$//' /usr/local/bin/royal-entrypoint.sh \

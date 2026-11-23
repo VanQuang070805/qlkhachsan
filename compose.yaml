@@ -178,6 +178,7 @@ services:
       PORTAL_CONTEXT: all
     volumes:
       - laravel_storage:/var/www/html/storage
+      - laravel_public:/var/www/html/public
     depends_on:
       mysql:
         condition: service_healthy
@@ -226,6 +227,7 @@ services:
       - "9000"
     volumes:
       - laravel_storage:/var/www/html/storage
+      - laravel_public:/var/www/html/public:ro
     depends_on:
       app-init:
         condition: service_completed_successfully
@@ -248,6 +250,7 @@ services:
       - "9000"
     volumes:
       - laravel_storage:/var/www/html/storage
+      - laravel_public:/var/www/html/public:ro
     depends_on:
       app-init:
         condition: service_completed_successfully
