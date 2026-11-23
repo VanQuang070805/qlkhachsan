@@ -795,33 +795,45 @@
     cursor: pointer;
     transition: transform 0.16s ease, background 0.16s ease;
 }
-.booking-action-btn--primary {
-    background: #181715;
-    color: #ffffff;
-    border: 1px solid #181715;
+.booking-action-btn--primary,
+a.booking-action-btn--primary {
+    background: #181715 !important;
+    color: #ffffff !important;
+    border: 1px solid #181715 !important;
 }
-.booking-action-btn--primary:hover {
-    background: #2c2a26;
-    color: #ffffff;
+.booking-action-btn--primary > span,
+.booking-action-btn--primary > i,
+a.booking-action-btn--primary > span,
+a.booking-action-btn--primary > i {
+    color: #ffffff !important;
 }
-.booking-action-btn--warm {
-    background: #f3efe9;
-    color: #181715;
-    border: 1px solid #dfd8cc;
+.booking-action-btn--primary:hover,
+a.booking-action-btn--primary:hover {
+    background: #2c2a26 !important;
+    color: #ffffff !important;
 }
-.booking-action-btn--ghost {
-    background: #f8fafc;
-    color: #334155;
-    border: 1px solid #dce3ea;
+.booking-action-btn--warm,
+a.booking-action-btn--warm {
+    background: #f3efe9 !important;
+    color: #181715 !important;
+    border: 1px solid #dfd8cc !important;
 }
-.booking-action-btn--ghost:hover {
-    background: #f1f5f9;
-    color: #0f172a;
+.booking-action-btn--ghost,
+a.booking-action-btn--ghost {
+    background: #f8fafc !important;
+    color: #334155 !important;
+    border: 1px solid #dce3ea !important;
 }
-.booking-action-btn--danger {
-    background: #fff5f5;
-    color: #be123c;
-    border: 1px solid #fecdd3;
+.booking-action-btn--ghost:hover,
+a.booking-action-btn--ghost:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+.booking-action-btn--danger,
+a.booking-action-btn--danger {
+    background: #fff5f5 !important;
+    color: #be123c !important;
+    border: 1px solid #fecdd3 !important;
 }
 .cleaning-request-card {
     min-height: 40px;

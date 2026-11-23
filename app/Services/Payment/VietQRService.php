@@ -27,9 +27,9 @@ class VietQRService
 
     public function __construct()
     {
-        $this->bankBin     = (string) config('payment.vietqr.bank_bin', '');
-        $this->accountNo   = (string) config('payment.vietqr.account_no', '');
-        $this->accountName = (string) config('payment.vietqr.account_name', '');
+        $this->bankBin     = trim((string) config('payment.vietqr.bank_bin', '')) ?: '970422';
+        $this->accountNo   = trim((string) config('payment.vietqr.account_no', '')) ?: '0945843588';
+        $this->accountName = trim((string) config('payment.vietqr.account_name', '')) ?: 'THINH VAN QUANG';
         $this->sePayToken  = config('payment.vietqr.sepay_token');
         $this->sePayApiUrl = (string) config('payment.vietqr.sepay_api_url', 'https://my.sepay.vn/userapi');
     }

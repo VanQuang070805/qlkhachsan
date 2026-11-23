@@ -12,8 +12,8 @@ return [
     // ── VietQR ────────────────────────────────────────────
     'vietqr' => [
         'bank_bin'     => env('VIETQR_BANK_BIN') ?: '970422',   // MB Bank mặc định
-        'account_no'   => env('VIETQR_ACCOUNT_NO') ?: '0359699999',
-        'account_name' => env('VIETQR_ACCOUNT_NAME') ?: 'ROSALIZA HOTEL',
+        'account_no'   => env('VIETQR_ACCOUNT_NO') ?: '0945843588',
+        'account_name' => env('VIETQR_ACCOUNT_NAME') ?: 'THINH VAN QUANG',
         // SePay API — để polling giao dịch tự động
         'sepay_token'   => env('SEPAY_TOKEN'),
         'sepay_api_url' => env('SEPAY_API_URL', 'https://my.sepay.vn/userapi'),
