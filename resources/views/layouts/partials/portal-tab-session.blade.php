@@ -11,9 +11,10 @@
 <script>
 (() => {
     const key = 'rosaliza:{{ $portal }}:tab-session';
+    const isAdminSession = @json((bool) session('admin_user_id'));
     const allowRemembered = @json($rememberedCustomer);
     try {
-        if (sessionStorage.getItem(key) === 'active') return;
+        if (sessionStorage.getItem(key) === 'active' || (isAdminSession && sessionStorage.getItem('rosaliza:admin:tab-session') === 'active')) return;
         if (allowRemembered) {
             sessionStorage.setItem(key, 'active');
             return;

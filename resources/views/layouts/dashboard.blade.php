@@ -2,7 +2,16 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}">
-    @include('layouts.partials.portal-tab-session', ['portal' => in_array((int) request()->getPort(), [18082, 10802], true) ? 'admin' : (in_array((int) request()->getPort(), [18081, 10801], true) ? 'staff' : (request()->is('admin*') ? 'admin' : 'staff'))])
+    @php
+        $detectedPortal = (
+            in_array((int) request()->getPort(), [18082, 10802], true)
+            || strtolower((string) (request()->header('X-Portal-Context') ?: config('services.portal.context', ''))) === 'admin'
+            || str_contains(strtolower(request()->getHost()), 'admin')
+            || (bool) session('admin_user_id')
+            || request()->is('admin*')
+        ) ? 'admin' : 'staff';
+    @endphp
+    @include('layouts.partials.portal-tab-session', ['portal' => $detectedPortal])
     <title>@yield('title','Vận hành · Rosaliza Hotel')</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
