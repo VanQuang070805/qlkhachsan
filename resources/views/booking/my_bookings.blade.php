@@ -491,6 +491,25 @@
 
 @push('styles')
 <style>
+.my-bookings-page,
+.my-bookings-page *,
+#bookingDetailModal,
+#bookingDetailModal *,
+#stayExtensionModal,
+#stayExtensionModal *,
+#qrModal,
+#qrModal *,
+#refundModal,
+#refundModal * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.my-bookings-page .bi,
+#bookingDetailModal .bi,
+#stayExtensionModal .bi,
+#qrModal .bi,
+#refundModal .bi {
+    font-family: bootstrap-icons !important;
+}
 .my-bookings-page {
     padding-bottom: 48px;
 }

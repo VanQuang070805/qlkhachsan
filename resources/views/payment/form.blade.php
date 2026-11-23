@@ -16,7 +16,7 @@
         : max(0, (int) now()->diffInSeconds($booking->paymentHoldTimestamp()->copy()->addMinutes(10), false));
 @endphp
 
-<div class="aeth-canvas">
+<div class="aeth-canvas" style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center;">
     <div class="aeth-spatial-7xl aeth-animate-in">
 
         {{-- ── 1. Top Header: Stepper centered giống trang 2 + Live Countdown ── --}}

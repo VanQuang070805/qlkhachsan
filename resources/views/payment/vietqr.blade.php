@@ -8,8 +8,8 @@
     $rooms  = $booking->rooms;
 @endphp
 
-<div class="aeth-canvas" style="padding-top: 40px; padding-bottom: 60px;">
-    <div style="max-width: 960px; margin: 0 auto; padding: 0 16px;">
+<div class="aeth-canvas" style="min-height: 100vh; padding-top: clamp(128px, 14vh, 168px); padding-bottom: 80px; display: flex; flex-direction: column; justify-content: center; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <div style="max-width: 1020px; width: 100%; margin: 0 auto; padding: 0 20px;">
 
         {{-- Top Header --}}
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
@@ -44,53 +44,53 @@
                     <div style="font-size: 13px; opacity: 0.9; margin-top: 4px;">Hỗ trợ 40+ ngân hàng Việt Nam &amp; Napas 24/7</div>
                 </div>
 
-                {{-- Body (Căn giữa mã QR) --}}
+                {{-- Body (Căn giữa mã QR & mở rộng vừa khít khung) --}}
                 <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     @if(!empty($qrData['qr_url']))
-                        <div style="background: #ffffff; padding: 12px; border-radius: 18px; border: 2px solid #E5E1D8; box-shadow: 0 8px 24px rgba(24, 23, 21, 0.08); display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                        <div style="width: 100%; background: #ffffff; padding: 10px 12px; border-radius: 18px; border: 2px solid #E5E1D8; box-shadow: 0 8px 24px rgba(24, 23, 21, 0.08); display: flex; align-items: center; justify-content: center; margin: 0 auto; overflow: hidden;">
                             <img id="vietQrImage" src="{{ $qrData['qr_url'] }}"
                                  alt="VietQR Code"
-                                 style="width: min(250px, 68vw); height: auto; aspect-ratio: 1 / 1; max-width: 100%; border-radius: 10px; display: block; margin: 0 auto; object-fit: contain;">
+                                 style="width: 100%; max-width: 370px; height: auto; border-radius: 12px; display: block; margin: -2.5% auto -1.5%; transform: scale(1.04); transform-origin: center center; object-fit: contain;">
                         </div>
                     @else
-                        <div style="width: min(250px, 68vw); aspect-ratio: 1 / 1; background: #FAF9F6; border-radius: 18px; border: 2px dashed #E5E1D8; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; gap: 10px;">
+                        <div style="width: 100%; max-width: 370px; aspect-ratio: 1 / 1; background: #FAF9F6; border-radius: 18px; border: 2px dashed #E5E1D8; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; gap: 10px;">
                             <i class="bi bi-bank text-primary" style="font-size: 44px;" aria-hidden="true"></i>
                             <span style="font-size: 13px; color: #64748b; font-weight: 500;">Chưa tạo được QR tự động</span>
                         </div>
                     @endif
 
                     {{-- Hộp sao chép thông tin ngân hàng & số tiền (Tối ưu chuyển khoản Mobile App) --}}
-                    <div style="width: 100%; margin-top: 18px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 10px;">
                         {{-- 1. Số tài khoản --}}
-                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;">
                             <div style="min-width: 0;">
-                                <div style="font-size: 10.5px; font-weight: 600; color: #64748b; text-transform: uppercase;">Số tài khoản &amp; Người nhận</div>
-                                <div style="font-size: 15px; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums;">{{ $qrData['account_no'] ?? '' }}</div>
-                                <div style="font-size: 11px; color: #64748b;">{{ $qrData['account_name'] ?? 'ROSALIZA HOTEL' }}</div>
+                                <div style="font-size: 11px; font-weight: 600; color: #5C5852; text-transform: uppercase; letter-spacing: 0.03em;">Số tài khoản &amp; Người nhận</div>
+                                <div style="font-size: 18px; font-weight: 700; color: #181715; font-variant-numeric: tabular-nums; line-height: 1.3; margin-top: 2px;">{{ $qrData['account_no'] ?? '' }}</div>
+                                <div style="font-size: 13.5px; font-weight: 600; color: #181715; margin-top: 2px;">{{ $qrData['account_name'] ?? 'THINH VAN QUANG' }}</div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-light border flex-shrink-0" onclick="copyText('{{ $qrData['account_no'] ?? '' }}', this)" style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 8px 14px; min-height: 40px;">
+                            <button type="button" class="btn btn-sm btn-light border flex-shrink-0" onclick="copyText('{{ $qrData['account_no'] ?? '' }}', this)" style="border-radius: 999px; font-size: 12.5px; font-weight: 600; padding: 8px 16px; min-height: 40px;">
                                 <i class="bi bi-clipboard me-1" aria-hidden="true"></i> <span>Sao chép</span>
                             </button>
                         </div>
 
                         {{-- 2. Số tiền chuyển khoản --}}
-                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
+                        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;">
                             <div style="min-width: 0;">
-                                <div style="font-size: 10.5px; font-weight: 600; color: #64748b; text-transform: uppercase;">Số tiền cọc chính xác</div>
-                                <div style="font-size: 15.5px; font-weight: 500; color: #0f172a; font-variant-numeric: tabular-nums;">{{ number_format($booking->deposit_amount, 0, ',', '.') }} đ</div>
+                                <div style="font-size: 11px; font-weight: 600; color: #5C5852; text-transform: uppercase; letter-spacing: 0.03em;">Số tiền cọc chính xác</div>
+                                <div style="font-size: 18px; font-weight: 600; color: #181715; font-variant-numeric: tabular-nums; margin-top: 2px;">{{ number_format($booking->deposit_amount, 0, ',', '.') }} đ</div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-light border flex-shrink-0" onclick="copyText('{{ (int)$booking->deposit_amount }}', this)" style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 8px 14px; min-height: 40px;">
+                            <button type="button" class="btn btn-sm btn-light border flex-shrink-0" onclick="copyText('{{ (int)$booking->deposit_amount }}', this)" style="border-radius: 999px; font-size: 12.5px; font-weight: 600; padding: 8px 16px; min-height: 40px;">
                                 <i class="bi bi-clipboard me-1" aria-hidden="true"></i> <span>Sao chép</span>
                             </button>
                         </div>
 
                         {{-- 3. Nội dung chuyển khoản --}}
-                        <div style="background: #F3EFE9; border: 1px solid #E5E1D8; border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
+                        <div style="background: #F3EFE9; border: 1px solid #E5E1D8; border-radius: 14px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;">
                             <div style="min-width: 0;">
-                                <div style="font-size: 10.5px; font-weight: 600; color: #5C5852; text-transform: uppercase; letter-spacing: 0.04em;">Nội dung chuyển khoản (bắt buộc)</div>
-                                <code id="refCodeText" style="font-size: 15px; font-weight: 600; color: #181715; letter-spacing: 0.02em;">{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}</code>
+                                <div style="font-size: 11px; font-weight: 600; color: #5C5852; text-transform: uppercase; letter-spacing: 0.04em;">Nội dung chuyển khoản (bắt buộc)</div>
+                                <code id="refCodeText" style="font-size: 17px; font-weight: 700; color: #181715; letter-spacing: 0.03em; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}</code>
                             </div>
-                            <button type="button" class="btn btn-sm btn-dark flex-shrink-0" onclick="copyText('{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}', this)" style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 8px 14px; min-height: 40px; background: #181715; border: none; color: #fff;">
+                            <button type="button" class="btn btn-sm btn-dark flex-shrink-0" onclick="copyText('{{ $qrData['reference_code'] ?? 'KS'.$booking->id }}', this)" style="border-radius: 999px; font-size: 12.5px; font-weight: 600; padding: 8px 16px; min-height: 40px; background: #181715; border: none; color: #fff;">
                                 <i class="bi bi-clipboard me-1" aria-hidden="true"></i> <span>Sao chép</span>
                             </button>
                         </div>
