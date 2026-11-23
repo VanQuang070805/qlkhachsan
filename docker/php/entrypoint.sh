@@ -21,7 +21,7 @@ if [ "$ROLE" = "app-init" ]; then
         echo "[app-init] Fresh database volume detected. Bootstrap mode: ${DB_BOOTSTRAP_MODE:-snapshot}"
         if [ "${DB_BOOTSTRAP_MODE:-snapshot}" = "snapshot" ] && [ -f "/var/www/html/database/qlkhachsan.sql" ]; then
             echo "[app-init] Importing initial snapshot database/qlkhachsan.sql..."
-            mysql --skip-ssl -h"${DB_HOST:-mysql}" -P"${DB_PORT:-3306}" -u"${DB_USERNAME}" -p"${DB_PASSWORD}" "${DB_DATABASE}" < /var/www/html/database/qlkhachsan.sql
+            sed 's/ CHECK (json_valid([^)]*))//g' /var/www/html/database/qlkhachsan.sql | mysql --skip-ssl -h"${DB_HOST:-mysql}" -P"${DB_PORT:-3306}" -u"${DB_USERNAME}" -p"${DB_PASSWORD}" "${DB_DATABASE}"
         fi
         php artisan migrate --force
         if [ "${DB_BOOTSTRAP_MODE:-snapshot}" = "migrate-seed" ]; then

@@ -54,7 +54,8 @@ COPY --from=vendor --chown=www-data:www-data /app/vendor /var/www/html/vendor
 COPY --from=frontend --chown=www-data:www-data /app/public/build /var/www/html/public/build
 COPY docker/php/entrypoint.sh /usr/local/bin/royal-entrypoint.sh
 
-RUN chmod +x /usr/local/bin/royal-entrypoint.sh \
+RUN sed -i 's/\r$//' /usr/local/bin/royal-entrypoint.sh \
+    && chmod +x /usr/local/bin/royal-entrypoint.sh \
     && mkdir -p storage/framework/cache/data \
                 storage/framework/sessions \
                 storage/framework/views \
