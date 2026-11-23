@@ -9,7 +9,7 @@ RUN composer install \
     --no-interaction \
     --no-progress \
     --prefer-dist \
-    --classmap-authoritative \
+    --optimize-autoloader \
     --no-scripts
 
 # ==============================================================================
