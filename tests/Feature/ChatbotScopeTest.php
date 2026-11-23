@@ -2,7 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Room;
+use App\Models\RoomType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -83,5 +87,88 @@ class ChatbotScopeTest extends TestCase
         $this->postJson(route('chatbot.api'), [
             'message' => 'Tôi muốn ở từ ngày 22/11 đến 25/11 ở 2 người thì bao tiền?',
         ])->assertOk()->assertJsonPath('source', 'gemini-langgraph');
+    }
+
+    public function test_chatbot_understands_relative_dates_guest_counts_and_follows_up_when_ai_promises_to_check(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 11, 23, 14, 0, 0, 'Asia/Ho_Chi_Minh'));
+        $type = RoomType::create([
+            'type_name' => 'Deluxe Suite',
+            'price' => 1200000,
+            'max_adults' => 2,
+            'max_children' => 1,
+            'max_guests' => 3,
+        ]);
+        Room::create([
+            'room_number' => '301',
+            'room_type_id' => $type->id,
+            'floor' => 3,
+            'status' => Room::STATUS_AVAILABLE,
+        ]);
+
+        config([
+            'services.langgraph.enabled' => true,
+            'services.langgraph.base_url' => 'http://127.0.0.1:2024',
+        ]);
+
+        // Even if the upstream LLM replies with a holding phrase ("Đợi mình kiểm tra giá..."),
+        // LangGraphChatbotService automatically appends the live 2-night quote and 50% deposit.
+        Http::fake([
+            '127.0.0.1:2024/threads' => Http::response(['thread_id' => 'relative-quote-thread'], 200),
+            '127.0.0.1:2024/threads/relative-quote-thread/runs/wait' => Http::response([
+                'messages' => [['type' => 'ai', 'content' => 'Đợi Pico kiểm tra giá giúp bạn nhé.']],
+            ], 200),
+        ]);
+
+        $res1 = $this->postJson(route('chatbot.api'), [
+            'message' => 'xem giá đặt phòng hôm nay và trả 2 hôm nữa thì bao nhiêu',
+        ])->assertOk()->assertJsonPath('source', 'gemini-langgraph');
+
+        $reply1 = (string) $res1->json('reply');
+        $this->assertStringContainsString('Deluxe Suite', $reply1);
+        $this->assertStringContainsString('2.400.000đ', $reply1);
+        $this->assertStringContainsString('1.200.000đ', $reply1);
+
+        // Follow-up question "2 người lớn thì bao nhiêu" without repeating the word "phòng"
+        $res2 = $this->postJson(route('chatbot.api'), [
+            'message' => '2 người lớn thì bao nhiêu',
+            'history' => [
+                ['role' => 'user', 'content' => 'xem giá đặt phòng hôm nay và trả 2 hôm nữa thì bao nhiêu'],
+                ['role' => 'assistant', 'content' => $reply1],
+            ],
+        ])->assertOk()->assertJsonPath('source', 'gemini-langgraph');
+
+        $this->assertStringContainsString('2 người lớn', (string) $res2->json('reply'));
+        $this->assertStringContainsString('2.400.000đ', (string) $res2->json('reply'));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_chatbot_anti_spam_guard_blocks_rapid_fire_and_duplicate_flooding(): void
+    {
+        Cache::flush();
+        config([
+            'services.langgraph.enabled' => true,
+            'services.langgraph.base_url' => 'http://127.0.0.1:2024',
+            'services.langgraph.enforce_anti_spam_in_tests' => true,
+        ]);
+
+        Http::fake([
+            '127.0.0.1:2024/threads' => Http::response(['thread_id' => 'spam-thread'], 200),
+            '127.0.0.1:2024/threads/spam-thread/runs/wait' => Http::response([
+                'messages' => [['type' => 'ai', 'content' => 'Xin chào quý khách.']],
+            ], 200),
+        ]);
+
+        // First message succeeds
+        $this->postJson(route('chatbot.api'), [
+            'message' => 'Cho tôi hỏi giá phòng hôm nay',
+        ])->assertOk();
+
+        // Immediate second message (<2s) is blocked by anti-spam cooldown with HTTP 429
+        $this->postJson(route('chatbot.api'), [
+            'message' => 'Cho tôi hỏi giá phòng ngày mai',
+        ])->assertStatus(429)
+            ->assertJsonPath('source', 'anti-spam');
     }
 }

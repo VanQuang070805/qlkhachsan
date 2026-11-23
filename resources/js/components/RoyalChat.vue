@@ -22,8 +22,13 @@ const panel = ref(null);
 const input = ref(null);
 const pageZoomed = ref(false);
 const isMinimized = ref(false);
+const cooldownSeconds = ref(0);
 
 let controller = null;
+let cooldownTimer = null;
+let lastSentContent = '';
+let lastSentAt = 0;
+let recentSendTimestamps = [];
 let followLatest = true;
 let internalNavPending = false;
 let leavingSite = false;
@@ -278,10 +283,52 @@ function keydown(event) {
     }
 }
 
+function startCooldown(seconds = 2) {
+    clearInterval(cooldownTimer);
+    cooldownSeconds.value = Math.max(0, Math.ceil(seconds));
+    if (cooldownSeconds.value <= 0) return;
+    cooldownTimer = setInterval(() => {
+        if (cooldownSeconds.value <= 1) {
+            cooldownSeconds.value = 0;
+            clearInterval(cooldownTimer);
+            cooldownTimer = null;
+        } else {
+            cooldownSeconds.value -= 1;
+        }
+    }, 1000);
+}
+
 async function send(prompt) {
     if (typeof prompt === 'string') draft.value = prompt;
     const content = draft.value.trim();
-    if (!content || pending.value) return;
+    if (!content || pending.value || cooldownSeconds.value > 0) return;
+
+    const now = Date.now();
+    const normalizedContent = content.toLowerCase().replace(/\s+/g, ' ');
+    if (normalizedContent === lastSentContent && now - lastSentAt < 10000) {
+        draft.value = '';
+        if (input.value) input.value.style.height = 'auto';
+        messages.value.push(
+            message('assistant', 'Bạn vừa gửi câu hỏi này rồi. Vui lòng đợi vài giây hoặc đặt câu hỏi khác nhé.')
+        );
+        startCooldown(5);
+        await scrollToLatest(true);
+        return;
+    }
+
+    recentSendTimestamps = recentSendTimestamps.filter((ts) => now - ts < 15000);
+    recentSendTimestamps.push(now);
+    if (recentSendTimestamps.length > 5) {
+        startCooldown(15);
+        messages.value.push(
+            message('assistant', 'Bạn đang gửi tin nhắn quá nhanh. Hộp thoại tạm khóa 15 giây để chống spam.')
+        );
+        await scrollToLatest(true);
+        return;
+    }
+
+    lastSentContent = normalizedContent;
+    lastSentAt = now;
 
     messages.value.push(message('user', content));
     const priorMessages = messages.value
@@ -325,6 +372,22 @@ async function send(prompt) {
                     },
                     body: JSON.stringify({ message: content, history, page_context: pageContext }),
                 });
+                if (response.status === 429) {
+                    let rateMsg = 'Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi 15 giây trước khi gửi tiếp nhé.';
+                    try {
+                        const errJson = await response.json();
+                        if (errJson?.message || errJson?.reply) {
+                            rateMsg = errJson.message || errJson.reply;
+                        }
+                    } catch {
+                        // Use default 429 message.
+                    }
+                    assistant.content = rateMsg;
+                    typing.value = false;
+                    completed = true;
+                    startCooldown(15);
+                    break;
+                }
                 if (!response.ok || !response.body) throw new Error('Request failed');
                 assistant.content = '';
                 const reader = response.body.getReader();
@@ -391,6 +454,9 @@ async function send(prompt) {
         pending.value = false;
         typing.value = false;
         controller = null;
+        if (cooldownSeconds.value <= 0) {
+            startCooldown(2);
+        }
         await scrollToLatest();
         input.value?.focus();
     }
@@ -540,6 +606,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
     controller?.abort();
     clearTimeout(petTimer);
+    clearInterval(cooldownTimer);
     document.removeEventListener('keydown', escapeClose);
     document.removeEventListener('click', handleDocumentClick, true);
     document.removeEventListener('submit', handleDocumentSubmit, true);
@@ -649,7 +716,13 @@ onBeforeUnmount(() => {
         </div>
 
         <div v-if="messages.length <= 1" class="royal-chat__suggestions" aria-label="Câu hỏi gợi ý">
-            <button v-for="suggestion in suggestions" :key="suggestion[0]" type="button" @click="send(suggestion[1])">
+            <button
+                v-for="suggestion in suggestions"
+                :key="suggestion[0]"
+                type="button"
+                :disabled="pending || cooldownSeconds > 0"
+                @click="send(suggestion[1])"
+            >
                 {{ suggestion[0] }}
             </button>
         </div>
@@ -662,7 +735,12 @@ onBeforeUnmount(() => {
                 v-model="draft"
                 rows="1"
                 maxlength="1000"
-                placeholder="Hỏi về kỳ nghỉ của bạn…"
+                :disabled="pending || cooldownSeconds > 5"
+                :placeholder="
+                    cooldownSeconds > 5
+                        ? `Tạm khóa chống spam (${cooldownSeconds}s)...`
+                        : 'Hỏi về kỳ nghỉ của bạn…'
+                "
                 required
                 @input="
                     resizeInput();
@@ -670,7 +748,13 @@ onBeforeUnmount(() => {
                 "
                 @keydown="keydown"
             ></textarea>
-            <button type="submit" aria-label="Gửi câu hỏi" :disabled="pending"><span aria-hidden="true">↑</span></button>
+            <button
+                type="submit"
+                :aria-label="cooldownSeconds > 0 ? `Đợi ${cooldownSeconds} giây` : 'Gửi câu hỏi'"
+                :disabled="pending || cooldownSeconds > 0"
+            >
+                <span aria-hidden="true">{{ cooldownSeconds > 0 ? `${cooldownSeconds}s` : '↑' }}</span>
+            </button>
         </form>
         <p class="royal-chat__privacy">Không chia sẻ mật khẩu, mã OTP hoặc thông tin thẻ</p>
     </div>

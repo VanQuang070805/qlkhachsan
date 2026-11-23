@@ -199,23 +199,32 @@ function parseFlexibleDates(text: string): string[] {
   }
 
   if (found.length === 0) {
-    if (/\b(hôm nay|hom nay|tối nay|toi nay)\b/i.test(text)) {
+    if (/\b(hôm nay|hom nay|tối nay|toi nay|bây giờ|bay gio)\b/i.test(text)) {
       found.push(hanoiDateParts(0).iso);
     }
-    if (/\b(ngày mai|ngay mai|tối mai|toi mai)\b/i.test(text)) {
+    if (/\b(ngày mai|ngay mai|tối mai|toi mai|\bmai\b)\b/i.test(text)) {
       found.push(hanoiDateParts(1).iso);
     }
     if (/\b(ngày kia|ngay kia|ngày mốt|ngay mot)\b/i.test(text)) {
       found.push(hanoiDateParts(2).iso);
     }
-    const nightMatch = text.match(/(\d+)\s*(đêm|dem)/i);
-    if ((found.length as number) === 1 && nightMatch) {
-      const nights = Math.max(1, Math.min(30, Number(nightMatch[1])));
-      const baseMs = Date.parse(`${found[0]}T00:00:00Z`);
-      if (!Number.isNaN(baseMs)) {
-        const out = new Date(baseMs + nights * 86_400_000).toISOString().slice(0, 10);
-        found.push(out);
-      }
+  }
+
+  const durMatch = text.match(/\b(?:trả|tra|đến|den|sau|ở|o)?\s*(\d{1,2})\s*(đêm|dem|hôm nữa|hom nua|ngày nữa|ngay nua|hôm|hom|ngày|ngay)\b/i);
+  if ((found.length as number) === 1 && durMatch) {
+    const nights = Math.max(1, Math.min(30, Number(durMatch[1])));
+    const baseMs = Date.parse(`${found[0]}T00:00:00Z`);
+    if (!Number.isNaN(baseMs)) {
+      const out = new Date(baseMs + nights * 86_400_000).toISOString().slice(0, 10);
+      found.push(out);
+    }
+  } else if ((found.length as number) === 0 && durMatch) {
+    const nights = Math.max(1, Math.min(30, Number(durMatch[1])));
+    const startIso = hanoiDateParts(0).iso;
+    const baseMs = Date.parse(`${startIso}T00:00:00Z`);
+    if (!Number.isNaN(baseMs)) {
+      const out = new Date(baseMs + nights * 86_400_000).toISOString().slice(0, 10);
+      found.push(startIso, out);
     }
   }
 
@@ -249,11 +258,23 @@ function extractSearchCriteria(
   }
 
   let guests: number | undefined;
-  const guestMatches = Array.from(
-    combinedText.matchAll(/(\d+)\s*(người|nguoi|khách|khach)/gi),
+  const adultMatches = Array.from(
+    combinedText.matchAll(/(\d+)\s*(người lớn|nguoi lon)/gi),
   );
-  if (guestMatches.length > 0) {
-    guests = Number(guestMatches[guestMatches.length - 1][1]);
+  const childMatches = Array.from(
+    combinedText.matchAll(/(\d+)\s*(trẻ em|tre em|bé|be)/gi),
+  );
+  if (adultMatches.length > 0 || childMatches.length > 0) {
+    const adults = adultMatches.length > 0 ? Number(adultMatches[adultMatches.length - 1][1]) : 1;
+    const children = childMatches.length > 0 ? Number(childMatches[childMatches.length - 1][1]) : 0;
+    guests = Math.max(1, adults + children);
+  } else {
+    const guestMatches = Array.from(
+      combinedText.matchAll(/(\d+)\s*(người|nguoi|khách|khach)/gi),
+    );
+    if (guestMatches.length > 0) {
+      guests = Number(guestMatches[guestMatches.length - 1][1]);
+    }
   }
 
   let rooms = 1;
@@ -373,9 +394,10 @@ async function callLaravelPublicTools(
   );
   const needRoomTypes =
     isPriceOrRoomTypeQuery(query) ||
+    Boolean(criteria.check_in && criteria.check_out) ||
     (viewingRoomInReality && /\b(phòng này|phong nay|hạng này|hang nay|đang xem|dang xem)\b/i.test(query));
   const needSearch = Boolean(
-    criteria.check_in && criteria.check_out && criteria.guests,
+    criteria.check_in && criteria.check_out,
   );
   const needMyBookings = Boolean(
     isMyBookingQuery(query) &&
@@ -408,7 +430,7 @@ async function callLaravelPublicTools(
           body: JSON.stringify({
             check_in: criteria.check_in,
             check_out: criteria.check_out,
-            guests: criteria.guests,
+            guests: criteria.guests || 1,
             rooms: criteria.rooms || 1,
           }),
           signal: AbortSignal.timeout(4500),

@@ -3,6 +3,9 @@
 namespace App\Services\Chatbot;
 
 use App\Models\Booking;
+use App\Models\PriceSetting;
+use App\Models\Room;
+use App\Models\RoomType;
 use App\Models\User;
 use App\Services\CacheVersionService;
 use App\Services\OutboxService;
@@ -103,8 +106,9 @@ class LangGraphChatbotService
      * Build a verified reality snapshot of the current user, their bookings, and the page they are viewing.
      *
      * @param  array<string, mixed>  $pageContext
+     * @param  array<int, array{role?: string, content?: string}>  $history
      */
-    public function buildUserRealitySummary(Request $request, array $pageContext = []): string
+    public function buildUserRealitySummary(Request $request, array $pageContext = [], string $message = '', array $history = []): string
     {
         $lines = [];
         $now = now('Asia/Ho_Chi_Minh');
@@ -183,7 +187,303 @@ class LangGraphChatbotService
             $lines[] = 'Ngữ cảnh trang web khách đang mở ngay lúc này: '.implode(' | ', $pageParts).'.';
         }
 
+        $quoteCtx = $this->buildLiveQuoteContext($message, $history, $pageContext);
+        if (! empty($quoteCtx['reality_block'])) {
+            $lines[] = $quoteCtx['reality_block'];
+        }
+
         return implode("\n", $lines);
+    }
+
+    /**
+     * Parse natural Vietnamese relative/explicit dates, stay duration, and guest counts
+     * from the current message + recent conversation history, and compute exact live prices & availability.
+     *
+     * @param  array<int, array{role?: string, content?: string}>  $history
+     * @param  array<string, mixed>  $pageContext
+     * @return array{is_quote_query: bool, reality_block: string, fallback_reply: string}
+     */
+    public function buildLiveQuoteContext(string $message, array $history = [], array $pageContext = []): array
+    {
+        $now = now('Asia/Ho_Chi_Minh');
+        $today = $now->copy()->startOfDay();
+        $userMessages = [];
+        foreach (array_slice($history, -6) as $item) {
+            if (($item['role'] ?? '') === 'user' && ! empty($item['content'])) {
+                $userMessages[] = (string) $item['content'];
+            }
+        }
+        if ($message !== '') {
+            $userMessages[] = $message;
+        }
+        $combined = mb_strtolower(implode(' | ', $userMessages), 'UTF-8');
+        $currentLower = mb_strtolower($message, 'UTF-8');
+
+        $isQuoteOrRoomIntent = (bool) preg_match('/\b(giá|gia|bao nhiêu|bao nhieu|bao tiền|bao tien|hết bao|het bao|chi phí|chi phi|check|xem|báo giá|bao gia|tính|tinh|phòng|phong|hạng|hang|người|nguoi|khách|khach|đêm|dem|ngày|ngay|hôm|hom|còn trống|con trong|đặt|dat|nhận|nhan|trả|tra)\b/ui', $combined);
+        if (! $isQuoteOrRoomIntent) {
+            return ['is_quote_query' => false, 'reality_block' => '', 'fallback_reply' => ''];
+        }
+
+        try {
+            $roomTypes = RoomType::with('rooms')->orderBy('price')->get();
+        } catch (\Throwable) {
+            return ['is_quote_query' => false, 'reality_block' => '', 'fallback_reply' => ''];
+        }
+
+        if ($roomTypes->isEmpty()) {
+            return ['is_quote_query' => false, 'reality_block' => '', 'fallback_reply' => ''];
+        }
+
+        // 1. Parse check-in & check-out from current message first, then fallback to recent history or pageContext
+        [$checkIn, $checkOut] = $this->parseNaturalDateRange($currentLower, $today);
+        if (! $checkIn || ! $checkOut) {
+            [$histIn, $histOut] = $this->parseNaturalDateRange($combined, $today);
+            $checkIn = $checkIn ?: $histIn;
+            $checkOut = $checkOut ?: $histOut;
+        }
+        if ((! $checkIn || ! $checkOut) && ! empty($pageContext['check_in']) && ! empty($pageContext['check_out'])) {
+            try {
+                $pIn = Carbon::parse((string) $pageContext['check_in'])->startOfDay();
+                $pOut = Carbon::parse((string) $pageContext['check_out'])->startOfDay();
+                if ($pOut->gt($pIn)) {
+                    $checkIn = $checkIn ?: $pIn;
+                    $checkOut = $checkOut ?: $pOut;
+                }
+            } catch (\Throwable) {
+                // Ignore invalid pageContext dates.
+            }
+        }
+
+        $hasExplicitDates = $checkIn instanceof Carbon && $checkOut instanceof Carbon && $checkOut->gt($checkIn);
+        $effectiveIn = $hasExplicitDates ? $checkIn : ($now->hour >= 18 ? $today->copy()->addDay() : $today->copy());
+        $effectiveOut = $hasExplicitDates ? $checkOut : $effectiveIn->copy()->addDay();
+        $nights = max(1, min(30, (int) $effectiveIn->diffInDays($effectiveOut)));
+
+        // 2. Parse guest counts (adults, children, total guests)
+        [$adults, $children, $totalGuests] = $this->parseNaturalGuests($currentLower);
+        if ($totalGuests === null) {
+            [$adults, $children, $totalGuests] = $this->parseNaturalGuests($combined);
+        }
+
+        $reservedIds = Booking::reservedRoomIds($effectiveIn->toDateString(), $effectiveOut->toDateString());
+
+        $matchingLines = [];
+        $fallbackItems = [];
+        foreach ($roomTypes as $rt) {
+            $maxAdults = (int) $rt->max_adults;
+            $maxChildren = (int) $rt->max_children;
+            $maxGuests = (int) $rt->max_guests;
+
+            $fitsGuests = true;
+            if ($adults !== null && $maxAdults < $adults) {
+                $fitsGuests = false;
+            }
+            if ($children !== null && $maxChildren < $children) {
+                $fitsGuests = false;
+            }
+            if ($totalGuests !== null && $maxGuests < $totalGuests) {
+                $fitsGuests = false;
+            }
+
+            $availCount = $rt->rooms->filter(fn (Room $r) => $r->status === Room::STATUS_AVAILABLE && ! $reservedIds->contains($r->id))->count();
+            $basePrice = (float) $rt->price;
+            $totalPrice = round((float) PriceSetting::calculateTotalPrice($basePrice, $effectiveIn->toDateString(), $effectiveOut->toDateString()));
+            $deposit = round($totalPrice * 0.5);
+
+            $line = sprintf(
+                '- %s (Tối đa %d người lớn, %d trẻ em, tổng %d khách): Giá niêm yết %sđ/đêm | Tổng %d đêm (%s -> %s): %sđ (Đặt cọc 50%%: %sđ) | Còn trống: %d phòng%s',
+                $rt->type_name,
+                $maxAdults,
+                $maxChildren,
+                $maxGuests,
+                number_format($basePrice, 0, ',', '.'),
+                $nights,
+                $effectiveIn->format('d/m/Y'),
+                $effectiveOut->format('d/m/Y'),
+                number_format($totalPrice, 0, ',', '.'),
+                number_format($deposit, 0, ',', '.'),
+                $availCount,
+                $fitsGuests ? ' [PHÙ HỢP SỐ KHÁCH]' : ' [VƯỢT SỨC CHỨA 1 PHÒNG]'
+            );
+            $matchingLines[] = $line;
+
+            if ($fitsGuests && $availCount > 0) {
+                $fallbackItems[] = sprintf(
+                    '%s: %sđ/đêm, tổng %d đêm (%s - %s) là %sđ (cọc 50%%: %sđ, còn %d phòng trống)',
+                    $rt->type_name,
+                    number_format($basePrice, 0, ',', '.'),
+                    $nights,
+                    $effectiveIn->format('d/m'),
+                    $effectiveOut->format('d/m'),
+                    number_format($totalPrice, 0, ',', '.'),
+                    number_format($deposit, 0, ',', '.'),
+                    $availCount
+                );
+            }
+        }
+
+        $guestDesc = $totalGuests !== null
+            ? ($adults !== null ? "{$adults} người lớn".($children ? ", {$children} trẻ em" : '') : "{$totalGuests} khách")
+            : 'chưa giới hạn số khách';
+
+        $after18Note = ($effectiveIn->isSameDay($today) && $now->hour >= 18)
+            ? ' (Lưu ý: hiện đã qua 18:00 nên khung nhận phòng hôm nay đã đóng; khách đặt trực tuyến lúc này vui lòng chọn nhận phòng từ ngày mai)'
+            : '';
+
+        $realityBlock = sprintf(
+            "BẢNG BÁO GIÁ & PHÒNG TRỐNG TÍNH SẴN THEO NGỮ CẢNH HỘI THOẠI (Kỳ nghỉ: %s đến %s - %d đêm | Số khách: %s)%s:\n%s\nChỉ dẫn bắt buộc: Dùng ngay số liệu trên để báo giá chi tiết cho khách ngay trong lượt trả lời này, tuyệt đối không hẹn kiểm tra sau.",
+            $effectiveIn->format('d/m/Y'),
+            $effectiveOut->format('d/m/Y'),
+            $nights,
+            $guestDesc,
+            $after18Note,
+            implode("\n", $matchingLines)
+        );
+
+        $fallbackReply = '';
+        if ($fallbackItems !== []) {
+            $fallbackReply = sprintf(
+                'Báo giá trực tiếp tại Rosaliza Hotel cho lịch trình %d đêm (%s - %s, %s)%s: %s. Bạn có thể chọn phòng và đặt cọc 50%% trực tuyến tại mục Tìm phòng trống trên website nhé.',
+                $nights,
+                $effectiveIn->format('d/m/Y'),
+                $effectiveOut->format('d/m/Y'),
+                $guestDesc,
+                $after18Note,
+                implode('; ', $fallbackItems)
+            );
+        }
+
+        return [
+            'is_quote_query' => true,
+            'reality_block' => $realityBlock,
+            'fallback_reply' => $fallbackReply,
+        ];
+    }
+
+    /**
+     * @return array{0: ?Carbon, 1: ?Carbon}
+     */
+    private function parseNaturalDateRange(string $text, Carbon $today): array
+    {
+        $found = [];
+
+        if (preg_match_all('/\b(20\d{2})-(\d{2})-(\d{2})\b/u', $text, $isoMatches, PREG_SET_ORDER)) {
+            foreach ($isoMatches as $m) {
+                try {
+                    $found[] = Carbon::createFromFormat('Y-m-d', "{$m[1]}-{$m[2]}-{$m[3]}", 'Asia/Ho_Chi_Minh')->startOfDay();
+                } catch (\Throwable) {
+                }
+            }
+        }
+
+        if (preg_match_all('/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](20\d{2}))?\b/u', $text, $dmMatches, PREG_SET_ORDER)) {
+            foreach ($dmMatches as $m) {
+                $d = (int) $m[1];
+                $mo = (int) $m[2];
+                if ($d < 1 || $d > 31 || $mo < 1 || $mo > 12) {
+                    continue;
+                }
+                $yr = ! empty($m[3]) ? (int) $m[3] : (int) $today->year;
+                try {
+                    $candidate = Carbon::create($yr, $mo, $d, 0, 0, 0, 'Asia/Ho_Chi_Minh')->startOfDay();
+                    if (empty($m[3]) && $candidate->lt($today)) {
+                        $candidate->addYear();
+                    }
+                    $found[] = $candidate;
+                } catch (\Throwable) {
+                }
+            }
+        }
+
+        $checkIn = $found[0] ?? null;
+        $checkOut = $found[1] ?? null;
+
+        if (! $checkIn) {
+            if (preg_match('/\b(hôm nay|hom nay|tối nay|toi nay|bây giờ|bay gio)\b/ui', $text)) {
+                $checkIn = $today->copy();
+            } elseif (preg_match('/\b(ngày mai|ngay mai|tối mai|toi mai|\bmai\b)\b/ui', $text)) {
+                $checkIn = $today->copy()->addDay();
+            } elseif (preg_match('/\b(ngày kia|ngay kia|ngày mốt|ngay mot)\b/ui', $text)) {
+                $checkIn = $today->copy()->addDays(2);
+            } elseif (preg_match('/\b(cuối tuần|cuoi tuan)\b/ui', $text)) {
+                $checkIn = $today->copy()->next(Carbon::SATURDAY);
+            }
+        }
+
+        if (! $checkOut) {
+            // Match "trả 2 hôm nữa", "2 hôm nữa", "2 ngày nữa", "sau 2 ngày", "ở 2 đêm", "2 đêm", "2 ngày"
+            if (preg_match('/\b(?:trả|tra|đến|den|sau|ở|o)?\s*(\d{1,2})\s*(?:đêm|dem|hôm nữa|hom nua|ngày nữa|ngay nua|hôm|hom|ngày|ngay)\b/ui', $text, $durMatch)) {
+                $days = max(1, min(30, (int) $durMatch[1]));
+                $checkIn = $checkIn ?: $today->copy();
+                $checkOut = $checkIn->copy()->addDays($days);
+            } elseif ($checkIn && preg_match('/\b(?:trả|tra|đến|den)\s*(ngày kia|ngay kia|ngày mốt|ngay mot)\b/ui', $text)) {
+                $checkOut = $today->copy()->addDays(2);
+            } elseif ($checkIn && preg_match('/\b(?:trả|tra|đến|den)\s*(ngày mai|ngay mai|\bmai\b)\b/ui', $text)) {
+                $checkOut = $today->copy()->addDay();
+            } elseif ($checkIn) {
+                $checkOut = $checkIn->copy()->addDay();
+            }
+        }
+
+        if ($checkIn && $checkOut && $checkOut->lte($checkIn)) {
+            $checkOut = $checkIn->copy()->addDay();
+        }
+
+        return [$checkIn, $checkOut];
+    }
+
+    /**
+     * @return array{0: ?int, 1: ?int, 2: ?int}
+     */
+    private function parseNaturalGuests(string $text): array
+    {
+        $adults = null;
+        $children = null;
+        $total = null;
+
+        if (preg_match_all('/(\d{1,2})\s*(?:người lớn|nguoi lon)/ui', $text, $am)) {
+            $adults = (int) end($am[1]);
+        }
+        if (preg_match_all('/(\d{1,2})\s*(?:trẻ em|tre em|bé|be|trẻ nhỏ|tre nho)/ui', $text, $cm)) {
+            $children = (int) end($cm[1]);
+        }
+
+        if ($adults !== null || $children !== null) {
+            $adults = max(1, $adults ?? 1);
+            $children = max(0, $children ?? 0);
+            $total = $adults + $children;
+
+            return [$adults, $children, $total];
+        }
+
+        if (preg_match_all('/(\d{1,2})\s*(?:người|nguoi|khách|khach)/ui', $text, $gm)) {
+            $total = max(1, (int) end($gm[1]));
+            $adults = $total;
+            $children = 0;
+        }
+
+        return [$adults, $children, $total];
+    }
+
+    /**
+     * Ensure the AI never stops after saying "Đợi mình chút để kiểm tra / Tôi sẽ kiểm tra giá..."
+     * without delivering the actual quote information to the customer.
+     */
+    private function ensureQuoteFollowThrough(string $reply, array $quoteContext): string
+    {
+        $trimmed = trim($reply);
+        if ($trimmed === '' || empty($quoteContext['is_quote_query']) || empty($quoteContext['fallback_reply'])) {
+            return $trimmed;
+        }
+
+        $hasPriceDigits = (bool) preg_match('/\b\d{2,3}[\.,]\d{3}\b/u', $trimmed);
+        $isHoldingPromise = (bool) preg_match('/\b(đợi|chờ|sẽ kiểm tra|đang kiểm tra|kiểm tra giúp|check giúp|tra cứu giúp|báo lại sau|phản hồi sau)\b/iu', $trimmed);
+
+        if ($isHoldingPromise && ! $hasPriceDigits) {
+            return $trimmed."\n\n".$quoteContext['fallback_reply'];
+        }
+
+        return $trimmed;
     }
 
     public function isPersonalBookingQuery(string $message): bool
@@ -214,7 +514,7 @@ class LangGraphChatbotService
 
     private function isTimeSensitiveQuery(string $message): bool
     {
-        return (bool) preg_match('/hôm nay|ngày mai|bây giờ|hiện tại|mấy giờ|thứ mấy|thời tiết|thoi tiet|nhiệt độ|nhiet do|mưa|weather|forecast|temperature/ui', $message);
+        return (bool) preg_match('/hôm nay|hom nay|tối nay|toi nay|ngày mai|ngay mai|ngày kia|ngay kia|ngày mốt|ngay mot|cuối tuần|cuoi tuan|hôm nữa|hom nua|ngày nữa|ngay nua|\d+\s*(đêm|dem|ngày|ngay|hôm|hom)|bây giờ|hiện tại|mấy giờ|thứ mấy|thời tiết|thoi tiet|nhiệt độ|nhiet do|mưa|weather|forecast|temperature/ui', $message);
     }
 
     /**
@@ -336,7 +636,8 @@ class LangGraphChatbotService
         $correlationId = (string) ($request->attributes->get('correlation_id') ?? Str::ulid());
         $participant = $this->sessionParticipantId($request);
         $capability = $this->capabilities->issueForRequest($request, $participant, $correlationId);
-        $userReality = $this->buildUserRealitySummary($request, $pageContext);
+        $quoteContext = $this->buildLiveQuoteContext($message, $history, $pageContext);
+        $userReality = $this->buildUserRealitySummary($request, $pageContext, $message, $history);
         $fingerprint = hash('sha256', $this->buildFingerprint($message, $history, $capability['actor_scope']).'|'.($pageContext['path'] ?? '').'|'.($pageContext['room_name'] ?? ''));
 
         $this->outbox->recordChatbotEvent('requested', [
@@ -420,6 +721,7 @@ class LangGraphChatbotService
             if ($reply === '') {
                 return null;
             }
+            $reply = $this->ensureQuoteFollowThrough($reply, $quoteContext);
 
             $result = [
                 'reply' => $reply,
@@ -479,7 +781,8 @@ class LangGraphChatbotService
         $correlationId = (string) ($request->attributes->get('correlation_id') ?? Str::ulid());
         $participant = $this->sessionParticipantId($request);
         $capability = $this->capabilities->issueForRequest($request, $participant, $correlationId);
-        $userReality = $this->buildUserRealitySummary($request, $pageContext);
+        $quoteContext = $this->buildLiveQuoteContext($message, $history, $pageContext);
+        $userReality = $this->buildUserRealitySummary($request, $pageContext, $message, $history);
         $fingerprint = hash('sha256', $this->buildFingerprint($message, $history, $capability['actor_scope']).'|'.($pageContext['path'] ?? '').'|'.($pageContext['room_name'] ?? ''));
 
         $this->outbox->recordChatbotEvent('requested', [
@@ -575,6 +878,7 @@ class LangGraphChatbotService
                 if ($reply === '') {
                     return false;
                 }
+                $reply = $this->ensureQuoteFollowThrough($reply, $quoteContext);
                 foreach (preg_split('/(?<=\s)/u', $reply, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
                     $onDelta($word);
                 }
@@ -634,6 +938,13 @@ class LangGraphChatbotService
             }
 
             if ($emittedAny) {
+                $followedUp = $this->ensureQuoteFollowThrough($accumulated, $quoteContext);
+                if ($followedUp !== trim($accumulated) && ! empty($quoteContext['fallback_reply'])) {
+                    $appendix = "\n\n".$quoteContext['fallback_reply'];
+                    $accumulated .= $appendix;
+                    $onDelta($appendix);
+                }
+
                 if ($cacheKey !== null && $accumulated !== '') {
                     Cache::put($cacheKey, [
                         'reply' => $accumulated,

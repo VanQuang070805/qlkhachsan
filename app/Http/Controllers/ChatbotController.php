@@ -41,6 +41,14 @@ class ChatbotController extends Controller
         $history = $validated['history'] ?? [];
         $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
 
+        if ($spamError = $this->checkAntiSpamGuard($request, $message)) {
+            return response()->json([
+                'source' => 'anti-spam',
+                'message' => $spamError,
+                'reply' => $spamError,
+            ], 429);
+        }
+
         if (! $this->scope->allows($message, $history)) {
             return response()->json([
                 'source' => 'scope-guard',
@@ -100,6 +108,14 @@ class ChatbotController extends Controller
         $message = trim($validated['message']);
         $history = $validated['history'] ?? [];
         $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
+
+        if ($spamError = $this->checkAntiSpamGuard($request, $message)) {
+            return response()->json([
+                'source' => 'anti-spam',
+                'message' => $spamError,
+                'reply' => $spamError,
+            ], 429);
+        }
 
         if (! $this->scope->allows($message, $history)) {
             return $this->scopedStreamResponse($this->scope->refusal());
@@ -504,6 +520,61 @@ class ChatbotController extends Controller
         }
 
         $request->attributes->set('verified_chatbot_capability', $verification);
+
+        return null;
+    }
+
+    private function checkAntiSpamGuard(Request $request, string $message): ?string
+    {
+        if (app()->runningUnitTests() && ! config('services.langgraph.enforce_anti_spam_in_tests', false)) {
+            return null;
+        }
+
+        $actorKey = sha1($this->langGraph->sessionParticipantId($request).'|'.$request->ip());
+        $lockKey = "royal:chatbot:cooldown_lock:{$actorKey}";
+        $lockedUntil = (int) Cache::get($lockKey, 0);
+        $nowMs = (int) round(microtime(true) * 1000);
+
+        if ($lockedUntil > $nowMs) {
+            $waitSec = max(1, (int) ceil(($lockedUntil - $nowMs) / 1000));
+
+            return "Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi {$waitSec} giây trước khi gửi tiếp nhé.";
+        }
+
+        // 1. Minimum 2-second interval between consecutive messages
+        $lastSentKey = "royal:chatbot:last_sent_ms:{$actorKey}";
+        $lastSentMs = (int) Cache::get($lastSentKey, 0);
+        if ($lastSentMs > 0 && ($nowMs - $lastSentMs) < 2000) {
+            Cache::put($lockKey, $nowMs + 5000, now()->addSeconds(10));
+
+            return 'Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi vài giây giữa mỗi lần gửi nhé.';
+        }
+        Cache::put($lastSentKey, $nowMs, now()->addSeconds(30));
+
+        // 2. Duplicate message flood guard (>= 3 identical messages within 30 seconds)
+        $normalizedMsg = mb_strtolower(trim(preg_replace('/\s+/u', ' ', $message) ?? ''), 'UTF-8');
+        $dupKey = "royal:chatbot:dup:{$actorKey}:".sha1($normalizedMsg);
+        $dupCount = (int) Cache::get($dupKey, 0) + 1;
+        Cache::put($dupKey, $dupCount, now()->addSeconds(30));
+        if ($dupCount >= 3) {
+            Cache::put($lockKey, $nowMs + 15000, now()->addSeconds(20));
+
+            return 'Bạn vừa gửi lặp lại cùng một câu hỏi nhiều lần. Vui lòng đợi 15 giây hoặc đặt câu hỏi khác nhé.';
+        }
+
+        // 3. Sliding window burst guard (> 5 messages within 15 seconds)
+        $burstKey = "royal:chatbot:burst:{$actorKey}";
+        $timestamps = Cache::get($burstKey, []);
+        $timestamps = is_array($timestamps)
+            ? array_values(array_filter($timestamps, fn ($ts) => ($nowMs - (int) $ts) < 15000))
+            : [];
+        $timestamps[] = $nowMs;
+        Cache::put($burstKey, $timestamps, now()->addSeconds(20));
+        if (count($timestamps) > 5) {
+            Cache::put($lockKey, $nowMs + 15000, now()->addSeconds(20));
+
+            return 'Bạn đã gửi quá nhiều tin nhắn liên tiếp. Hộp thoại tạm khóa 15 giây để chống spam.';
+        }
 
         return null;
     }
