@@ -144,6 +144,7 @@ function persist() {
                 userKey: userKey.value,
                 open: open.value,
                 messages: messages.value
+                    .filter((item) => String(item.content || '').trim() !== '')
                     .slice(-12)
                     .map(({ role, content, sentAt, status }) => ({ role, content, sentAt, status })),
             })
@@ -151,6 +152,41 @@ function persist() {
     } catch {
         // Ignore storage quota errors.
     }
+}
+
+function readCookie(name) {
+    const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+function buildCsrfHeaders() {
+    const metaToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const xsrfCookie = readCookie('XSRF-TOKEN');
+    const headers = {};
+    if (metaToken) headers['X-CSRF-TOKEN'] = metaToken;
+    if (xsrfCookie) headers['X-XSRF-TOKEN'] = xsrfCookie;
+    return headers;
+}
+
+async function refreshCsrfToken() {
+    try {
+        const res = await fetch(window.location.pathname || '/', {
+            method: 'GET',
+            credentials: 'same-origin',
+            cache: 'no-store',
+        });
+        if (!res.ok) return false;
+        const html = await res.text();
+        const match = html.match(/<meta\s+name=["']csrf-token["']\s+content=["']([^"']+)["']/i);
+        if (match && match[1]) {
+            const metaEl = document.querySelector('meta[name="csrf-token"]');
+            if (metaEl) metaEl.setAttribute('content', match[1]);
+            return true;
+        }
+    } catch {
+        // Ignore refresh error.
+    }
+    return false;
 }
 
 function markInternalNavigation() {
@@ -333,11 +369,11 @@ async function send(prompt) {
     messages.value.push(message('user', content));
     const priorMessages = messages.value
         .slice(0, -1)
-        .filter((item) => item.role === 'user' || item.role === 'assistant');
+        .filter((item) => (item.role === 'user' || item.role === 'assistant') && String(item.content || '').trim() !== '');
     const history = priorMessages.some((item) => item.role === 'user')
         ? priorMessages.slice(-8).map((item) => ({
               role: item.role,
-              content: String(item.content || '').slice(0, 1000),
+              content: String(item.content || '').trim().slice(0, 1000),
           }))
         : [];
     const pageContext = collectPageContext();
@@ -358,20 +394,37 @@ async function send(prompt) {
     if (userIndex >= 0) messages.value[userIndex].status = 'Đã đọc';
     let completed = false;
     let failureText = '';
+    let csrfRefreshed = false;
+    const jsonFallbackEndpoint = props.endpoint.replace(/\/stream\/?$/, '/api');
+
     try {
         for (let attempt = 0; attempt < 2 && !completed; attempt++) {
-            if (attempt) await new Promise((resolve) => setTimeout(resolve, 400));
+            if (attempt) await new Promise((resolve) => setTimeout(resolve, 600));
             try {
-                const response = await fetch(props.endpoint, {
+                // On retry (attempt 1), use JSON /chatbot/api fallback in case proxy/QUIC interrupted SSE streaming
+                const useJsonFallback = attempt > 0 && jsonFallbackEndpoint !== props.endpoint;
+                const targetUrl = useJsonFallback ? jsonFallbackEndpoint : props.endpoint;
+                const response = await fetch(targetUrl, {
                     method: 'POST',
+                    credentials: 'same-origin',
                     signal: controller.signal,
                     headers: {
                         'Content-Type': 'application/json',
-                        Accept: 'text/event-stream',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                        Accept: useJsonFallback ? 'application/json' : 'text/event-stream, application/json',
+                        ...buildCsrfHeaders(),
                     },
                     body: JSON.stringify({ message: content, history, page_context: pageContext }),
                 });
+
+                if (response.status === 419 && !csrfRefreshed) {
+                    csrfRefreshed = true;
+                    const okRefresh = await refreshCsrfToken();
+                    if (okRefresh) {
+                        attempt -= 1;
+                        continue;
+                    }
+                }
+
                 if (response.status === 429) {
                     let rateMsg = 'Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi 15 giây trước khi gửi tiếp nhé.';
                     try {
@@ -388,7 +441,38 @@ async function send(prompt) {
                     startCooldown(15);
                     break;
                 }
-                if (!response.ok || !response.body) throw new Error('Request failed');
+
+                const contentType = (response.headers.get('content-type') || '').toLowerCase();
+                if (!response.ok) {
+                    try {
+                        const errData = await response.json();
+                        if (errData?.message || errData?.reply) {
+                            failureText = errData.message || errData.reply;
+                        }
+                    } catch {
+                        // Ignore non-JSON error body.
+                    }
+                    throw new Error(failureText || 'Request failed');
+                }
+
+                if (contentType.includes('application/json')) {
+                    const payload = await response.json();
+                    if (payload?.reply) {
+                        assistant.content = String(payload.reply);
+                        typing.value = false;
+                        completed = true;
+                        break;
+                    }
+                    if (payload?.message) {
+                        failureText = String(payload.message);
+                    }
+                    throw new Error(failureText || 'Empty JSON reply');
+                }
+
+                if (!contentType.includes('text/event-stream') || !response.body) {
+                    throw new Error('Unexpected stream content-type');
+                }
+
                 assistant.content = '';
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
@@ -434,7 +518,7 @@ async function send(prompt) {
                 }
             } catch (error) {
                 if (error.name === 'AbortError') throw error;
-                failureText = 'Kết nối đang gián đoạn.';
+                if (!failureText) failureText = 'Kết nối đang gián đoạn.';
             }
             if (!completed && attempt === 0) failureText = '';
         }

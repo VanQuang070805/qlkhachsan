@@ -231,4 +231,40 @@ class ChatbotScopeTest extends TestCase
         ])->assertStatus(429)
             ->assertJsonPath('source', 'anti-spam');
     }
+
+    public function test_chatbot_stream_sanitizes_empty_history_bubbles_and_never_redirects_to_html_on_event_stream_accept(): void
+    {
+        Cache::flush();
+        config([
+            'services.langgraph.enabled' => true,
+            'services.langgraph.base_url' => 'http://127.0.0.1:2024',
+        ]);
+
+        Http::fake([
+            '127.0.0.1:2024/threads' => Http::response(['thread_id' => 'sse-resilience-thread'], 200),
+            '127.0.0.1:2024/threads/sse-resilience-thread/runs/stream' => Http::response('', 500),
+            '127.0.0.1:2024/threads/sse-resilience-thread/runs/wait' => Http::response([
+                'messages' => [['type' => 'ai', 'content' => 'Giờ trả phòng trước 12:00 trưa.']],
+            ], 200),
+        ]);
+
+        // 1. Even with Accept: text/event-stream AND an empty assistant bubble in history + failed /runs/stream,
+        // ChatbotController strips the empty history bubble and automatically falls back to /runs/wait!
+        $streamRes = $this->withHeaders(['Accept' => 'text/event-stream'])->post(route('chatbot.stream'), [
+            'message' => 'Giờ trả phòng là mấy giờ?',
+            'history' => [
+                ['role' => 'user', 'content' => 'Xin chào'],
+                ['role' => 'assistant', 'content' => ''],
+            ],
+        ]);
+
+        $streamRes->assertOk();
+        $this->assertStringContainsString('Giờ trả phòng trước 12:00 trưa.', $streamRes->streamedContent());
+
+        // 2. Empty message with Accept: text/event-stream returns 422 JSON instead of 302 HTML redirect.
+        $invalidRes = $this->withHeaders(['Accept' => 'text/event-stream'])->post(route('chatbot.stream'), [
+            'message' => '',
+        ]);
+        $invalidRes->assertStatus(422)->assertJsonPath('source', 'validation-error');
+    }
 }

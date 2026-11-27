@@ -9,6 +9,7 @@ use App\Services\Chatbot\LangGraphChatbotService;
 use App\Services\OutboxService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class ChatbotController extends Controller
@@ -23,23 +24,11 @@ class ChatbotController extends Controller
 
     public function api(Request $request)
     {
-        $validated = $request->validate([
-            'message' => ['required', 'string', 'max:1000'],
-            'history' => ['sometimes', 'array', 'max:10'],
-            'history.*.role' => ['required_with:history', 'in:user,assistant'],
-            'history.*.content' => ['required_with:history', 'string', 'max:1000'],
-            'page_context' => ['sometimes', 'nullable', 'array'],
-            'page_context.path' => ['sometimes', 'nullable', 'string', 'max:200'],
-            'page_context.title' => ['sometimes', 'nullable', 'string', 'max:200'],
-            'page_context.room_name' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'page_context.room_price' => ['sometimes', 'nullable', 'string', 'max:80'],
-            'page_context.check_in' => ['sometimes', 'nullable', 'string', 'max:40'],
-            'page_context.check_out' => ['sometimes', 'nullable', 'string', 'max:40'],
-            'page_context.guests' => ['sometimes', 'nullable', 'string', 'max:40'],
-        ]);
-        $message = trim($validated['message']);
-        $history = $validated['history'] ?? [];
-        $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
+        $parsed = $this->validateChatPayload($request);
+        if ($parsed instanceof \Illuminate\Http\JsonResponse) {
+            return $parsed;
+        }
+        ['message' => $message, 'history' => $history, 'page_context' => $pageContext] = $parsed;
 
         if ($spamError = $this->checkAntiSpamGuard($request, $message)) {
             return response()->json([
@@ -61,6 +50,8 @@ class ChatbotController extends Controller
         }
 
         if (! $this->langGraph->configured()) {
+            $this->releaseAntiSpamSlotOnUpstreamFailure($request, $message);
+
             return response()->json([
                 'source' => 'error',
                 'message' => $scopeEval['language'] === 'en'
@@ -75,6 +66,8 @@ class ChatbotController extends Controller
 
         $answer = $this->langGraph->ask($request, $message, $history, $pageContext);
         if (! $answer) {
+            $this->releaseAntiSpamSlotOnUpstreamFailure($request, $message);
+
             return response()->json([
                 'source' => 'error',
                 'message' => 'Pico đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
@@ -101,23 +94,11 @@ class ChatbotController extends Controller
 
     public function stream(Request $request)
     {
-        $validated = $request->validate([
-            'message' => ['required', 'string', 'max:1000'],
-            'history' => ['sometimes', 'array', 'max:10'],
-            'history.*.role' => ['required_with:history', 'in:user,assistant'],
-            'history.*.content' => ['required_with:history', 'string', 'max:1000'],
-            'page_context' => ['sometimes', 'nullable', 'array'],
-            'page_context.path' => ['sometimes', 'nullable', 'string', 'max:200'],
-            'page_context.title' => ['sometimes', 'nullable', 'string', 'max:200'],
-            'page_context.room_name' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'page_context.room_price' => ['sometimes', 'nullable', 'string', 'max:80'],
-            'page_context.check_in' => ['sometimes', 'nullable', 'string', 'max:40'],
-            'page_context.check_out' => ['sometimes', 'nullable', 'string', 'max:40'],
-            'page_context.guests' => ['sometimes', 'nullable', 'string', 'max:40'],
-        ]);
-        $message = trim($validated['message']);
-        $history = $validated['history'] ?? [];
-        $pageContext = is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [];
+        $parsed = $this->validateChatPayload($request);
+        if ($parsed instanceof \Illuminate\Http\JsonResponse) {
+            return $parsed;
+        }
+        ['message' => $message, 'history' => $history, 'page_context' => $pageContext] = $parsed;
 
         if ($spamError = $this->checkAntiSpamGuard($request, $message)) {
             return response()->json([
@@ -134,6 +115,8 @@ class ChatbotController extends Controller
         }
 
         if (! $this->langGraph->configured()) {
+            $this->releaseAntiSpamSlotOnUpstreamFailure($request, $message);
+
             return response()->json([
                 'source' => 'error',
                 'message' => $scopeEval['language'] === 'en'
@@ -183,7 +166,19 @@ class ChatbotController extends Controller
                 $flushSse();
             }, $sources, $threadId, $history, $pageContext);
 
+            if ((! $ok || ! $emitted) && ! $emitted) {
+                $fallback = $this->langGraph->ask($request, $message, $history, $pageContext);
+                if (is_array($fallback) && ! empty($fallback['reply'])) {
+                    $emitted = true;
+                    $ok = true;
+                    $sources = is_array($fallback['sources'] ?? null) ? $fallback['sources'] : [];
+                    echo 'data: '.json_encode(['delta' => (string) $fallback['reply']], JSON_UNESCAPED_UNICODE)."\n\n";
+                    $flushSse();
+                }
+            }
+
             if (! $ok || ! $emitted) {
+                $this->releaseAntiSpamSlotOnUpstreamFailure($request, $message);
                 echo 'data: '.json_encode([
                     'error' => 'Pico đang tạm thời mất kết nối. Bạn vui lòng thử lại sau ít phút.',
                 ], JSON_UNESCAPED_UNICODE)."\n\n";
@@ -260,6 +255,75 @@ class ChatbotController extends Controller
     private function outOfScopeCacheKey(Request $request): string
     {
         return 'royal:chatbot:oos-count:'.$this->langGraph->sessionParticipantId($request);
+    }
+
+    /**
+     * Validate and sanitize incoming chat payload without ever issuing a 302 HTML redirect
+     * when the client sends Accept: text/event-stream, and strip empty history items.
+     *
+     * @return array{message: string, history: array<int, array{role: string, content: string}>, page_context: array<string, mixed>}|\Illuminate\Http\JsonResponse
+     */
+    private function validateChatPayload(Request $request)
+    {
+        $rawHistory = is_array($request->input('history')) ? $request->input('history') : [];
+        $cleanHistory = [];
+        foreach (array_slice($rawHistory, -10) as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $role = (string) ($item['role'] ?? '');
+            $content = trim((string) ($item['content'] ?? ''));
+            if (! in_array($role, ['user', 'assistant'], true) || $content === '') {
+                continue;
+            }
+            $cleanHistory[] = [
+                'role' => $role,
+                'content' => mb_substr($content, 0, 1000, 'UTF-8'),
+            ];
+        }
+
+        $validator = Validator::make([
+            'message' => $request->input('message'),
+            'page_context' => $request->input('page_context'),
+        ], [
+            'message' => ['required', 'string', 'max:1000'],
+            'page_context' => ['sometimes', 'nullable', 'array'],
+            'page_context.path' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'page_context.title' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'page_context.room_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'page_context.room_price' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'page_context.check_in' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'page_context.check_out' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'page_context.guests' => ['sometimes', 'nullable', 'string', 'max:40'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'source' => 'validation-error',
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        return [
+            'message' => trim((string) $validated['message']),
+            'history' => $cleanHistory,
+            'page_context' => is_array($validated['page_context'] ?? null) ? $validated['page_context'] : [],
+        ];
+    }
+
+    private function releaseAntiSpamSlotOnUpstreamFailure(Request $request, string $message): void
+    {
+        $actorKey = sha1($this->langGraph->sessionParticipantId($request).'|'.$request->ip());
+        Cache::forget("royal:chatbot:last_sent_ms:{$actorKey}");
+        $normalizedMsg = mb_strtolower(trim(preg_replace('/\s+/u', ' ', $message) ?? ''), 'UTF-8');
+        $dupKey = "royal:chatbot:dup:{$actorKey}:".sha1($normalizedMsg);
+        $dupCount = (int) Cache::get($dupKey, 0);
+        if ($dupCount > 0) {
+            Cache::put($dupKey, $dupCount - 1, now()->addSeconds(30));
+        }
     }
 
     public function postThreadMessage(Request $request, string $thread)
