@@ -47,7 +47,9 @@ class AdminController extends Controller
 
         $bookingModel = new Booking();
         $userModel    = new User();
-        $reportViewerId = session('admin_user_id') ?: session('staff_user_id') ?: session('auth_user_id');
+        $reportViewerId = $request->routeIs('staff.*')
+            ? (session('staff_user_id') ?: session('auth_user_id'))
+            : (session('admin_user_id') ?: session('staff_user_id') ?: session('auth_user_id'));
         $canViewReportBookings = User::query()->find($reportViewerId)?->isAdmin() ?? false;
         $chartFilters = $filters;
 
@@ -157,6 +159,156 @@ class AdminController extends Controller
             'roomInventory' => $roomInventory,
             'canViewReportBookings' => $canViewReportBookings,
             'periodDays' => $periodDays,
+        ]);
+    }
+
+    public function exportReports(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'room_type_id' => 'nullable|integer|exists:room_types,id',
+            'status' => 'nullable|in:pending,confirmed,checked_in,completed,cancelled',
+        ]);
+
+        $filters = [
+            'start_date'   => $request->input('start_date', ''),
+            'end_date'     => $request->input('end_date', ''),
+            'room_type_id' => $request->input('room_type_id', ''),
+            'status'       => $request->input('status', ''),
+        ];
+
+        $bookingModel = new Booking();
+        $userModel = new User();
+        $reportViewerId = $request->routeIs('staff.*')
+            ? (session('staff_user_id') ?: session('auth_user_id'))
+            : (session('admin_user_id') ?: session('staff_user_id') ?: session('auth_user_id'));
+        $canViewReportBookings = User::query()->find($reportViewerId)?->isAdmin() ?? false;
+
+        $stats = $bookingModel->getReportStats($filters);
+        $stats['total_customers'] = $userModel->countCustomers();
+        $roomCountQuery = DB::table('rooms');
+        if ($filters['room_type_id']) {
+            $roomCountQuery->where('room_type_id', (int) $filters['room_type_id']);
+        }
+        $roomCount = max(1, (int) $roomCountQuery->count());
+        $firstStay = $filters['start_date'] ?: DB::table('bookings')->min('check_in') ?: now()->toDateString();
+        $lastStay = $filters['end_date'] ?: DB::table('bookings')->max('check_out') ?: now()->toDateString();
+        $rawSpanDays = (int) \Carbon\Carbon::parse($firstStay)->diffInDays(\Carbon\Carbon::parse($lastStay));
+        $periodDays = max(1, ($filters['start_date'] && $filters['end_date']) ? ($rawSpanDays + 1) : $rawSpanDays);
+        $soldNights = max(0, (int) ($stats['total_nights'] ?? 0));
+        $adr = $filters['room_type_id'] ? null : ($soldNights > 0 ? $stats['total_revenue'] / $soldNights : 0);
+        $revpar = $filters['room_type_id'] ? null : $stats['total_revenue'] / ($roomCount * $periodDays);
+        $occupancyRate = min(100, ($soldNights / ($roomCount * $periodDays)) * 100);
+
+        $dailyRows = $bookingModel->getReportChartData($filters);
+        $bookingRows = $canViewReportBookings ? $bookingModel->getFilteredBookings($filters) : [];
+
+        $sanitizeCsv = static function ($value): string {
+            $str = (string) ($value ?? '');
+            if ($str !== '' && in_array($str[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+                return "'" . $str;
+            }
+
+            return $str;
+        };
+
+        $filename = 'bao-cao-thong-ke-rosaliza-' . now('Asia/Ho_Chi_Minh')->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use (
+            $filters,
+            $stats,
+            $adr,
+            $revpar,
+            $occupancyRate,
+            $dailyRows,
+            $bookingRows,
+            $canViewReportBookings,
+            $sanitizeCsv
+        ): void {
+            $handle = fopen('php://output', 'w');
+            if ($handle === false) {
+                return;
+            }
+
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['BÁO CÁO THỐNG KÊ VẬN HÀNH ROSALIZA HOTEL']);
+            fputcsv($handle, ['Thời điểm xuất', now('Asia/Ho_Chi_Minh')->format('d/m/Y H:i:s')]);
+            fputcsv($handle, [
+                'Bộ lọc áp dụng',
+                'Từ ngày: ' . ($filters['start_date'] ?: 'Tất cả'),
+                'Đến ngày: ' . ($filters['end_date'] ?: 'Tất cả'),
+                'Mã hạng phòng: ' . ($filters['room_type_id'] ?: 'Tất cả'),
+                'Trạng thái: ' . ($filters['status'] ? config('statuses.booking.' . $filters['status'], $filters['status']) : 'Tất cả'),
+            ]);
+            fputcsv($handle, []);
+
+            fputcsv($handle, ['CHỈ SỐ TỔNG HỢP', 'GIÁ TRỊ']);
+            fputcsv($handle, ['Tổng khách hàng', (int) ($stats['total_customers'] ?? 0)]);
+            fputcsv($handle, ['Tổng đơn đặt phòng', (int) ($stats['total_bookings'] ?? 0)]);
+            fputcsv($handle, ['Doanh thu đã thu (VND)', round((float) ($stats['total_revenue'] ?? 0))]);
+            fputcsv($handle, ['Tổng đêm phòng khai thác', (int) ($stats['total_nights'] ?? 0)]);
+            fputcsv($handle, ['Công suất lấp đầy (%)', number_format($occupancyRate, 2, '.', '')]);
+            fputcsv($handle, ['Giá phòng bình quân ADR (VND)', $adr !== null ? round($adr) : 'Không áp dụng khi lọc theo hạng phòng']);
+            fputcsv($handle, ['Doanh thu mỗi phòng khả dụng RevPAR (VND)', $revpar !== null ? round($revpar) : 'Không áp dụng khi lọc theo hạng phòng']);
+            fputcsv($handle, ['Đơn chờ xác nhận', (int) ($stats['pending_count'] ?? 0)]);
+            fputcsv($handle, ['Đơn đã xác nhận', (int) ($stats['confirmed_count'] ?? 0)]);
+            fputcsv($handle, ['Đơn đang lưu trú', (int) ($stats['checked_in_count'] ?? 0)]);
+            fputcsv($handle, ['Đơn hoàn thành', (int) ($stats['completed_count'] ?? 0)]);
+            fputcsv($handle, ['Đơn đã hủy', (int) ($stats['cancelled_count'] ?? 0)]);
+            fputcsv($handle, ['Tỷ lệ hủy (%)', number_format((float) ($stats['cancel_rate'] ?? 0), 2, '.', '')]);
+            fputcsv($handle, []);
+
+            fputcsv($handle, ['THỰC THU THEO NGÀY NHẬN PHÒNG']);
+            fputcsv($handle, ['Ngày nhận phòng', 'Số lượt đặt', 'Doanh thu đã thu (VND)']);
+            foreach ($dailyRows as $row) {
+                fputcsv($handle, [
+                    $sanitizeCsv($row->date ?? ''),
+                    (int) ($row->bookings ?? 0),
+                    round((float) ($row->revenue ?? 0)),
+                ]);
+            }
+
+            if ($canViewReportBookings) {
+                fputcsv($handle, []);
+                fputcsv($handle, ['DANH SÁCH ĐẶT PHÒNG CHI TIẾT']);
+                fputcsv($handle, [
+                    'Mã đơn',
+                    'Khách hàng',
+                    'Số điện thoại',
+                    'Email',
+                    'Phòng',
+                    'Hạng phòng',
+                    'Nhận phòng',
+                    'Trả phòng',
+                    'Tổng tiền đơn (VND)',
+                    'Thực thu (VND)',
+                    'Trạng thái thanh toán',
+                    'Trạng thái đơn',
+                ]);
+                foreach ($bookingRows as $booking) {
+                    $statusCode = (string) ($booking->status ?? '');
+                    fputcsv($handle, [
+                        '#' . (int) ($booking->id ?? 0),
+                        $sanitizeCsv($booking->customer_name ?? ''),
+                        $sanitizeCsv($booking->customer_phone ?? ''),
+                        $sanitizeCsv($booking->customer_email ?? ''),
+                        $sanitizeCsv($booking->room_number ?? ''),
+                        $sanitizeCsv($booking->type_name ?? ''),
+                        $sanitizeCsv(substr((string) ($booking->check_in ?? ''), 0, 10)),
+                        $sanitizeCsv(substr((string) ($booking->check_out ?? ''), 0, 10)),
+                        round((float) ($booking->total_price ?? 0)),
+                        round((float) ($booking->received_amount ?? 0)),
+                        $sanitizeCsv($booking->payment_status ?? ''),
+                        $sanitizeCsv(config('statuses.booking.' . $statusCode, $statusCode)),
+                    ]);
+                }
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
         ]);
     }
 

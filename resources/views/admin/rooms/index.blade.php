@@ -278,6 +278,32 @@
 .apple-status-pill--cleaning { background: #f1f5f9; color: #475569; }
 .apple-status-pill--cleaning .apple-dot { background: #94a3b8; }
 .apple-status-pill--maintenance { background: #fee2e2; color: #b91c1c; }
+.apple-status-pill--maintenance .apple-dot { background: #dc2626; }
+.apple-status-pill--overdue { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.apple-status-pill--overdue .apple-dot { background: #dc2626; }
+.room-filter-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 18px;
+    border-bottom: 1px solid #edf2f7;
+    background: #ffffff;
+}
+.room-filter-strip input,
+.room-filter-strip select {
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid #dbe2ec;
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 0.78rem;
+    padding: 0 11px;
+    outline: none;
+}
+.room-filter-strip input { flex: 1 1 160px; min-width: 0; }
+.room-filter-strip select { flex: 0 1 150px; }
+.room-filter-strip input:focus,
+.room-filter-strip select:focus { border-color: #64748b; background: #ffffff; }
 .apple-status-pill--maintenance .apple-dot { background: #ef4444; }
 
 .btn-edit-room {
@@ -723,9 +749,12 @@ body.internal-shell .room-admin-columns .room-floor-tab { width: auto; flex: 0 0
             </div>
             <span class="room-panel-badge"><i class="bi bi-collection"></i> {{ $roomTypes->count() }} hạng tiêu chuẩn</span>
         </header>
+        <div class="room-filter-strip">
+            <input type="search" id="catalog-search-input" aria-label="Tìm kiếm hạng phòng" placeholder="Tìm theo tên hạng phòng hoặc tiện nghi...">
+        </div>
         <div class="room-type-grid">
             @foreach($roomTypes as $type)
-                <article class="room-type-card-bento">
+                <article class="room-type-card-bento" data-catalog-search="{{ mb_strtolower($type->type_name.' '.$type->amenities->pluck('amenity_name')->join(' ')) }}">
                     <div class="room-type-card-bento__thumb">
                         <img src="{{ $type->image_url }}" alt="{{ $type->type_name }}" loading="lazy" onerror="this.onerror=null;this.src='{{ asset('images/rooms/default.jpg') }}';">
                         <span class="thumb-overlay-badge thumb-overlay-badge--left">
@@ -765,6 +794,7 @@ body.internal-shell .room-admin-columns .room-floor-tab { width: auto; flex: 0 0
                 </article>
             @endforeach
         </div>
+        <div class="room-empty" id="catalog-filter-empty" hidden>Không tìm thấy hạng phòng phù hợp từ khóa.</div>
     </section>
 
     {{-- Section 1: Quản lý phòng theo tầng --}}
@@ -776,6 +806,18 @@ body.internal-shell .room-admin-columns .room-floor-tab { width: auto; flex: 0 0
             </div>
             <span class="room-panel-badge"><i class="bi bi-door-closed"></i> {{ $rooms->count() }} phòng trên tầng</span>
         </header>
+        <div class="room-filter-strip">
+            <input type="search" id="inventory-search-input" aria-label="Tìm số phòng hoặc hạng phòng" placeholder="Tìm số phòng, hạng phòng...">
+            <select id="inventory-status-filter" aria-label="Lọc trạng thái phòng">
+                <option value="">Tất cả trạng thái</option>
+                <option value="available">Đang trống</option>
+                <option value="reserved">Đã đặt</option>
+                <option value="occupied">Đang ở</option>
+                <option value="overdue">Quá giờ trả</option>
+                <option value="cleaning">Đang dọn</option>
+                <option value="maintenance">Bảo trì</option>
+            </select>
+        </div>
 
         <div class="room-floor-layout">
         {{-- Floor Navigation Rail --}}
@@ -816,10 +858,12 @@ body.internal-shell .room-admin-columns .room-floor-tab { width: auto; flex: 0 0
                                 'reserved' => 'apple-status-pill--reserved',
                                 'cleaning' => 'apple-status-pill--cleaning',
                                 'maintenance' => 'apple-status-pill--maintenance',
+                                'overdue' => 'apple-status-pill--overdue',
                                 default => 'apple-status-pill--reserved'
                             };
+                            $roomSearchKey = mb_strtolower($room->room_number.' '.($room->roomType?->type_name ?? '').' '.$statusLabel);
                         @endphp
-                        <tr>
+                        <tr data-room-row data-room-status="{{ $statusKey }}" data-room-search="{{ $roomSearchKey }}">
                             <td>
                                 <span class="room-num-badge">P.{{ $room->room_number }}</span>
                             </td>
@@ -863,10 +907,12 @@ body.internal-shell .room-admin-columns .room-floor-tab { width: auto; flex: 0 0
                         'reserved' => 'apple-status-pill--reserved',
                         'cleaning' => 'apple-status-pill--cleaning',
                         'maintenance' => 'apple-status-pill--maintenance',
+                        'overdue' => 'apple-status-pill--overdue',
                         default => 'apple-status-pill--reserved'
                     };
+                    $roomSearchKey = mb_strtolower($room->room_number.' '.($room->roomType?->type_name ?? '').' '.$statusLabel);
                 @endphp
-                <div class="room-card-mob">
+                <div class="room-card-mob" data-room-card data-room-status="{{ $statusKey }}" data-room-search="{{ $roomSearchKey }}">
                     <div class="room-card-mob__top">
                         <span class="room-num-badge">P.{{ $room->room_number }}</span>
                         <span class="apple-status-pill {{ $statusClass }}">
@@ -887,6 +933,7 @@ body.internal-shell .room-admin-columns .room-floor-tab { width: auto; flex: 0 0
             @empty
                 <div class="room-empty">Tầng {{ $selectedFloor }} chưa có phòng.</div>
             @endforelse
+            <div class="room-empty" id="inventory-filter-empty" hidden>Không có phòng nào trên tầng {{ $selectedFloor }} khớp bộ lọc.</div>
         </div>
         </div>
         </div>
@@ -951,10 +998,51 @@ document.addEventListener('DOMContentLoaded', () => {
         window.requestAnimationFrame(() => window.scrollTo(0, Number(savedScrollTop) || 0));
     }
 
+    const catalogSearchInput = document.getElementById('catalog-search-input');
+    const catalogFilterEmpty = document.getElementById('catalog-filter-empty');
+    const inventorySearchInput = document.getElementById('inventory-search-input');
+    const inventoryStatusFilter = document.getElementById('inventory-status-filter');
+    const inventoryFilterEmpty = document.getElementById('inventory-filter-empty');
+
+    const applyCatalogFilter = () => {
+        const term = (catalogSearchInput?.value || '').trim().toLowerCase();
+        let visible = 0;
+        document.querySelectorAll('#admin-room-catalog .room-type-card-bento').forEach((card) => {
+            const hay = card.dataset.catalogSearch || '';
+            const match = !term || hay.includes(term);
+            card.hidden = !match;
+            if (match) visible += 1;
+        });
+        if (catalogFilterEmpty) catalogFilterEmpty.hidden = visible > 0 || !term;
+    };
+
+    const applyInventoryFilter = () => {
+        const term = (inventorySearchInput?.value || '').trim().toLowerCase().replace(/^p\./, '');
+        const status = inventoryStatusFilter?.value || '';
+        let visible = 0;
+        document.querySelectorAll('[data-room-row], [data-room-card]').forEach((item) => {
+            const hay = item.dataset.roomSearch || '';
+            const itemStatus = item.dataset.roomStatus || '';
+            const match = (!term || hay.includes(term)) && (!status || itemStatus === status);
+            item.hidden = !match;
+            if (match && item.hasAttribute('data-room-card')) visible += 1;
+        });
+        if (inventoryFilterEmpty) inventoryFilterEmpty.hidden = visible > 0 || (!term && !status);
+    };
+
+    catalogSearchInput?.addEventListener('input', applyCatalogFilter);
+    inventorySearchInput?.addEventListener('input', applyInventoryFilter);
+    inventoryStatusFilter?.addEventListener('change', applyInventoryFilter);
+
     let adminRoomSyncInProgress = false;
     const syncAdminRoomDataWhenSafe = async () => {
+        const hasActiveFilter = Boolean(
+            catalogSearchInput?.value.trim()
+            || inventorySearchInput?.value.trim()
+            || inventoryStatusFilter?.value
+        );
         const activeControl = document.activeElement?.matches('input, select, textarea, button, a, [contenteditable="true"]');
-        if (adminRoomSyncInProgress || document.hidden || activeControl || document.querySelector('.room-modal.show')) return;
+        if (adminRoomSyncInProgress || hasActiveFilter || document.hidden || activeControl || document.querySelector('.room-modal.show')) return;
         adminRoomSyncInProgress = true;
 
         try {

@@ -58,6 +58,9 @@
                         @csrf
 
                         {{-- Hidden inputs --}}
+                        @if(!empty($editingBooking?->id))
+                        <input type="hidden" name="booking_id" value="{{ (int) $editingBooking->id }}">
+                        @endif
                         @foreach($roomIds as $rid)
                         <input type="hidden" name="room_ids[]" value="{{ (int)$rid }}">
                         @endforeach
@@ -75,7 +78,7 @@
                             <div class="aeth-input-wrap">
                                 <i class="bi bi-person aeth-input-icon"></i>
                                 <input type="text" name="customer_name" id="customerName" class="aeth-input"
-                                       value="{{ old('customer_name', $user->fullname ?? session('user.fullname', '')) }}"
+                                       value="{{ old('customer_name', $editingBooking?->customer_name ?? $user->fullname ?? session('user.fullname', '')) }}"
                                        placeholder="Ví dụ: Nguyễn Hoàng Minh" required>
                             </div>
                             @error('customer_name')
@@ -92,7 +95,7 @@
                                 <div class="aeth-input-wrap">
                                     <i class="bi bi-envelope aeth-input-icon"></i>
                                     <input type="email" name="customer_email" id="customerEmail" class="aeth-input"
-                                           value="{{ old('customer_email', $user->email ?? session('user.email', '')) }}"
+                                           value="{{ old('customer_email', $editingBooking?->customer_email ?? $user->email ?? session('user.email', '')) }}"
                                            placeholder="hoangminh.arch@icloud.com" required>
                                 </div>
                                 @error('customer_email')
@@ -110,7 +113,7 @@
                                         <span>+84</span>
                                     </div>
                                     <input type="tel" name="customer_phone" id="customerPhone" class="aeth-input aeth-input--phone" inputmode="numeric" pattern="0[0-9]{9}" data-digits-only
-                                           value="{{ old('customer_phone', $user->phone ?? session('user.phone', '')) }}"
+                                           value="{{ old('customer_phone', $editingBooking?->customer_phone ?? $user->phone ?? session('user.phone', '')) }}"
                                            placeholder="0918849283" maxlength="10" required>
                                 </div>
                                 @error('customer_phone')

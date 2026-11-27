@@ -25,7 +25,11 @@ class ZaloPayService
         $appTransId = date('ymd') . '_' . $booking->id . '_' . time();
         $appTime    = round(microtime(true) * 1000);
         $amount = $amount ?? (int) $booking->deposit_amount;
-        $embedData  = json_encode(['booking_id' => $booking->id, 'purpose' => $purpose]);
+        $embedData  = json_encode([
+            'booking_id' => $booking->id,
+            'purpose' => $purpose,
+            'redirecturl' => (string) (config('payment.zalopay.redirect_url') ?: route('booking.mine')),
+        ]);
         $items      = json_encode([]);
         $description = "Khách sạn - Thanh toán đặt phòng #{$booking->id}";
         $appUser = 'hotel_' . ($booking->user_id ?? $booking->id);

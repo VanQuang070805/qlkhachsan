@@ -529,8 +529,10 @@ body.internal-shell {
 .ds-filter-field :is(input, select) { width: 100%; min-width: 0; min-height: 42px; padding: 8px 10px; background: #fff; color: #202224; border: 1px solid #d5d9e2; border-radius: 8px; }
 .ds-filter-field :is(input, select):is(:focus, :focus-visible) { border-color: #64748b; outline: none; box-shadow: none; }
 .ds-filter-actions :is(button, a):focus-visible { outline: none; box-shadow: none; }
-.ds-filter-actions { display: flex; align-items: center; gap: 12px; }
+.ds-filter-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .ds-filter-apply { min-height: 42px; padding: 0 18px; border: 0; border-radius: 8px; background: #3569de; color: #fff; font-weight: 700; cursor: pointer; }
+.ds-filter-export { min-height: 42px; padding: 0 16px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; color: #0f172a; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: background 0.16s ease, border-color 0.16s ease; }
+.ds-filter-export:hover { background: #f8fafc; border-color: #94a3b8; color: #0f172a; }
 .ds-filter-error { flex-basis: 100%; margin: 0; color: #b42318; font-size: 13px; }
 .ds-data-note { margin: -12px 0 0; color: #5e6877; font-size: 13px; line-height: 1.5; }
 .ds-filter-reset { min-height: 42px; }
@@ -655,7 +657,10 @@ body.internal-shell {
     <label class="ds-filter-field"><span>Hạng phòng</span><select name="room_type_id"><option value="">Tất cả hạng phòng</option>@foreach($roomTypes as $rt)<option value="{{ $rt->id }}" @selected(($filters['room_type_id'] ?? '') == $rt->id)>{{ $rt->type_name }}</option>@endforeach</select></label>
     <label class="ds-filter-field"><span>Trạng thái đơn</span><select name="status"><option value="">Tất cả trạng thái</option><option value="pending" @selected(($filters['status'] ?? '') === 'pending')>Chờ xác nhận</option><option value="confirmed" @selected(($filters['status'] ?? '') === 'confirmed')>Đã xác nhận</option><option value="checked_in" @selected(($filters['status'] ?? '') === 'checked_in')>Đang lưu trú</option><option value="completed" @selected(($filters['status'] ?? '') === 'completed')>Hoàn thành</option><option value="cancelled" @selected(($filters['status'] ?? '') === 'cancelled')>Đã hủy</option></select></label>
   </div>
-  <div class="ds-filter-actions"><button type="submit" class="ds-filter-apply">Áp dụng</button><a href="{{ route($canViewReportBookings ? 'admin.reports' : 'staff.reports') }}" class="ds-filter-reset">Đặt lại</a></div>
+  @php
+    $exportParams = array_filter($filters ?? [], static fn ($val) => $val !== '' && $val !== null);
+  @endphp
+  <div class="ds-filter-actions"><button type="submit" class="ds-filter-apply">Áp dụng</button><a href="{{ route($canViewReportBookings ? 'admin.reports' : 'staff.reports') }}" class="ds-filter-reset">Đặt lại</a><a href="{{ route($canViewReportBookings ? 'admin.reports.export' : 'staff.reports.export', $exportParams) }}" class="ds-filter-export"><i class="bi bi-download" aria-hidden="true"></i><span>Xuất CSV</span></a></div>
   @if($errors->any())<p class="ds-filter-error" role="alert">{{ $errors->first() }}</p>@endif
 </form>
   <p class="ds-data-note">Bộ lọc theo ngày nhận phòng. Tiền đã thu dựa trên giao dịch thành công hoặc tiền cọc của đơn đã thanh toán, không tính đơn đã hủy và chưa trừ các khoản hoàn tiền. Khách hàng là tổng số tài khoản, không theo bộ lọc.</p>

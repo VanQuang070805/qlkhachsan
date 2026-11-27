@@ -18,6 +18,7 @@ class ReceptionController extends Controller
     public function index(Request $request)
     {
         app(\App\Services\ExpireNoShowBookings::class)->cancelDueBookings();
+        app(\App\Services\SyncOverdueRooms::class)->sync();
         $today = now('Asia/Ho_Chi_Minh')->toDateString();
         // Lấy toàn bộ phòng với trạng thái logic tính toán động
         $sql = "

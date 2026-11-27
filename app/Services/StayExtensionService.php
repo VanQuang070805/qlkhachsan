@@ -97,6 +97,17 @@ class StayExtensionService
                     : 'Gia hạn vượt 18:00 được tính thành một đêm, trả phòng trước 12:00 ngày '.Carbon::parse($newCheckout)->format('d/m/Y').'.';
             }
 
+            $effectiveDueAt = ($mode === 'hours' && ! $convertToNight && $newDue)
+                ? $newDue
+                : Carbon::parse($newCheckout, 'Asia/Ho_Chi_Minh')->setTime(12, 0);
+
+            if ($effectiveDueAt->gt(now('Asia/Ho_Chi_Minh'))) {
+                Room::query()
+                    ->whereIn('id', $rooms->pluck('id'))
+                    ->where('status', Room::STATUS_OVERDUE)
+                    ->update(['status' => Room::STATUS_OCCUPIED]);
+            }
+
             return [
                 'message' => $message,
                 'added_amount' => $addedAmount,

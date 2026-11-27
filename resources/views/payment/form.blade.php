@@ -20,9 +20,21 @@
     <div class="aeth-spatial-7xl aeth-animate-in">
 
         {{-- ── 1. Top Header: Stepper centered giống trang 2 + Live Countdown ── --}}
+        @php
+            $editBookingParams = [
+                'room_ids' => $booking->rooms->pluck('id')->all(),
+                'check_in' => $booking->check_in->format('Y-m-d'),
+                'check_out' => $booking->check_out->format('Y-m-d'),
+                'adults' => $booking->adult_count,
+                'children' => $booking->child_count,
+            ];
+            if (empty($isPreview) && !empty($booking->id)) {
+                $editBookingParams['booking_id'] = $booking->id;
+            }
+        @endphp
         <div class="text-center mb-4">
             <div class="aeth-step-capsule">
-                <a href="{{ route('booking.create', ['room_ids'=>$booking->rooms->pluck('id')->all(),'check_in'=>$booking->check_in->format('Y-m-d'),'check_out'=>$booking->check_out->format('Y-m-d'),'adults'=>$booking->adult_count,'children'=>$booking->child_count]) }}"
+                <a href="{{ route('booking.create', $editBookingParams) }}"
                    class="aeth-capsule-item is-done" style="text-decoration:none;">
                     <span class="aeth-capsule-num"><i class="bi bi-check"></i></span>
                     <span>1. Thông tin khách</span>
@@ -209,7 +221,7 @@
                                     <small class="text-slate-500" style="font-size: 12px;">{{ $booking->customer_email }}</small>
                                 </div>
                             </div>
-                            <a href="{{ route('booking.create', ['room_ids'=>$booking->rooms->pluck('id')->all(),'check_in'=>$booking->check_in->format('Y-m-d'),'check_out'=>$booking->check_out->format('Y-m-d'),'adults'=>$booking->adult_count,'children'=>$booking->child_count]) }}"
+                            <a href="{{ route('booking.create', $editBookingParams) }}"
                                class="text-primary fw-semibold" style="font-size: 13px; text-decoration: none;">
                                 Sửa
                             </a>

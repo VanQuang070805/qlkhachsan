@@ -411,12 +411,19 @@ class PaymentController extends Controller
     public function vnpayReturn(Request $request)
     {
         $data = $request->all();
+        $bookingId = (int) explode('_', (string) ($data['vnp_TxnRef'] ?? '0'))[0];
 
         if (!$this->vnpay->verifySecureHash($data)) {
-            return redirect()->route('payment.error', $data['vnp_TxnRef'] ?? 0);
+            if ($bookingId <= 0) {
+                return redirect()->route('home')->with('error', 'Chữ ký giao dịch thanh toán không hợp lệ.');
+            }
+
+            return redirect()->route('payment.error', $bookingId);
         }
 
-        $bookingId = (int) explode('_', (string) ($data['vnp_TxnRef'] ?? '0'))[0];
+        if ($bookingId <= 0) {
+            return redirect()->route('home')->with('error', 'Không xác định được mã đặt phòng từ cổng thanh toán.');
+        }
 
         if (($data['vnp_ResponseCode'] ?? '') === '00') {
             return redirect()->route('payment.success', $bookingId);

@@ -610,10 +610,14 @@ async function answerQueryDirectly(
     ? `\nThực tại của người dùng trên hệ thống lúc này (dữ liệu xác thực từ máy chủ):\n<user_reality>\n${configuration.userReality}\n</user_reality>\nNếu người dùng hỏi họ là ai, tên gì, đang ở trang nào hoặc thực tại của họ lúc này, hãy trả lời tự nhiên dựa trên <user_reality>.`
     : '';
 
+  const scopeBlock = configuration.scopePolicy
+    ? `\nChính sách phạm vi hỗ trợ bắt buộc:\n${configuration.scopePolicy}`
+    : '';
+
   const response = await invokeChatModelWithFallback(
     [
       new SystemMessage(
-        `Bạn là Pico, trợ lý AI thân thiện của Rosaliza Hotel. Với chuyện đời thường, hãy trả lời tự nhiên bằng ngôn ngữ khách đang dùng, không dùng dấu gạch ngang dài (em dash). Trả lời đúng trọng tâm từng ý khách hỏi; nếu một từ viết tắt mơ hồ, suy từ ngữ cảnh hoặc hỏi lại ngắn. Đừng ép câu chuyện về khách sạn hoặc bịa dữ kiện riêng của khách sạn. ${PICO_STYLE}\nĐồng hồ hệ thống tại Hà Nội: ${hotelClock()}. Đây là thời gian thực, không phải kiến thức của mô hình.${realityBlock}${weatherContext}`,
+        `Bạn là Pico, trợ lý AI thân thiện của Rosaliza Hotel. Với chào hỏi hoặc câu hỏi liên quan lưu trú, đặt phòng và du lịch quanh khách sạn, hãy trả lời tự nhiên bằng ngôn ngữ khách đang dùng, không dùng dấu gạch ngang dài (em dash). Trả lời đúng trọng tâm từng ý khách hỏi; nếu một từ viết tắt mơ hồ, suy từ ngữ cảnh hoặc hỏi lại ngắn. Đừng bịa dữ kiện riêng của khách sạn. ${PICO_STYLE}\nĐồng hồ hệ thống tại Hà Nội: ${hotelClock()}. Đây là thời gian thực, không phải kiến thức của mô hình.${scopeBlock}${realityBlock}${weatherContext}`,
       ),
       ...state.messages.slice(-6),
       userHumanMessage,

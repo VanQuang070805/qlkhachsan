@@ -191,6 +191,7 @@ $registerInternalOperationalRoutes = function (): void {
 
 Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->name('staff.')->group(function () use ($registerInternalOperationalRoutes) {
     Route::get('/reports', [AdminController::class, 'reports'])->middleware('permission:rp_view_reports')->name('reports');
+    Route::get('/reports/export', [AdminController::class, 'exportReports'])->middleware('permission:rp_view_reports')->name('reports.export');
     $registerInternalOperationalRoutes();
 });
 
@@ -200,6 +201,7 @@ Route::middleware(['auth.custom', 'role:receptionist,admin'])->prefix('staff')->
 Route::middleware(['auth.custom', 'permission:rp_view_reports'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
+    Route::get('/reports/export', [AdminController::class, 'exportReports'])->name('reports.export');
 });
 
 Route::middleware(['auth.custom', 'role:admin'])->prefix('admin')->name('admin.')->group(function () use ($registerInternalOperationalRoutes) {

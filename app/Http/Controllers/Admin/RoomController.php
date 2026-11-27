@@ -19,6 +19,7 @@ class RoomController extends Controller
     public function index()
     {
         app(\App\Services\ExpireNoShowBookings::class)->cancelDueBookings();
+        app(\App\Services\SyncOverdueRooms::class)->sync();
         $floorCounts = Room::query()
             ->selectRaw('floor, COUNT(*) AS room_count')
             ->groupBy('floor')

@@ -1136,9 +1136,17 @@
                         <i class="bi bi-check2-circle"></i>
                         <span>Đã dọn dẹp xong</span>
                     </button>
+                    <button type="button" class="staff-action-btn staff-action-done btn-action" id="btn-action-maintenance-done" onclick="triggerStatusUpdate('available')">
+                        <i class="bi bi-tools"></i>
+                        <span>Hoàn tất bảo trì</span>
+                    </button>
                     <button type="button" class="staff-action-btn staff-action-warning btn-action" id="btn-action-cleaning-request-done" onclick="completeCleaningRequest()">
                         <i class="bi bi-check2-circle"></i>
                         <span>Hoàn tất yêu cầu dọn</span>
+                    </button>
+                    <button type="button" class="staff-action-btn staff-action-secondary btn-action" id="btn-action-maintenance-start" onclick="setRoomManualStatus('maintenance')">
+                        <i class="bi bi-wrench-adjustable"></i>
+                        <span>Chuyển sang bảo trì</span>
                     </button>
                 @endif
                 <button type="button" class="staff-action-btn staff-action-secondary btn-action" id="btn-action-face-id" onclick="openSelectedRoomFaceId()">
@@ -1932,14 +1940,18 @@
         const btnOccupied = document.getElementById('btn-action-occupied');
         const btnExtend = document.getElementById('btn-action-extend');
         const btnCleaningDone = document.getElementById('btn-action-cleaning-done');
+        const btnMaintenanceDone = document.getElementById('btn-action-maintenance-done');
         const btnCleaningRequestDone = document.getElementById('btn-action-cleaning-request-done');
+        const btnMaintenanceStart = document.getElementById('btn-action-maintenance-start');
         const btnFaceId = document.getElementById('btn-action-face-id');
 
         if (btnAvailable) { btnAvailable.style.display = 'none'; btnAvailable.disabled = false; }
         if (btnOccupied) { btnOccupied.style.display = 'none'; btnOccupied.disabled = false; }
         if (btnExtend) { btnExtend.style.display = 'none'; btnExtend.disabled = false; }
         if (btnCleaningDone) { btnCleaningDone.style.display = 'none'; btnCleaningDone.disabled = false; }
+        if (btnMaintenanceDone) { btnMaintenanceDone.style.display = 'none'; btnMaintenanceDone.disabled = false; }
         if (btnCleaningRequestDone) { btnCleaningRequestDone.style.display = 'none'; btnCleaningRequestDone.disabled = false; }
+        if (btnMaintenanceStart) { btnMaintenanceStart.style.display = 'none'; btnMaintenanceStart.disabled = false; }
         if (btnFaceId) { btnFaceId.style.display = 'none'; btnFaceId.disabled = false; }
 
         const isOccupied = isOccupiedStatus(currentStatus) || (selectedRoomData && parseInt(selectedRoomData.has_active_booking) > 0);
@@ -1949,6 +1961,9 @@
             const canCheckInSelectedRoom = INTERNAL_CAPABILITIES.bp_checkin_checkout
                 && (hasTodayBooking || INTERNAL_CAPABILITIES.bp_create_booking);
             if (btnOccupied && canCheckInSelectedRoom) btnOccupied.style.display = 'block';
+            if (btnMaintenanceStart && currentStatus === 'available' && !hasTodayBooking && INTERNAL_CAPABILITIES.bp_clean_status) {
+                btnMaintenanceStart.style.display = 'block';
+            }
         } else if (isOccupied) {
             if (btnAvailable) btnAvailable.style.display = 'block';
             if (btnFaceId && selectedRoomData?.active_booking_id) btnFaceId.style.display = 'block';
@@ -1961,6 +1976,39 @@
             }
         } else if (currentStatus === 'cleaning') {
             if (btnCleaningDone) btnCleaningDone.style.display = 'block';
+        } else if (currentStatus === 'maintenance') {
+            if (btnMaintenanceDone) btnMaintenanceDone.style.display = 'block';
+        }
+    }
+
+    async function setRoomManualStatus(targetStatus) {
+        if (!INTERNAL_CAPABILITIES.bp_clean_status || !selectedRoomId) return;
+        const button = document.getElementById('btn-action-maintenance-start');
+        if (button) button.disabled = true;
+        const url = @json(route($routePrefix . '.room.status', ['id' => '__ROOM__']))
+            .replace('__ROOM__', encodeURIComponent(selectedRoomId));
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                },
+                body: JSON.stringify({ status: targetStatus }),
+                cache: 'no-store',
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Không thể cập nhật trạng thái phòng.');
+            }
+            showToast(result.message, 'bg-success');
+            await refreshReceptionBoard();
+        } catch (error) {
+            showToast(error.message || 'Không thể cập nhật trạng thái phòng.', 'bg-danger');
+        } finally {
+            if (button) button.disabled = false;
         }
     }
 
@@ -2460,7 +2508,7 @@
         } : null;
         const labels = { available: 'Đang trống', occupied: 'Đang lưu trú', cleaning: 'Đang dọn dẹp', maintenance: 'Bảo trì', booked: 'Đã đặt', overdue: 'Quá giờ trả' };
         if (optimisticCard) {
-            optimisticCard.className = optimisticCard.className.replace(/status-(available|occupied|cleaning)/, `status-${newStatus}`);
+            optimisticCard.className = optimisticCard.className.replace(/status-(available|occupied|cleaning|maintenance|overdue|booked)/, `status-${newStatus}`);
             optimisticCard.dataset.status = newStatus;
             const label = optimisticCard.querySelector('.room-status-text');
             if (label) label.textContent = labels[newStatus] || newStatus;

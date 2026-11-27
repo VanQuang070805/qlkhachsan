@@ -260,12 +260,29 @@ class AuthController extends Controller
                 ->with('error', 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
         }
 
+        if ($user->otp_expires_at && Carbon::now()->greaterThan($user->otp_expires_at)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại.',
+                    'errors' => ['otp' => ['Mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại.']]
+                ], 422);
+            }
+            return back()->with('error', 'Mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại.');
+        }
+
         if (!$user->otp_code || !Hash::check($request->otp, $user->otp_code)) {
             $attempts = (int) session('verify_otp_attempts', 0) + 1;
             session(['verify_otp_attempts' => $attempts]);
             if ($attempts >= 5) {
-                $user->update(['otp_code' => null, 'otp_expires_at' => null]);
+                $user->update(['otp_expires_at' => Carbon::now()->subSecond()]);
                 session()->forget('verify_otp_attempts');
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => 'Bạn đã nhập sai quá 5 lần. Mã OTP hiện tại đã hết hiệu lực, vui lòng yêu cầu gửi lại mã mới.',
+                        'errors' => ['otp' => ['Bạn đã nhập sai quá 5 lần. Mã OTP hiện tại đã hết hiệu lực, vui lòng yêu cầu gửi lại mã mới.']]
+                    ], 422);
+                }
+                return back()->with('error', 'Bạn đã nhập sai quá 5 lần. Mã OTP hiện tại đã hết hiệu lực, vui lòng yêu cầu gửi lại mã mới.');
             }
             if ($request->expectsJson()) {
                 return response()->json([
@@ -274,16 +291,6 @@ class AuthController extends Controller
                 ], 422);
             }
             return back()->with('error', 'Mã OTP không đúng. Vui lòng thử lại.');
-        }
-
-        if (Carbon::now()->greaterThan($user->otp_expires_at)) {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'message' => 'Mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại.',
-                    'errors' => ['otp' => ['Mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại.']]
-                ], 422);
-            }
-            return back()->with('error', 'Mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại.');
         }
 
         $user->update([
@@ -323,7 +330,7 @@ class AuthController extends Controller
         ]);
 
         session()->forget(['reset_email', 'reset_verified', 'reset_verified_at', 'reset_otp_attempts']);
-        session(['reset_email' => $request->email]);
+        session(['reset_email' => $request->email, 'last_otp_sent' => time()]);
         $user = User::where('role', 'customer')->where('email', $request->email)->first();
 
         // Luôn trả lời thành công để tránh user enumeration
@@ -772,6 +779,8 @@ class AuthController extends Controller
                 return redirect()->route('password.verify-otp')->with('success', 'Nếu email tồn tại, mã OTP mới đã được gửi.');
             }
         }
+
+        session(['last_otp_sent' => time()]);
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Nếu email tồn tại, mã OTP mới đã được gửi.']);

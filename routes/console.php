@@ -10,6 +10,7 @@ Artisan::command('inspire', function () {
 
 Schedule::command('bookings:expire-pending')->everyMinute()->withoutOverlapping();
 Schedule::command('bookings:expire-no-shows')->everyMinute()->withoutOverlapping();
+Schedule::command('bookings:sync-overdue')->everyMinute()->withoutOverlapping();
 Schedule::command('face:sync')->everyMinute()->withoutOverlapping();
 Schedule::call(function (): void {
     if (\Illuminate\Support\Facades\Schema::hasTable('api_idempotency_keys')) {

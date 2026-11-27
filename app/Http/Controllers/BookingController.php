@@ -54,13 +54,18 @@ class BookingController extends Controller
         }
 
         $excludeBookingId = null;
+        $editingBooking = null;
         if ($request->filled('booking_id')) {
             $ownedPending = Booking::query()
                 ->whereKey((int) $request->input('booking_id'))
                 ->where('user_id', Auth::id())
                 ->where('status', 'pending')
-                ->first(['id']);
-            $excludeBookingId = $ownedPending?->id;
+                ->where('payment_status', '!=', 'paid')
+                ->first();
+            if ($ownedPending && ! $ownedPending->paymentHoldExpired()) {
+                $excludeBookingId = $ownedPending->id;
+                $editingBooking = $ownedPending;
+            }
         }
 
         $reservedRoomIds = Booking::reservedRoomIds($checkIn, $checkOut, $excludeBookingId);
@@ -95,7 +100,7 @@ class BookingController extends Controller
 
         return view('booking.create', compact(
             'roomIds','rooms', 'checkIn', 'checkOut',
-            'adults', 'children', 'nights', 'total', 'user', 'totalMaxGuests'
+            'adults', 'children', 'nights', 'total', 'user', 'totalMaxGuests', 'editingBooking'
         ));
     }
 
@@ -108,6 +113,7 @@ class BookingController extends Controller
             ? now('Asia/Ho_Chi_Minh')->addDay()->toDateString()
             : now('Asia/Ho_Chi_Minh')->toDateString();
         $validated = $request->validate([
+            'booking_id'     => 'nullable|integer|min:1',
             'room_ids'       => 'required|array|min:1|max:25',
             'room_ids.*'     => 'integer|distinct|exists:rooms,id',
             'check_in'       => 'required|date_format:Y-m-d|after_or_equal:today',
@@ -126,6 +132,20 @@ class BookingController extends Controller
         }
 
         return \Illuminate\Support\Facades\DB::transaction(function () use ($validated) {
+            $existingPending = null;
+            if (! empty($validated['booking_id'])) {
+                $candidatePending = Booking::query()
+                    ->whereKey((int) $validated['booking_id'])
+                    ->where('user_id', Auth::id())
+                    ->where('status', 'pending')
+                    ->where('payment_status', '!=', 'paid')
+                    ->lockForUpdate()
+                    ->first();
+                if ($candidatePending && ! $candidatePending->paymentHoldExpired()) {
+                    $existingPending = $candidatePending;
+                }
+            }
+
             $lockedRooms = Room::query()
                 ->whereIn('id', $validated['room_ids'])
                 ->orderBy('id')
@@ -146,7 +166,7 @@ class BookingController extends Controller
             $lockedRooms->each(fn (Room $room) => $room->setRelation('roomType', $roomTypes->get($room->room_type_id)));
 
             // Lấy phòng và kiểm tra còn trống (loại trừ phòng đã có booking chưa huỷ trong cùng khoảng ngày)
-            $bookedRoomIds = Booking::reservedRoomIds($validated['check_in'], $validated['check_out']);
+            $bookedRoomIds = Booking::reservedRoomIds($validated['check_in'], $validated['check_out'], $existingPending?->id);
             $rooms = $lockedRooms->filter(fn (Room $room) =>
                 $room->status === Room::STATUS_AVAILABLE && ! $bookedRoomIds->contains($room->id)
             )->values();
@@ -172,24 +192,40 @@ class BookingController extends Controller
 
             $total = round($total);
 
-            $booking = Booking::create([
-                'user_id'        => Auth::id(),
-                'customer_name'  => $validated['customer_name'],
-                'customer_email' => $validated['customer_email'],
-                'customer_phone' => $validated['customer_phone'],
-                'check_in'       => $validated['check_in'],
-                'check_out'      => $validated['check_out'],
-                'adult_count'    => $validated['adult_count'],
-                'child_count'    => $validated['child_count'],
-                'total_price'    => $total,
-                'deposit_amount' => round($total * 0.5),
-                'payment_method' => null,
-                'payment_status' => 'pending',
-                'status'         => 'pending',
-            ]);
+            if ($existingPending) {
+                $existingPending->update([
+                    'customer_name'  => $validated['customer_name'],
+                    'customer_email' => $validated['customer_email'],
+                    'customer_phone' => $validated['customer_phone'],
+                    'check_in'       => $validated['check_in'],
+                    'check_out'      => $validated['check_out'],
+                    'adult_count'    => $validated['adult_count'],
+                    'child_count'    => $validated['child_count'],
+                    'total_price'    => $total,
+                    'deposit_amount' => round($total * 0.5),
+                ]);
+                $existingPending->rooms()->sync($rooms->pluck('id'));
+                $booking = $existingPending;
+            } else {
+                $booking = Booking::create([
+                    'user_id'        => Auth::id(),
+                    'customer_name'  => $validated['customer_name'],
+                    'customer_email' => $validated['customer_email'],
+                    'customer_phone' => $validated['customer_phone'],
+                    'check_in'       => $validated['check_in'],
+                    'check_out'      => $validated['check_out'],
+                    'adult_count'    => $validated['adult_count'],
+                    'child_count'    => $validated['child_count'],
+                    'total_price'    => $total,
+                    'deposit_amount' => round($total * 0.5),
+                    'payment_method' => null,
+                    'payment_status' => 'pending',
+                    'status'         => 'pending',
+                ]);
 
-            // Gán phòng vào booking_rooms pivot (chưa đánh dấu booked, chờ thanh toán xong)
-            $booking->rooms()->attach($rooms->pluck('id'));
+                // Gán phòng vào booking_rooms pivot (chưa đánh dấu booked, chờ thanh toán xong)
+                $booking->rooms()->attach($rooms->pluck('id'));
+            }
 
             $currentUser = Auth::user();
             if ($currentUser instanceof \App\Models\User && empty($currentUser->phone)) {
@@ -574,6 +610,13 @@ class BookingController extends Controller
             }
             if ($newStatus === Room::STATUS_AVAILABLE && ! in_array($room->status, [Room::STATUS_CLEANING, Room::STATUS_MAINTENANCE], true)) {
                 abort(422, 'Chỉ phòng đang dọn hoặc hoàn tất bảo trì mới được chuyển sang đang trống.');
+            }
+            if ($newStatus === Room::STATUS_MAINTENANCE) {
+                $today = now('Asia/Ho_Chi_Minh')->toDateString();
+                $tomorrow = now('Asia/Ho_Chi_Minh')->addDay()->toDateString();
+                if (Booking::reservedRoomIds($today, $tomorrow)->contains($room->id)) {
+                    abort(422, 'Phòng đang có lịch đặt trong hôm nay, không thể chuyển sang bảo trì.');
+                }
             }
 
             $room->update([
