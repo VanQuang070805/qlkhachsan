@@ -909,6 +909,9 @@ class RosalizaUnifiedRemediationTest extends TestCase
             $this->actingAs($customer)->withSession($customerSession)
                 ->post(route('booking.cancel', $holidayBooking->id), [
                     'reason' => 'Thay đổi lịch công tác đột xuất',
+                    'refund_bank_name' => 'MB Bank',
+                    'refund_account_number' => '098765432100',
+                    'refund_account_holder' => 'TRAN VAN KHACH',
                 ])
                 ->assertRedirect(route('booking.mine'))
                 ->assertSessionHas('success');

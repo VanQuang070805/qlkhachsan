@@ -102,7 +102,7 @@ class Booking extends Model
         'payment_method', 'payment_status', 'status', 'late_checkout_fee',
         'deposit_amount', 'waive_late_fee',
         'cancelled_at', 'cancellation_reason',
-        'refund_status', 'refund_amount',
+        'refund_status', 'refund_amount', 'refund_bank_name', 'refund_account_number', 'refund_account_holder',
     ];
 
     protected $casts = [

@@ -49,10 +49,13 @@ class ChatbotController extends Controller
             ], 429);
         }
 
-        if (! $this->scope->allows($message, $history)) {
+        $oosKey = $this->outOfScopeCacheKey($request);
+        $scopeEval = $this->scope->evaluate($message, $history, (int) Cache::get($oosKey, 0));
+        if (! $scopeEval['allowed']) {
             return response()->json([
                 'source' => 'scope-guard',
-                'reply' => $this->scope->refusal(),
+                'category' => $scopeEval['category'],
+                'reply' => $scopeEval['refusal'],
                 'sources' => [],
             ]);
         }
@@ -60,8 +63,14 @@ class ChatbotController extends Controller
         if (! $this->langGraph->configured()) {
             return response()->json([
                 'source' => 'error',
-                'message' => 'Pico đang tạm thời bảo trì. Bạn vui lòng thử lại sau ít phút.',
+                'message' => $scopeEval['language'] === 'en'
+                    ? 'Pico is temporarily under maintenance. Please try again in a few minutes.'
+                    : 'Pico đang tạm thời bảo trì. Bạn vui lòng thử lại sau ít phút.',
             ], 503);
+        }
+
+        if ($scopeEval['increment_out_of_scope']) {
+            Cache::put($oosKey, $scopeEval['out_of_scope_used'], now()->addHours(2));
         }
 
         $answer = $this->langGraph->ask($request, $message, $history, $pageContext);
@@ -81,6 +90,7 @@ class ChatbotController extends Controller
 
     public function reset(Request $request)
     {
+        Cache::forget($this->outOfScopeCacheKey($request));
         $this->langGraph->resetThread($request);
         if ($request->hasSession()) {
             $request->session()->save();
@@ -117,15 +127,23 @@ class ChatbotController extends Controller
             ], 429);
         }
 
-        if (! $this->scope->allows($message, $history)) {
-            return $this->scopedStreamResponse($this->scope->refusal());
+        $oosKey = $this->outOfScopeCacheKey($request);
+        $scopeEval = $this->scope->evaluate($message, $history, (int) Cache::get($oosKey, 0));
+        if (! $scopeEval['allowed']) {
+            return $this->scopedStreamResponse($scopeEval['refusal']);
         }
 
         if (! $this->langGraph->configured()) {
             return response()->json([
                 'source' => 'error',
-                'message' => 'Pico đang tạm thời bảo trì. Bạn vui lòng thử lại sau ít phút.',
+                'message' => $scopeEval['language'] === 'en'
+                    ? 'Pico is temporarily under maintenance. Please try again in a few minutes.'
+                    : 'Pico đang tạm thời bảo trì. Bạn vui lòng thử lại sau ít phút.',
             ], 503);
+        }
+
+        if ($scopeEval['increment_out_of_scope']) {
+            Cache::put($oosKey, $scopeEval['out_of_scope_used'], now()->addHours(2));
         }
 
         $threadId = $this->langGraph->hasCachedPublicReply($message, $history, $request, $pageContext)
@@ -233,9 +251,15 @@ class ChatbotController extends Controller
     public function deleteThread(Request $request, string $thread)
     {
         abort_unless((bool) preg_match('/^[A-Za-z0-9_-]{1,120}$/', $thread), 422);
+        Cache::forget($this->outOfScopeCacheKey($request));
         $this->langGraph->resetThread($request);
 
         return response()->noContent();
+    }
+
+    private function outOfScopeCacheKey(Request $request): string
+    {
+        return 'royal:chatbot:oos-count:'.$this->langGraph->sessionParticipantId($request);
     }
 
     public function postThreadMessage(Request $request, string $thread)
@@ -260,15 +284,20 @@ class ChatbotController extends Controller
 
         $message = trim($validated['message']);
         $history = $validated['history'] ?? [];
-        if (! $this->scope->allows($message, $history)) {
+        $oosKey = $this->outOfScopeCacheKey($request);
+        $scopeEval = $this->scope->evaluate($message, $history, (int) Cache::get($oosKey, 0));
+        if (! $scopeEval['allowed']) {
             return response()->json([
                 'error' => [
                     'code' => 'CHATBOT_OUT_OF_SCOPE',
-                    'message' => $this->scope->refusal(),
+                    'message' => $scopeEval['refusal'],
                     'fields' => (object) [],
                     'correlation_id' => $corrId,
                 ],
             ], 422);
+        }
+        if ($scopeEval['increment_out_of_scope']) {
+            Cache::put($oosKey, $scopeEval['out_of_scope_used'], now()->addHours(2));
         }
 
         $participant = $this->langGraph->sessionParticipantId($request);

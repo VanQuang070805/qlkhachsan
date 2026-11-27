@@ -257,6 +257,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('[data-refund-form]').action = trigger.dataset.refundUrl;
         document.querySelector('[data-refund-customer]').textContent = trigger.dataset.refundName;
         document.querySelector('[data-refund-total]').textContent = trigger.dataset.refundAmount;
+        const bankBox = document.querySelector('[data-refund-bank-box]');
+        if (bankBox) {
+            const hasBank = Boolean(trigger.dataset.refundAccount || trigger.dataset.refundBank);
+            bankBox.hidden = !hasBank;
+            if (hasBank) {
+                document.querySelector('[data-refund-bank-label]').textContent = trigger.dataset.refundBank || 'Chưa cung cấp';
+                document.querySelector('[data-refund-account-label]').textContent = trigger.dataset.refundAccount || 'Chưa cung cấp';
+                document.querySelector('[data-refund-holder-label]').textContent = trigger.dataset.refundHolder || 'Chưa cung cấp';
+            }
+        }
     });
     document.querySelector('[data-refund-form]')?.addEventListener('submit', event => {
         const submit = event.target.querySelector('[type=submit]');

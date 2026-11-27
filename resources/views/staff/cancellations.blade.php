@@ -65,7 +65,14 @@
                             <td>{{ $cancelled->room_numbers ?: 'Chưa gán phòng' }}</td>
                             <td>{{ \Carbon\Carbon::parse($cancelled->check_in)->format('d/m/Y') }} → {{ \Carbon\Carbon::parse($cancelled->check_out)->format('d/m/Y') }}</td>
                             <td>{{ $cancelled->cancellation_reason ?: 'Không ghi lý do' }}</td>
-                            <td>{{ config('statuses.refund.'.$cancelled->refund_status, 'Chưa xác định') }}</td>
+                            <td>
+                                <div>{{ config('statuses.refund.'.$cancelled->refund_status, 'Chưa xác định') }}</div>
+                                @if($cancelled->refund_account_number)
+                                    <div class="small text-muted mt-1">
+                                        {{ $cancelled->refund_bank_name }} · <span class="font-monospace">{{ $cancelled->refund_account_number }}</span> ({{ $cancelled->refund_account_holder }})
+                                    </div>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                     <tr data-cancellation-empty hidden><td colspan="6" class="text-center text-muted py-4">Không có booking phù hợp</td></tr>
@@ -93,6 +100,9 @@
                         <div class="d-flex flex-column gap-1 text-muted" style="font-size: 0.78rem;">
                             <div><i class="bi bi-calendar-event me-1"></i>{{ \Carbon\Carbon::parse($cancelled->check_in)->format('d/m/Y') }} → {{ \Carbon\Carbon::parse($cancelled->check_out)->format('d/m/Y') }}</div>
                             <div><i class="bi bi-chat-left-text me-1"></i>{{ $cancelled->cancellation_reason ?: 'Không ghi lý do' }}</div>
+                            @if($cancelled->refund_account_number)
+                                <div class="text-dark"><i class="bi bi-bank me-1"></i>{{ $cancelled->refund_bank_name }} · <span class="font-monospace">{{ $cancelled->refund_account_number }}</span> ({{ $cancelled->refund_account_holder }})</div>
+                            @endif
                             <div class="text-slate-400" style="font-size: 0.72rem;"><i class="bi bi-clock me-1"></i>Hủy lúc: {{ optional($cancelled->cancelled_at)->format('d/m/Y H:i') ?: 'Chưa cập nhật' }}</div>
                         </div>
                     </article>
@@ -156,7 +166,7 @@
 
     <div class="refund-list">
     @foreach($refunds as $c)
-        <article class="card border-0 mb-3 p-3" data-refund-record data-status="{{ $c->refund_status }}" data-search="{{ $c->id }} {{ $c->customer_name }} {{ $c->customer_phone }} {{ $c->room_numbers }}" style="border-radius: 16px; border: 1px solid rgba(0,0,0,0.06) !important; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.01);">
+        <article class="card border-0 mb-3 p-3" data-refund-record data-status="{{ $c->refund_status }}" data-search="{{ $c->id }} {{ $c->customer_name }} {{ $c->customer_phone }} {{ $c->room_numbers }} {{ $c->refund_bank_name }} {{ $c->refund_account_number }} {{ $c->refund_account_holder }}" style="border-radius: 16px; border: 1px solid rgba(0,0,0,0.06) !important; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.01);">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 pb-3 border-bottom" style="border-color: rgba(0,0,0,0.05) !important;">
                 <div class="d-flex align-items-center gap-3">
                     <span class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background: #f0f7ff; color: #0284c7; flex-shrink: 0;">
@@ -180,6 +190,15 @@
                     </div>
                 </div>
             </div>
+
+            @if($c->refund_account_number || $c->refund_bank_name)
+                <div class="mt-3 p-2.5 rounded-3 d-flex flex-wrap align-items-center gap-3" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 0.8rem;">
+                    <span class="fw-semibold text-slate-700"><i class="bi bi-bank2 text-primary me-1"></i>Tài khoản nhận hoàn:</span>
+                    <span>Ngân hàng: <strong class="text-dark">{{ $c->refund_bank_name ?: 'Chưa cung cấp' }}</strong></span>
+                    <span>STK: <strong class="font-monospace text-dark">{{ $c->refund_account_number ?: 'Chưa cung cấp' }}</strong></span>
+                    <span>Chủ TK: <strong class="text-dark">{{ $c->refund_account_holder ?: 'Chưa cung cấp' }}</strong></span>
+                </div>
+            @endif
 
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-3">
                 <div class="d-flex align-items-center gap-4 text-muted small" style="font-size: 0.78rem;">
@@ -206,7 +225,7 @@
                             || str_contains(strtolower(request()->getHost()), 'admin')
                         ) ? 'admin' : 'staff';
                     @endphp
-                    <button type="button" class="btn btn-sm btn-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 fw-medium" data-bs-toggle="modal" data-bs-target="#refundConfirm" data-refund-url="{{ route($refundPrefix.'.bookings.refund', $c->id) }}" data-refund-name="{{ $c->customer_name }}" data-refund-amount="{{ number_format($c->refund_amount, 0, ',', '.') }} đ" style="border-radius: 999px; background: #070709; font-size: 0.78rem; border: none;">
+                    <button type="button" class="btn btn-sm btn-dark d-inline-flex align-items-center gap-2 px-3 py-1.5 fw-medium" data-bs-toggle="modal" data-bs-target="#refundConfirm" data-refund-url="{{ route($refundPrefix.'.bookings.refund', $c->id) }}" data-refund-name="{{ $c->customer_name }}" data-refund-amount="{{ number_format($c->refund_amount, 0, ',', '.') }} đ" data-refund-bank="{{ $c->refund_bank_name ?? '' }}" data-refund-account="{{ $c->refund_account_number ?? '' }}" data-refund-holder="{{ $c->refund_account_holder ?? '' }}" style="border-radius: 999px; background: #070709; font-size: 0.78rem; border: none;">
                         <i class="bi bi-check2-circle text-success"></i>
                         <span>Xác nhận đã hoàn</span>
                     </button>
@@ -244,6 +263,11 @@
                         <div class="d-flex justify-content-between align-items-center pt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important;">
                             <span style="color: #64748b; font-size: 0.88rem;">Số tiền hoàn</span>
                             <span class="refund-confirm-amount fw-bold text-success" data-refund-total style="font-size: 1.25rem; font-variant-numeric: tabular-nums;"></span>
+                        </div>
+                        <div data-refund-bank-box hidden class="pt-2 mt-2 border-top" style="border-color: rgba(0,0,0,0.06) !important; font-size: 0.84rem;">
+                            <div class="d-flex justify-content-between mb-1"><span style="color: #64748b;">Ngân hàng</span><strong class="text-dark" data-refund-bank-label></strong></div>
+                            <div class="d-flex justify-content-between mb-1"><span style="color: #64748b;">Số tài khoản</span><strong class="font-monospace text-dark" data-refund-account-label></strong></div>
+                            <div class="d-flex justify-content-between"><span style="color: #64748b;">Chủ tài khoản</span><strong class="text-dark" data-refund-holder-label></strong></div>
                         </div>
                     </div>
                     <div class="mb-3">

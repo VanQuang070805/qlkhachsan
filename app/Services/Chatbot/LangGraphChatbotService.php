@@ -62,6 +62,7 @@ class LangGraphChatbotService
         if (
             $trimmed === '' ||
             $history !== [] ||
+            ! $this->scope->isHotelInScope($trimmed, $history) ||
             ($request !== null && (int) $request->session()->get('customer_user_id', 0) > 0) ||
             ! empty($pageContext['room_name']) ||
             $this->isPersonalBookingQuery($trimmed) ||
@@ -219,7 +220,7 @@ class LangGraphChatbotService
         $combined = mb_strtolower(implode(' | ', $userMessages), 'UTF-8');
         $currentLower = mb_strtolower($message, 'UTF-8');
 
-        $isQuoteOrRoomIntent = (bool) preg_match('/\b(giá|gia|bao nhiêu|bao nhieu|bao tiền|bao tien|hết bao|het bao|chi phí|chi phi|check|xem|báo giá|bao gia|tính|tinh|phòng|phong|hạng|hang|người|nguoi|khách|khach|đêm|dem|ngày|ngay|hôm|hom|còn trống|con trong|đặt|dat|nhận|nhan|trả|tra)\b/ui', $combined);
+        $isQuoteOrRoomIntent = (bool) preg_match('/\b(giá|gia|bao nhiêu|bao nhieu|bao tiền|bao tien|hết bao|het bao|chi phí|chi phi|check|xem|báo giá|bao gia|tính|tinh|phòng|phong|hạng|hang|người|nguoi|khách|khach|đêm|dem|ngày|ngay|hôm|hom|còn trống|con trong|đặt|dat|nhận|nhan|trả|tra|price|prices|rate|rates|cost|how much|quote|room|rooms|suite|book|booking|reserve|available|availability|adult|adults|child|children|guest|guests|night|nights|today|tonight|tomorrow)\b/ui', $combined);
         if (! $isQuoteOrRoomIntent) {
             return ['is_quote_query' => false, 'reality_block' => '', 'fallback_reply' => ''];
         }
@@ -322,35 +323,79 @@ class LangGraphChatbotService
             }
         }
 
+        $lang = $this->scope->detectLanguage($message);
+
         $guestDesc = $totalGuests !== null
-            ? ($adults !== null ? "{$adults} người lớn".($children ? ", {$children} trẻ em" : '') : "{$totalGuests} khách")
-            : 'chưa giới hạn số khách';
+            ? ($lang === 'en'
+                ? ($adults !== null ? "{$adults} adult(s)".($children ? ", {$children} child(ren)" : '') : "{$totalGuests} guest(s)")
+                : ($adults !== null ? "{$adults} người lớn".($children ? ", {$children} trẻ em" : '') : "{$totalGuests} khách"))
+            : ($lang === 'en' ? 'unspecified guest count' : 'chưa giới hạn số khách');
 
         $after18Note = ($effectiveIn->isSameDay($today) && $now->hour >= 18)
-            ? ' (Lưu ý: hiện đã qua 18:00 nên khung nhận phòng hôm nay đã đóng; khách đặt trực tuyến lúc này vui lòng chọn nhận phòng từ ngày mai)'
+            ? ($lang === 'en'
+                ? ' (Note: it is past 18:00 so same-day online check-in is closed; earliest online check-in is tomorrow)'
+                : ' (Lưu ý: hiện đã qua 18:00 nên khung nhận phòng hôm nay đã đóng; khách đặt trực tuyến lúc này vui lòng chọn nhận phòng từ ngày mai)')
             : '';
 
         $realityBlock = sprintf(
-            "BẢNG BÁO GIÁ & PHÒNG TRỐNG TÍNH SẴN THEO NGỮ CẢNH HỘI THOẠI (Kỳ nghỉ: %s đến %s - %d đêm | Số khách: %s)%s:\n%s\nChỉ dẫn bắt buộc: Dùng ngay số liệu trên để báo giá chi tiết cho khách ngay trong lượt trả lời này, tuyệt đối không hẹn kiểm tra sau.",
+            "BẢNG BÁO GIÁ & PHÒNG TRỐNG TÍNH SẴN THEO NGỮ CẢNH HỘI THOẠI (Kỳ nghỉ: %s đến %s - %d đêm | Số khách: %s)%s:\n%s\nChỉ dẫn bắt buộc: Dùng ngay số liệu trên để báo giá chi tiết cho khách ngay trong lượt trả lời này bằng ngôn ngữ khách đang dùng (%s), tuyệt đối không hẹn kiểm tra sau.",
             $effectiveIn->format('d/m/Y'),
             $effectiveOut->format('d/m/Y'),
             $nights,
             $guestDesc,
             $after18Note,
-            implode("\n", $matchingLines)
+            implode("\n", $matchingLines),
+            $lang === 'en' ? 'English' : 'Tiếng Việt'
         );
 
         $fallbackReply = '';
         if ($fallbackItems !== []) {
-            $fallbackReply = sprintf(
-                'Báo giá trực tiếp tại Rosaliza Hotel cho lịch trình %d đêm (%s - %s, %s)%s: %s. Bạn có thể chọn phòng và đặt cọc 50%% trực tuyến tại mục Tìm phòng trống trên website nhé.',
-                $nights,
-                $effectiveIn->format('d/m/Y'),
-                $effectiveOut->format('d/m/Y'),
-                $guestDesc,
-                $after18Note,
-                implode('; ', $fallbackItems)
-            );
+            if ($lang === 'en') {
+                $enItems = [];
+                foreach ($roomTypes as $rt) {
+                    $fits = ($adults === null || (int) $rt->max_adults >= $adults)
+                        && ($children === null || (int) $rt->max_children >= $children)
+                        && ($totalGuests === null || (int) $rt->max_guests >= $totalGuests);
+                    $avail = $rt->rooms->filter(fn (Room $r) => $r->status === Room::STATUS_AVAILABLE && ! $reservedIds->contains($r->id))->count();
+                    if ($fits && $avail > 0) {
+                        $bp = (float) $rt->price;
+                        $tp = round((float) PriceSetting::calculateTotalPrice($bp, $effectiveIn->toDateString(), $effectiveOut->toDateString()));
+                        $dep = round($tp * 0.5);
+                        $enItems[] = sprintf(
+                            '%s: %s VND/night, total for %d night(s) (%s - %s) is %s VND (50%% deposit: %s VND, %d room(s) available)',
+                            $rt->type_name,
+                            number_format($bp, 0, ',', '.'),
+                            $nights,
+                            $effectiveIn->format('d/m'),
+                            $effectiveOut->format('d/m'),
+                            number_format($tp, 0, ',', '.'),
+                            number_format($dep, 0, ',', '.'),
+                            $avail
+                        );
+                    }
+                }
+                if ($enItems !== []) {
+                    $fallbackReply = sprintf(
+                        'Live rates at Rosaliza Hotel for %d night(s) (%s - %s, %s)%s: %s. You can select your room and pay a 50%% online deposit via the Room Search page on our website.',
+                        $nights,
+                        $effectiveIn->format('d/m/Y'),
+                        $effectiveOut->format('d/m/Y'),
+                        $guestDesc,
+                        $after18Note,
+                        implode('; ', $enItems)
+                    );
+                }
+            } else {
+                $fallbackReply = sprintf(
+                    'Báo giá trực tiếp tại Rosaliza Hotel cho lịch trình %d đêm (%s - %s, %s)%s: %s. Bạn có thể chọn phòng và đặt cọc 50%% trực tuyến tại mục Tìm phòng trống trên website nhé.',
+                    $nights,
+                    $effectiveIn->format('d/m/Y'),
+                    $effectiveOut->format('d/m/Y'),
+                    $guestDesc,
+                    $after18Note,
+                    implode('; ', $fallbackItems)
+                );
+            }
         }
 
         return [
@@ -399,26 +444,26 @@ class LangGraphChatbotService
         $checkOut = $found[1] ?? null;
 
         if (! $checkIn) {
-            if (preg_match('/\b(hôm nay|hom nay|tối nay|toi nay|bây giờ|bay gio)\b/ui', $text)) {
+            if (preg_match('/\b(hôm nay|hom nay|tối nay|toi nay|bây giờ|bay gio|today|tonight)\b/ui', $text)) {
                 $checkIn = $today->copy();
-            } elseif (preg_match('/\b(ngày mai|ngay mai|tối mai|toi mai|\bmai\b)\b/ui', $text)) {
+            } elseif (preg_match('/\b(ngày mai|ngay mai|tối mai|toi mai|\bmai\b|tomorrow)\b/ui', $text)) {
                 $checkIn = $today->copy()->addDay();
-            } elseif (preg_match('/\b(ngày kia|ngay kia|ngày mốt|ngay mot)\b/ui', $text)) {
+            } elseif (preg_match('/\b(ngày kia|ngay kia|ngày mốt|ngay mot|day after tomorrow)\b/ui', $text)) {
                 $checkIn = $today->copy()->addDays(2);
-            } elseif (preg_match('/\b(cuối tuần|cuoi tuan)\b/ui', $text)) {
+            } elseif (preg_match('/\b(cuối tuần|cuoi tuan|this weekend|weekend)\b/ui', $text)) {
                 $checkIn = $today->copy()->next(Carbon::SATURDAY);
             }
         }
 
         if (! $checkOut) {
-            // Match "trả 2 hôm nữa", "2 hôm nữa", "2 ngày nữa", "sau 2 ngày", "ở 2 đêm", "2 đêm", "2 ngày"
-            if (preg_match('/\b(?:trả|tra|đến|den|sau|ở|o)?\s*(\d{1,2})\s*(?:đêm|dem|hôm nữa|hom nua|ngày nữa|ngay nua|hôm|hom|ngày|ngay)\b/ui', $text, $durMatch)) {
+            // Match "trả 2 hôm nữa", "2 đêm", "2 nights", "3 days", etc.
+            if (preg_match('/\b(?:trả|tra|đến|den|sau|ở|o|for|in)?\s*(\d{1,2})\s*(?:đêm|dem|hôm nữa|hom nua|ngày nữa|ngay nua|hôm|hom|ngày|ngay|nights?|days?)\b/ui', $text, $durMatch)) {
                 $days = max(1, min(30, (int) $durMatch[1]));
                 $checkIn = $checkIn ?: $today->copy();
                 $checkOut = $checkIn->copy()->addDays($days);
-            } elseif ($checkIn && preg_match('/\b(?:trả|tra|đến|den)\s*(ngày kia|ngay kia|ngày mốt|ngay mot)\b/ui', $text)) {
+            } elseif ($checkIn && preg_match('/\b(?:trả|tra|đến|den|until|to)\s*(ngày kia|ngay kia|ngày mốt|ngay mot|day after tomorrow)\b/ui', $text)) {
                 $checkOut = $today->copy()->addDays(2);
-            } elseif ($checkIn && preg_match('/\b(?:trả|tra|đến|den)\s*(ngày mai|ngay mai|\bmai\b)\b/ui', $text)) {
+            } elseif ($checkIn && preg_match('/\b(?:trả|tra|đến|den|until|to)\s*(ngày mai|ngay mai|\bmai\b|tomorrow)\b/ui', $text)) {
                 $checkOut = $today->copy()->addDay();
             } elseif ($checkIn) {
                 $checkOut = $checkIn->copy()->addDay();
@@ -441,10 +486,10 @@ class LangGraphChatbotService
         $children = null;
         $total = null;
 
-        if (preg_match_all('/(\d{1,2})\s*(?:người lớn|nguoi lon)/ui', $text, $am)) {
+        if (preg_match_all('/(\d{1,2})\s*(?:người lớn|nguoi lon|adults?)/ui', $text, $am)) {
             $adults = (int) end($am[1]);
         }
-        if (preg_match_all('/(\d{1,2})\s*(?:trẻ em|tre em|bé|be|trẻ nhỏ|tre nho)/ui', $text, $cm)) {
+        if (preg_match_all('/(\d{1,2})\s*(?:trẻ em|tre em|bé|be|trẻ nhỏ|tre nho|children|child|kids?)/ui', $text, $cm)) {
             $children = (int) end($cm[1]);
         }
 
@@ -456,7 +501,7 @@ class LangGraphChatbotService
             return [$adults, $children, $total];
         }
 
-        if (preg_match_all('/(\d{1,2})\s*(?:người|nguoi|khách|khach)/ui', $text, $gm)) {
+        if (preg_match_all('/(\d{1,2})\s*(?:người|nguoi|khách|khach|guests?|people|persons?|pax)/ui', $text, $gm)) {
             $total = max(1, (int) end($gm[1]));
             $adults = $total;
             $children = 0;
@@ -466,7 +511,7 @@ class LangGraphChatbotService
     }
 
     /**
-     * Ensure the AI never stops after saying "Đợi mình chút để kiểm tra / Tôi sẽ kiểm tra giá..."
+     * Ensure the AI never stops after saying "Đợi mình chút để kiểm tra / Let me check..."
      * without delivering the actual quote information to the customer.
      */
     private function ensureQuoteFollowThrough(string $reply, array $quoteContext): string
@@ -477,13 +522,28 @@ class LangGraphChatbotService
         }
 
         $hasPriceDigits = (bool) preg_match('/\b\d{2,3}[\.,]\d{3}\b/u', $trimmed);
-        $isHoldingPromise = (bool) preg_match('/\b(đợi|chờ|sẽ kiểm tra|đang kiểm tra|kiểm tra giúp|check giúp|tra cứu giúp|báo lại sau|phản hồi sau)\b/iu', $trimmed);
+        $isHoldingPromise = (bool) preg_match('/\b(đợi|chờ|sẽ kiểm tra|đang kiểm tra|kiểm tra giúp|check giúp|tra cứu giúp|báo lại sau|phản hồi sau|let me check|one moment|please wait|checking the rate|checking availability|get back to you)\b/iu', $trimmed);
 
         if ($isHoldingPromise && ! $hasPriceDigits) {
             return $trimmed."\n\n".$quoteContext['fallback_reply'];
         }
 
         return $trimmed;
+    }
+
+    private function truncateToMaxTwoSentences(string $text): string
+    {
+        $trimmed = trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        $sentences = preg_split('/(?<=[.!?…])\s+/u', $trimmed, -1, PREG_SPLIT_NO_EMPTY);
+        if (! is_array($sentences) || count($sentences) <= 2) {
+            return $trimmed;
+        }
+
+        return implode(' ', array_slice($sentences, 0, 2));
     }
 
     public function isPersonalBookingQuery(string $message): bool
@@ -722,6 +782,9 @@ class LangGraphChatbotService
                 return null;
             }
             $reply = $this->ensureQuoteFollowThrough($reply, $quoteContext);
+            if ($this->scope->isBenignOutOfScope($message, $history)) {
+                $reply = $this->truncateToMaxTwoSentences($reply);
+            }
 
             $result = [
                 'reply' => $reply,
@@ -879,6 +942,9 @@ class LangGraphChatbotService
                     return false;
                 }
                 $reply = $this->ensureQuoteFollowThrough($reply, $quoteContext);
+            if ($this->scope->isBenignOutOfScope($message, $history)) {
+                $reply = $this->truncateToMaxTwoSentences($reply);
+            }
                 foreach (preg_split('/(?<=\s)/u', $reply, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
                     $onDelta($word);
                 }

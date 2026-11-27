@@ -44,21 +44,16 @@ class ReviewController extends Controller
             return redirect()->route('home')->with('error', 'Bạn không sử dụng loại phòng này trong booking.');
         }
 
-        // Mỗi kỳ lưu trú chỉ có một đánh giá cho mỗi hạng phòng.
-        $existing = Review::where('user_id', $userId)
+        $existingReviewCount = Review::where('user_id', $userId)
             ->where('booking_id', $booking->id)
             ->where('room_type_id', $roomTypeId)
-            ->first();
-        
-        if ($existing) {
-            return redirect()->route('rooms.detail', $roomTypeId)->with('info', 'Bạn đã gửi đánh giá cho loại phòng này trước đó.');
-        }
+            ->count();
 
-        return view('review.create', compact('booking', 'roomType'));
+        return view('review.create', compact('booking', 'roomType', 'existingReviewCount'));
     }
 
     /**
-     * Lưu đánh giá mới.
+     * Lưu đánh giá mới (hỗ trợ khách hàng gửi đánh giá nhiều lần).
      */
     public function store(Request $request)
     {
@@ -71,38 +66,29 @@ class ReviewController extends Controller
 
         $userId = session('customer_user_id') ?: auth()->id() ?: session('user_id');
 
-        try {
-            $created = DB::transaction(function () use ($request, $userId): bool {
-                $booking = Booking::query()->lockForUpdate()->findOrFail($request->booking_id);
+        $created = DB::transaction(function () use ($request, $userId): bool {
+            $booking = Booking::query()->lockForUpdate()->findOrFail($request->booking_id);
 
-                if ((int) $booking->user_id !== (int) $userId) {
-                    abort(403, 'Bạn không có quyền đánh giá phòng của booking này.');
-                }
-                if ($booking->status !== 'completed') {
-                    return false;
-                }
-                if (! $booking->rooms()->where('room_type_id', $request->room_type_id)->exists()) {
-                    abort(422, 'Loại phòng này không thuộc kỳ nghỉ của bạn.');
-                }
-
-                Review::create([
-                    'user_id' => $userId,
-                    'booking_id' => $booking->id,
-                    'room_type_id' => $request->room_type_id,
-                    'rating' => $request->rating,
-                    'comment' => $request->comment,
-                ]);
-
-                return true;
-            });
-        } catch (QueryException $exception) {
-            if (in_array((string) $exception->getCode(), ['23000', '23505'], true)) {
-                return redirect()->route('rooms.detail', $request->room_type_id)
-                    ->with('info', 'Bạn đã gửi đánh giá cho hạng phòng này trong kỳ lưu trú này.');
+            if ((int) $booking->user_id !== (int) $userId) {
+                abort(403, 'Bạn không có quyền đánh giá phòng của booking này.');
+            }
+            if ($booking->status !== 'completed') {
+                return false;
+            }
+            if (! $booking->rooms()->where('room_type_id', $request->room_type_id)->exists()) {
+                abort(422, 'Loại phòng này không thuộc kỳ nghỉ của bạn.');
             }
 
-            throw $exception;
-        }
+            Review::create([
+                'user_id' => $userId,
+                'booking_id' => $booking->id,
+                'room_type_id' => $request->room_type_id,
+                'rating' => $request->rating,
+                'comment' => $request->comment,
+            ]);
+
+            return true;
+        });
 
         if (! $created) {
             return redirect()->route('home')->with('error', 'Chỉ có thể đánh giá sau khi đã hoàn tất thủ tục trả phòng.');

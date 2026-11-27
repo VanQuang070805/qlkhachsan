@@ -52,8 +52,32 @@ class CancellationController extends Controller
      */
     public function cancel(Request $request, int $id)
     {
-        $validated = $request->validate([
-            'reason' => 'nullable|string|max:500',
+        $bookingPreview = Booking::findOrFail($id);
+        abort_unless((int) $bookingPreview->user_id === (int) auth()->id(), 403);
+
+        if (! in_array($bookingPreview->status, ['pending', 'confirmed'], true)) {
+            return redirect()->route('booking.mine')->with('error', 'Booking này không thể hủy.');
+        }
+
+        $requiresRefundBank = $bookingPreview->isRefundEligible();
+        $rules = [
+            'reason' => ['nullable', 'string', 'max:500'],
+        ];
+        if ($requiresRefundBank) {
+            $rules['refund_bank_name'] = ['required', 'string', 'max:120'];
+            $rules['refund_account_number'] = ['required', 'string', 'max:50', 'regex:/^[0-9A-Za-z\s\-]{5,40}$/'];
+            $rules['refund_account_holder'] = ['required', 'string', 'max:150'];
+        } else {
+            $rules['refund_bank_name'] = ['nullable', 'string', 'max:120'];
+            $rules['refund_account_number'] = ['nullable', 'string', 'max:50'];
+            $rules['refund_account_holder'] = ['nullable', 'string', 'max:150'];
+        }
+
+        $validated = $request->validate($rules, [
+            'refund_bank_name.required' => 'Vui lòng nhập tên ngân hàng nhận hoàn tiền.',
+            'refund_account_number.required' => 'Vui lòng nhập số tài khoản nhận hoàn tiền.',
+            'refund_account_number.regex' => 'Số tài khoản chỉ gồm chữ và số (từ 5 đến 40 ký tự).',
+            'refund_account_holder.required' => 'Vui lòng nhập họ tên chủ tài khoản nhận hoàn tiền.',
         ]);
 
         $isEligible = false;
@@ -65,11 +89,23 @@ class CancellationController extends Controller
             $refundAmount = $isEligible
                 ? min((float) $booking->total_price, $booking->successfulPaymentAmount())
                 : 0;
+
+            $bankName = $isEligible ? trim((string) ($validated['refund_bank_name'] ?? '')) : null;
+            $accountNumber = $isEligible
+                ? preg_replace('/\s+/', '', trim((string) ($validated['refund_account_number'] ?? '')))
+                : null;
+            $accountHolder = $isEligible
+                ? mb_strtoupper(trim((string) ($validated['refund_account_holder'] ?? '')), 'UTF-8')
+                : null;
+
             $booking->update([
                 'status' => 'cancelled', 'cancelled_at' => now(),
                 'cancellation_reason' => $validated['reason'] ?? null,
                 'refund_status' => $refundAmount > 0 ? 'eligible' : 'none',
                 'refund_amount' => $refundAmount,
+                'refund_bank_name' => $bankName ?: null,
+                'refund_account_number' => $accountNumber ?: null,
+                'refund_account_holder' => $accountHolder ?: null,
             ]);
             // Cancelling a future reservation must not change a room occupied by another guest.
             return true;
@@ -77,7 +113,7 @@ class CancellationController extends Controller
         if (!$cancelled) return redirect()->route('booking.mine')->with('error', 'Booking này không thể hủy.');
 
         $message = $isEligible
-            ? 'Hủy phòng thành công. Yêu cầu hoàn tiền đã được ghi nhận và sẽ được lễ tân xác nhận sau khi hoàn qua cổng thanh toán.'
+            ? 'Hủy phòng thành công. Yêu cầu hoàn tiền và thông tin tài khoản nhận hoàn đã được gửi tới bộ phận lễ tân để giải ngân.'
             : 'Hủy phòng thành công. Booking này không đủ điều kiện hoàn tiền vì đã quá thời hạn.';
 
         return redirect()->route('booking.mine')->with('success', $message);
@@ -112,7 +148,12 @@ class CancellationController extends Controller
                 'provider_reference' => $reference,
                 'status' => 'completed',
                 'processed_at' => now(),
-                'metadata' => ['source' => 'staff_confirmation'],
+                'metadata' => array_filter([
+                    'source' => 'staff_confirmation',
+                    'refund_bank_name' => $booking->refund_bank_name,
+                    'refund_account_number' => $booking->refund_account_number,
+                    'refund_account_holder' => $booking->refund_account_holder,
+                ], static fn ($val) => $val !== null && $val !== ''),
             ]);
             $booking->update(['refund_status' => 'refunded', 'payment_status' => 'refunded']);
             return back()->with('success', 'Đã xác nhận hoàn tiền '.number_format($booking->refund_amount).'đ cho booking #'.$booking->id.'.');

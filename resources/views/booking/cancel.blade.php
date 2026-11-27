@@ -84,6 +84,82 @@
                 {{-- Form hủy đặt phòng --}}
                 <form action="{{ route('booking.cancel', $booking->id) }}" method="POST" id="cancelForm">
                     @csrf
+
+                    @if($isEligible)
+                        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 18px; padding: 18px 20px; margin-bottom: 20px;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-bank2 text-primary" style="font-size: 16px;" aria-hidden="true"></i>
+                                <strong style="font-size: 13.5px; color: #0f172a;">Thông tin tài khoản nhận hoàn tiền</strong>
+                            </div>
+                            <p style="margin: 0 0 14px; font-size: 12.5px; color: #475569; line-height: 1.5;">
+                                Vui lòng cung cấp chính xác tài khoản ngân hàng để nhân viên đối soát và giải ngân khoản hoàn <strong>{{ number_format($refundAmount, 0, ',', '.') }} đ</strong>.
+                            </p>
+
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label for="refundBankName" class="form-label fw-bold text-slate-800 mb-1" style="font-size: 12.5px;">
+                                        Ngân hàng thụ hưởng <span class="text-danger">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="refundBankName"
+                                        name="refund_bank_name"
+                                        value="{{ old('refund_bank_name', $booking->refund_bank_name) }}"
+                                        class="form-control @error('refund_bank_name') is-invalid @enderror"
+                                        placeholder="VD: Vietcombank, MB Bank, Techcombank..."
+                                        maxlength="120"
+                                        required
+                                        style="border-radius: 12px; border: 1px solid #cbd5e1; padding: 10px 14px; font-size: 13.5px; background: #ffffff;"
+                                    >
+                                    @error('refund_bank_name')
+                                        <div class="invalid-feedback mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="refundAccountNumber" class="form-label fw-bold text-slate-800 mb-1" style="font-size: 12.5px;">
+                                        Số tài khoản <span class="text-danger">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="refundAccountNumber"
+                                        name="refund_account_number"
+                                        value="{{ old('refund_account_number', $booking->refund_account_number) }}"
+                                        class="form-control @error('refund_account_number') is-invalid @enderror"
+                                        placeholder="Nhập số tài khoản nhận tiền"
+                                        maxlength="40"
+                                        pattern="[0-9A-Za-z\s\-]{5,40}"
+                                        required
+                                        style="border-radius: 12px; border: 1px solid #cbd5e1; padding: 10px 14px; font-size: 13.5px; font-variant-numeric: tabular-nums; background: #ffffff;"
+                                    >
+                                    @error('refund_account_number')
+                                        <div class="invalid-feedback mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="refundAccountHolder" class="form-label fw-bold text-slate-800 mb-1" style="font-size: 12.5px;">
+                                        Chủ tài khoản <span class="text-danger">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="refundAccountHolder"
+                                        name="refund_account_holder"
+                                        value="{{ old('refund_account_holder', $booking->refund_account_holder ?: $booking->customer_name) }}"
+                                        class="form-control @error('refund_account_holder') is-invalid @enderror"
+                                        placeholder="VD: NGUYEN VAN A"
+                                        maxlength="150"
+                                        required
+                                        style="border-radius: 12px; border: 1px solid #cbd5e1; padding: 10px 14px; font-size: 13.5px; text-transform: uppercase; background: #ffffff;"
+                                    >
+                                    @error('refund_account_holder')
+                                        <div class="invalid-feedback mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="mb-4">
                         <label for="cancelReason" class="form-label fw-bold text-slate-800" style="font-size: 13px;">
                             Lý do hủy đặt phòng <span class="text-muted fw-normal">(không bắt buộc)</span>

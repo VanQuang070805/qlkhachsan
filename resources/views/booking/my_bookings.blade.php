@@ -320,12 +320,18 @@
                                             </a>
                                         @endif
                                     @elseif($isCompleted)
-                                        @if($firstRoom?->room_type_id)
-                                            <a href="{{ route('reviews.create', ['booking_id' => $booking->id, 'room_type_id' => $firstRoom->room_type_id]) }}" class="booking-action-btn booking-action-btn--primary">
-                                                <span>Đánh giá kỳ nghỉ</span>
+                                        @php
+                                            $uniqueReviewRoomTypes = $booking->rooms
+                                                ->filter(fn ($r) => !empty($r->room_type_id))
+                                                ->unique('room_type_id')
+                                                ->values();
+                                        @endphp
+                                        @foreach($uniqueReviewRoomTypes as $reviewRoom)
+                                            <a href="{{ route('reviews.create', ['booking_id' => $booking->id, 'room_type_id' => $reviewRoom->room_type_id]) }}" class="booking-action-btn booking-action-btn--primary">
+                                                <span>{{ $uniqueReviewRoomTypes->count() > 1 ? 'Đánh giá '.($reviewRoom->roomType?->type_name ?: 'phòng') : 'Đánh giá kỳ nghỉ' }}</span>
                                                 <i class="bi bi-arrow-right" aria-hidden="true"></i>
                                             </a>
-                                        @endif
+                                        @endforeach
                                     @else
                                         <button
                                             type="button"
@@ -333,6 +339,9 @@
                                             data-booking-id="{{ $booking->id }}"
                                             data-refund-amount="{{ $booking->refund_amount === null ? '' : number_format($booking->refund_amount, 0, ',', '.') }}"
                                             data-refund-status="{{ $booking->refund_status ?? '' }}"
+                                            data-refund-bank="{{ $booking->refund_bank_name ?? '' }}"
+                                            data-refund-account="{{ $booking->refund_account_number ?? '' }}"
+                                            data-refund-holder="{{ $booking->refund_account_holder ?? '' }}"
                                             onclick="openRefundModal(this)"
                                         >
                                             <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
@@ -494,7 +503,8 @@
         <div class="my-booking-detail-rows mb-3">
             <div class="my-booking-detail-row"><span>Mã đặt phòng</span><strong id="refundBookingCode">--</strong></div>
             <div class="my-booking-detail-row"><span>Trạng thái</span><strong id="refundStatus">--</strong></div>
-            <div class="my-booking-detail-row" style="border-bottom: none;"><span>Số tiền hoàn</span><span id="refundAmount" style="font-weight: 500; font-variant-numeric: tabular-nums;">--</span></div>
+            <div class="my-booking-detail-row"><span>Số tiền hoàn</span><span id="refundAmount" style="font-weight: 500; font-variant-numeric: tabular-nums;">--</span></div>
+            <div class="my-booking-detail-row" id="refundBankRow" hidden style="border-bottom: none;"><span>Tài khoản nhận</span><strong id="refundBankSummary" class="text-end">--</strong></div>
         </div>
         <p class="text-muted small mb-3">Lễ tân xác nhận hoàn tiền sau khi đối soát giao dịch qua cổng thanh toán.</p>
         <button type="button" class="btn btn-outline-secondary w-100 rounded-pill" style="min-height: 44px;" onclick="closeModal('refundModal')">Đóng</button>
@@ -1210,6 +1220,17 @@ function openRefundModal(button) {
     document.getElementById('refundAmount').textContent = button.dataset.refundAmount
         ? button.dataset.refundAmount + ' đ'
         : 'Chưa ghi nhận khoản hoàn';
+    const bankRow = document.getElementById('refundBankRow');
+    const bankSummary = document.getElementById('refundBankSummary');
+    if (bankRow && bankSummary) {
+        const hasBank = Boolean(button.dataset.refundAccount || button.dataset.refundBank);
+        bankRow.hidden = !hasBank;
+        if (hasBank) {
+            bankSummary.textContent = [button.dataset.refundBank, button.dataset.refundAccount, button.dataset.refundHolder]
+                .filter(Boolean)
+                .join(' · ');
+        }
+    }
     openModalHelper('refundModal');
 }
 

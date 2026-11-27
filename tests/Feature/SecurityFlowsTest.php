@@ -314,12 +314,20 @@ class SecurityFlowsTest extends TestCase
         ]);
 
         $this->asCustomer($customer)
-            ->post(route('booking.cancel', $booking->id), ['reason' => 'Plans changed'])
+            ->post(route('booking.cancel', $booking->id), [
+                'reason' => 'Plans changed',
+                'refund_bank_name' => 'Vietcombank',
+                'refund_account_number' => '0011001932418',
+                'refund_account_holder' => 'ROYAL GUEST',
+            ])
             ->assertRedirect(route('booking.mine'));
 
         $this->assertSame('cancelled', $booking->fresh()->status);
         $this->assertSame('eligible', $booking->fresh()->refund_status);
         $this->assertSame(300000.0, (float) $booking->fresh()->refund_amount);
+        $this->assertSame('Vietcombank', $booking->fresh()->refund_bank_name);
+        $this->assertSame('0011001932418', $booking->fresh()->refund_account_number);
+        $this->assertSame('ROYAL GUEST', $booking->fresh()->refund_account_holder);
     }
 
     public function test_customer_cannot_get_refund_for_cash_booking_that_has_not_been_collected(): void
@@ -1095,9 +1103,9 @@ class SecurityFlowsTest extends TestCase
             ->assertRedirect(route('rooms.detail', $type->id));
         $this->assertDatabaseHas('reviews', ['user_id'=>$customer->id, 'booking_id'=>$booking->id, 'room_type_id'=>$type->id, 'rating'=>5]);
 
-        $this->asCustomer($customer)->post(route('reviews.store'), ['booking_id'=>$booking->id, 'room_type_id'=>$type->id, 'rating'=>4])
+        $this->asCustomer($customer)->post(route('reviews.store'), ['booking_id'=>$booking->id, 'room_type_id'=>$type->id, 'rating'=>4, 'comment'=>'Đánh giá bổ sung lần 2.'])
             ->assertRedirect(route('rooms.detail', $type->id));
-        $this->assertDatabaseCount('reviews', 1);
+        $this->assertDatabaseCount('reviews', 2);
 
         $secondStay = $this->bookingFor($customer);
         $secondStay->rooms()->attach($room->id);
@@ -1105,7 +1113,7 @@ class SecurityFlowsTest extends TestCase
         $this->asCustomer($customer)->post(route('reviews.store'), [
             'booking_id' => $secondStay->id, 'room_type_id' => $type->id, 'rating' => 4,
         ])->assertRedirect(route('rooms.detail', $type->id));
-        $this->assertDatabaseCount('reviews', 2);
+        $this->assertDatabaseCount('reviews', 3);
     }
 
     public function test_royal_pagination_marks_one_current_page_and_disables_the_range_end(): void
