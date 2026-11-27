@@ -319,7 +319,7 @@ function keydown(event) {
     }
 }
 
-function startCooldown(seconds = 2) {
+function startCooldown(seconds = 1) {
     clearInterval(cooldownTimer);
     cooldownSeconds.value = Math.max(0, Math.ceil(seconds));
     if (cooldownSeconds.value <= 0) return;
@@ -539,7 +539,7 @@ async function send(prompt) {
         typing.value = false;
         controller = null;
         if (cooldownSeconds.value <= 0) {
-            startCooldown(2);
+            startCooldown(1);
         }
         await scrollToLatest();
         input.value?.focus();

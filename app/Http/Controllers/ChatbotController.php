@@ -634,13 +634,13 @@ class ChatbotController extends Controller
             return "Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi {$waitSec} giây trước khi gửi tiếp nhé.";
         }
 
-        // 1. Minimum 2-second interval between consecutive messages
+        // 1. Minimum 1-second interval between consecutive messages
         $lastSentKey = "royal:chatbot:last_sent_ms:{$actorKey}";
         $lastSentMs = (int) Cache::get($lastSentKey, 0);
-        if ($lastSentMs > 0 && ($nowMs - $lastSentMs) < 2000) {
-            Cache::put($lockKey, $nowMs + 5000, now()->addSeconds(10));
+        if ($lastSentMs > 0 && ($nowMs - $lastSentMs) < 1000) {
+            Cache::put($lockKey, $nowMs + 1000, now()->addSeconds(5));
 
-            return 'Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi vài giây giữa mỗi lần gửi nhé.';
+            return 'Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi 1 giây giữa mỗi lần gửi nhé.';
         }
         Cache::put($lastSentKey, $nowMs, now()->addSeconds(30));
 
